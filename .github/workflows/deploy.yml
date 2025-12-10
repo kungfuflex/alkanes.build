@@ -121,16 +121,37 @@ jobs:
           echo "**Image:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
 
       - name: Update Cloudflare DNS
-        if: ${{ vars.CLOUDFLARE_SUBDOMAIN != '' }}
+        if: ${{ vars.CLOUDFLARE_DOMAIN != '' }}
         env:
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
         run: |
-          SUBDOMAIN="${{ vars.CLOUDFLARE_SUBDOMAIN }}"
+          DOMAIN="${{ vars.CLOUDFLARE_DOMAIN }}"
           TARGET="${{ steps.service.outputs.hostname }}"
 
+          # Extract root domain for zone lookup (handles both apex and subdomains)
+          ROOT_DOMAIN=$(echo "$DOMAIN" | awk -F. '{print $(NF-1)"."$NF}')
+
+          # Get Zone ID dynamically
+          CF_ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=${ROOT_DOMAIN}" \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id')
+
+          if [ "$CF_ZONE_ID" = "null" ] || [ -z "$CF_ZONE_ID" ]; then
+            echo "Error: Could not find zone for ${ROOT_DOMAIN}"
+            exit 1
+          fi
+
+          echo "Found Zone ID: ${CF_ZONE_ID} for ${ROOT_DOMAIN}"
+
+          # For apex domain, use @ as name; Cloudflare will CNAME flatten
+          if [ "$DOMAIN" = "$ROOT_DOMAIN" ]; then
+            RECORD_NAME="@"
+          else
+            RECORD_NAME="$DOMAIN"
+          fi
+
           # Check if record exists
-          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records?type=CNAME&name=${SUBDOMAIN}" \
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records?type=CNAME&name=${DOMAIN}" \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             -H "Content-Type: application/json" | jq -r '.result[0].id // empty')
 
@@ -139,19 +160,19 @@ jobs:
             curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${RECORD_ID}" \
               -H "Authorization: Bearer ${CF_API_TOKEN}" \
               -H "Content-Type: application/json" \
-              --data "{\"type\":\"CNAME\",\"name\":\"${SUBDOMAIN}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}"
-            echo "Updated DNS record: ${SUBDOMAIN} -> ${TARGET}"
+              --data "{\"type\":\"CNAME\",\"name\":\"${RECORD_NAME}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}"
+            echo "Updated DNS record: ${DOMAIN} -> ${TARGET}"
           else
             # Create new record
             curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records" \
               -H "Authorization: Bearer ${CF_API_TOKEN}" \
               -H "Content-Type: application/json" \
-              --data "{\"type\":\"CNAME\",\"name\":\"${SUBDOMAIN}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}"
-            echo "Created DNS record: ${SUBDOMAIN} -> ${TARGET}"
+              --data "{\"type\":\"CNAME\",\"name\":\"${RECORD_NAME}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}"
+            echo "Created DNS record: ${DOMAIN} -> ${TARGET}"
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Custom Domain:** https://${SUBDOMAIN}" >> $GITHUB_STEP_SUMMARY
+          echo "**Custom Domain:** https://${DOMAIN}" >> $GITHUB_STEP_SUMMARY
 
   migrate:
     name: Run Database Migrations
