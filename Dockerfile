@@ -5,14 +5,15 @@
 # Stage 1: Dependencies
 # ============================================
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Copy package files
+# Copy package files and prisma schema (needed for postinstall)
 COPY package.json pnpm-lock.yaml* ./
+COPY prisma ./prisma/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
