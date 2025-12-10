@@ -11,6 +11,9 @@ const tsSdkWasmPath = path.join(process.cwd(), "ts-sdk/build/wasm/alkanes_web_sy
 const hasTsSdk = fs.existsSync(tsSdkWasmPath);
 
 const nextConfig: NextConfig = {
+  // Enable standalone output for Docker deployment
+  output: "standalone",
+
   // Enable MDX pages
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
 

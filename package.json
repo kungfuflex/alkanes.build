@@ -20,6 +20,10 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "setup": "pnpm docker:up && pnpm db:push && pnpm build:external",
+    "setup:local": "pnpm docker:up && sleep 3 && pnpm db:push",
+    "gcp:setup": "bash ./gcp/setup.sh",
+    "gcp:deploy": "bash ./gcp/deploy.sh",
+    "gcp:setup-wif": "bash ./gcp/setup-github-wif.sh",
     "postinstall": "prisma generate"
   },
   "optionalDependencies": {
