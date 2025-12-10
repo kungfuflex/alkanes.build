@@ -1,0 +1,77 @@
+# Introduction to Alkanes
+
+Alkanes is a metaprotocol built on top of [Protorunes](https://github.com/kungfuflex/protorune-rs) that brings smart contract functionality to Bitcoin. Unlike traditional Bitcoin scripts, Alkanes enables complex programmable logic while maintaining the security guarantees of the Bitcoin network.
+
+## What are Alkanes?
+
+Alkanes are **WebAssembly (WASM) smart contracts** that run on Bitcoin through the Protorunes protocol. They enable:
+
+- **DeFi on Bitcoin** - AMMs, lending, derivatives
+- **Token standards** - Fungible and non-fungible tokens
+- **Governance** - On-chain voting and DAOs
+- **Complex logic** - Arbitrary computation anchored to Bitcoin
+
+## How it Works
+
+1. **Write contracts in Rust** - Use familiar tooling and the alkanes-std library
+2. **Compile to WASM** - Target `wasm32-unknown-unknown`
+3. **Deploy to Bitcoin** - Inscribe the WASM binary via Ordinals
+4. **Interact via transactions** - Call contract methods through Bitcoin transactions
+
+## Key Concepts
+
+### Protorunes
+
+Protorunes extend the Runes protocol with programmable functionality. Each Alkane is a special type of Protorune that contains executable WASM code.
+
+### DIESEL Token
+
+DIESEL is the native governance token of the Alkanes ecosystem. It's used for:
+
+- Voting on protocol upgrades
+- Paying for gas (execution costs)
+- Staking and liquidity provision
+
+### Metashrew Indexer
+
+Metashrew is the indexing infrastructure that processes Bitcoin blocks and maintains Alkane state. It enables fast queries and real-time updates.
+
+## Getting Started
+
+<div className="grid md:grid-cols-2 gap-4 mt-6">
+  <a href="/docs/quickstart" className="glass-card p-4 hover:shadow-lg transition-shadow">
+    <h3 className="font-semibold mb-2">Quick Start →</h3>
+    <p className="text-sm text-slate-600 dark:text-slate-400">
+      Build and deploy your first Alkane in under 10 minutes
+    </p>
+  </a>
+  <a href="/docs/cli" className="glass-card p-4 hover:shadow-lg transition-shadow">
+    <h3 className="font-semibold mb-2">CLI Reference →</h3>
+    <p className="text-sm text-slate-600 dark:text-slate-400">
+      Complete guide to the alkanes-cli tool
+    </p>
+  </a>
+</div>
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Your Application                      │
+├─────────────────────────────────────────────────────────┤
+│                    Subfrost API                          │
+│              (REST / JSON-RPC / GraphQL)                │
+├─────────────────────────────────────────────────────────┤
+│                   Metashrew Indexer                      │
+│              (WASM-based block processing)              │
+├─────────────────────────────────────────────────────────┤
+│                    Bitcoin Network                       │
+│              (Transactions & Block Data)                │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Resources
+
+- [GitHub Repository](https://github.com/kungfuflex/alkanes-rs) - Source code and examples
+- [Subfrost API](https://mainnet.sandshrew.io) - Hosted indexer infrastructure
+- [DIESEL Governance](/governance) - Participate in protocol governance

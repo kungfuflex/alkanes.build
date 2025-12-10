@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables */
+:root {
+  /* Brand colors */
+  --alkane-primary: #0070c5;
+  --alkane-secondary: #0c8ee7;
+  --alkane-accent: #36aaf6;
+
+  /* DIESEL token */
+  --diesel-primary: #f97316;
+  --diesel-secondary: #ea580c;
+
+  /* Surfaces */
+  --sf-surface: rgba(255, 255, 255, 0.9);
+  --sf-glass-bg: rgba(240, 247, 255, 0.82);
+  --sf-glass-border: rgba(255, 255, 255, 0.55);
+  --sf-outline: #d5def0;
+
+  /* Text */
+  --sf-text: #0f172a;
+  --sf-text-muted: #64748b;
+
+  /* Background gradient */
+  --sf-bg-start: #f0f7ff;
+  --sf-bg-end: #e0effe;
+}
+
+.dark {
+  --sf-surface: rgba(15, 23, 42, 0.9);
+  --sf-glass-bg: rgba(30, 41, 59, 0.82);
+  --sf-glass-border: rgba(51, 65, 85, 0.55);
+  --sf-outline: #334155;
+
+  --sf-text: #f1f5f9;
+  --sf-text-muted: #94a3b8;
+
+  --sf-bg-start: #0f172a;
+  --sf-bg-end: #1e293b;
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-satoshi), system-ui, sans-serif;
+  background: linear-gradient(180deg, var(--sf-bg-start) 0%, var(--sf-bg-end) 100%);
+  min-height: 100vh;
+  color: var(--sf-text);
+}
+
+/* Glass effect utility */
+.glass {
+  background: var(--sf-glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--sf-glass-border);
+}
+
+.glass-card {
+  @apply glass rounded-2xl shadow-lg;
+}
+
+/* Focus ring */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-alkane-500 focus:ring-offset-2;
+}
+
+/* Code blocks */
+pre {
+  @apply bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto;
+}
+
+code {
+  @apply font-mono text-sm;
+}
+
+:not(pre) > code {
+  @apply bg-slate-800 text-slate-100 px-1.5 py-0.5 rounded;
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sf-outline);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--alkane-primary);
+}
+
+/* MDX Content styles */
+.prose {
+  @apply max-w-none;
+}
+
+.prose h1 {
+  @apply text-3xl font-bold mb-4 text-alkane-900 dark:text-alkane-100;
+}
+
+.prose h2 {
+  @apply text-2xl font-bold mt-8 mb-4 text-alkane-800 dark:text-alkane-200;
+}
+
+.prose h3 {
+  @apply text-xl font-semibold mt-6 mb-3 text-alkane-700 dark:text-alkane-300;
+}
+
+.prose p {
+  @apply mb-4 leading-relaxed;
+}
+
+.prose ul {
+  @apply list-disc pl-6 mb-4;
+}
+
+.prose ol {
+  @apply list-decimal pl-6 mb-4;
+}
+
+.prose li {
+  @apply mb-2;
+}
+
+.prose a {
+  @apply text-alkane-600 hover:text-alkane-700 dark:text-alkane-400 dark:hover:text-alkane-300 underline;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-alkane-500 pl-4 italic my-4 text-slate-600 dark:text-slate-400;
+}
+
+.prose table {
+  @apply w-full border-collapse mb-4;
+}
+
+.prose th {
+  @apply bg-slate-100 dark:bg-slate-800 px-4 py-2 text-left font-semibold border border-slate-200 dark:border-slate-700;
+}
+
+.prose td {
+  @apply px-4 py-2 border border-slate-200 dark:border-slate-700;
+}
+
+/* Governance specific */
+.proposal-card {
+  @apply glass-card p-6 hover:shadow-xl transition-shadow duration-200;
+}
+
+.vote-button {
+  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+}
+
+.vote-button-for {
+  @apply bg-green-500 hover:bg-green-600 text-white;
+}
+
+.vote-button-against {
+  @apply bg-red-500 hover:bg-red-600 text-white;
+}
+
+.vote-button-abstain {
+  @apply bg-slate-500 hover:bg-slate-600 text-white;
+}

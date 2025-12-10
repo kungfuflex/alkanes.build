@@ -1,0 +1,172 @@
+# CLI Reference
+
+The `alkanes-cli` tool provides a command-line interface for interacting with the Alkanes protocol on Bitcoin.
+
+## Installation
+
+### From Source
+
+```bash
+git clone https://github.com/kungfuflex/alkanes-rs.git
+cd alkanes-rs
+cargo build --release -p alkanes-cli
+```
+
+### From npm
+
+```bash
+npm install -g @alkanes/cli
+```
+
+## Global Options
+
+| Option | Description |
+|--------|-------------|
+| `-p, --network` | Network to use: `mainnet`, `testnet`, `signet`, `regtest` |
+| `--wallet-file` | Path to wallet file |
+| `--rpc-url` | Custom RPC endpoint URL |
+| `-v, --verbose` | Enable verbose output |
+| `-y, --yes` | Skip confirmation prompts |
+
+## Commands Overview
+
+### Wallet Commands
+
+```bash
+# Create a new wallet
+alkanes-cli wallet create
+
+# Import from mnemonic
+alkanes-cli wallet import
+
+# Show wallet info
+alkanes-cli wallet info
+
+# Get receiving address
+alkanes-cli wallet receive
+
+# Check balance
+alkanes-cli wallet balance
+
+# Mine blocks (regtest only)
+alkanes-cli -p regtest wallet mine 10
+```
+
+### Alkanes Commands
+
+```bash
+# Deploy a contract
+alkanes-cli alkanes execute "[3,<tx>,0]" --envelope "contract.wasm"
+
+# Execute a contract method
+alkanes-cli alkanes execute "[<block>,<tx>,<opcode>,<args...>]"
+
+# Query contract state
+alkanes-cli alkanes view "[<block>,<tx>]" "<opcode>"
+
+# List deployed alkanes
+alkanes-cli alkanes list
+```
+
+## Common Operations
+
+### Wrapping BTC to frBTC
+
+```bash
+# Wrap BTC (opcode 77 on frBTC contract [32,0])
+alkanes-cli alkanes execute "[32,0,77]" \
+  --fee-rate 10 \
+  -y
+```
+
+### Unwrapping frBTC to BTC
+
+```bash
+# Unwrap frBTC (opcode 78 on frBTC contract)
+alkanes-cli alkanes execute "[32,0,78,<amount>]" \
+  --fee-rate 10 \
+  -y
+```
+
+### Deploying a Contract
+
+```bash
+# Deploy to reserved address space [4, tx]
+alkanes-cli alkanes execute "[3,7936,0]" \
+  --envelope "./my_contract.wasm" \
+  --fee-rate 10 \
+  -y
+
+# Deploy to DIESEL creates at [2, n]
+alkanes-cli alkanes execute "[2,0]" \
+  --envelope "./my_contract.wasm" \
+  --fee-rate 10 \
+  -y
+```
+
+### Interacting with Contracts
+
+```bash
+# Call a method with arguments
+alkanes-cli alkanes execute "[<alkane_block>,<alkane_tx>,<opcode>,<arg1>,<arg2>]" \
+  --fee-rate 10 \
+  -y
+
+# View state (read-only)
+alkanes-cli alkanes view "[<alkane_block>,<alkane_tx>]" "<opcode>"
+
+# Execute with trace for debugging
+alkanes-cli alkanes execute "[4,0x1f00,99]" \
+  --trace \
+  -y
+```
+
+## Network Endpoints
+
+| Network | Endpoint |
+|---------|----------|
+| mainnet | `https://mainnet.sandshrew.io/v4` |
+| testnet | `https://testnet.sandshrew.io/v4` |
+| signet | `https://signet.sandshrew.io/v4` |
+
+## Examples
+
+### Complete Deployment Flow
+
+```bash
+# 1. Create wallet
+alkanes-cli -p signet wallet create
+
+# 2. Get address and fund it
+alkanes-cli -p signet wallet receive
+
+# 3. Check balance
+alkanes-cli -p signet wallet balance
+
+# 4. Deploy contract
+alkanes-cli -p signet alkanes execute "[3,0,0]" \
+  --envelope "./my_contract.wasm" \
+  --fee-rate 10 \
+  -y
+
+# 5. Verify deployment
+alkanes-cli -p signet alkanes list
+```
+
+### Query DIESEL Balance
+
+```bash
+# DIESEL is at [2, 0]
+alkanes-cli -p mainnet alkanes view "[2,0]" "4"
+```
+
+## Error Handling
+
+Common errors and solutions:
+
+| Error | Solution |
+|-------|----------|
+| `Insufficient funds` | Fund your wallet with more satoshis |
+| `Invalid opcode` | Check the contract's supported opcodes |
+| `Contract not found` | Verify the alkane ID is correct |
+| `Fee rate too low` | Increase the `--fee-rate` parameter |

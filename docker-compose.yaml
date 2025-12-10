@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: alkanes-docs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: alkanes
+      POSTGRES_PASSWORD: alkanes_dev_password
+      POSTGRES_DB: alkanes_docs
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alkanes -d alkanes_docs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching (optional, for production)
+  redis:
+    image: redis:7-alpine
+    container_name: alkanes-docs-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
