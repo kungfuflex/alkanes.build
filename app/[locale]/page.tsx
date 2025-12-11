@@ -149,7 +149,7 @@ export default function HomePage() {
                     {t("home.cta.viewProposals")}
                   </Link>
                   <a
-                    href="https://github.com/kungfuflex/alkanes-rs"
+                    href="https://github.com/kungfuflex/alkanes-rs/tree/develop"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-secondary"

@@ -77,7 +77,7 @@ export default function DocsLayout({
         <div className="flex gap-8">
           {/* Sidebar */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
-            <nav className="sticky top-24 space-y-8">
+            <nav className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-8 pb-8">
               {navigation.map((section) => (
                 <div key={section.titleKey}>
                   <h3 className="font-semibold text-[color:var(--sf-text)] mb-2">

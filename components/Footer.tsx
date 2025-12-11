@@ -33,7 +33,7 @@ export function Footer() {
               {t("footer.links.forum")}
             </Link>
             <a
-              href="https://github.com/kungfuflex/alkanes-rs"
+              href="https://github.com/kungfuflex/alkanes-rs/tree/develop"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors"
@@ -53,7 +53,7 @@ export function Footer() {
           {/* Social Icons */}
           <div className="flex items-center gap-4">
             <a
-              href="https://github.com/kungfuflex/alkanes-rs"
+              href="https://github.com/kungfuflex/alkanes-rs/tree/develop"
               target="_blank"
               rel="noopener noreferrer"
               className="w-10 h-10 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)] flex items-center justify-center transition-colors"
