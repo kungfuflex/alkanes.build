@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DieselPriceCard } from "@/components/DieselPriceCard";
@@ -6,6 +9,8 @@ import { VaultPerformance } from "@/components/VaultPerformance";
 import { ActiveProposals } from "@/components/ActiveProposals";
 
 export default function HomePage() {
+  const t = useTranslations();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -22,23 +27,22 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[color:var(--sf-text)]">
-              DIESEL
+              {t("home.hero.title")}
             </h1>
 
             {/* Rainbow bar */}
             <div className="diesel-rainbow-bar-thick max-w-xs mx-auto mb-6" />
 
             <p className="text-xl text-[color:var(--sf-muted)] mb-8 max-w-2xl mx-auto">
-              Governance, vaults, and documentation for the Alkanes metaprotocol on Bitcoin.
-              Stake, vote, and shape the future of Bitcoin DeFi.
+              {t("home.hero.subtitle")}
             </p>
 
             <div className="flex flex-wrap justify-center gap-4">
               <Link href="/governance" className="btn-primary">
-                View Proposals
+                {t("home.hero.viewProposals")}
               </Link>
               <Link href="/docs" className="btn-secondary">
-                Read the Docs
+                {t("home.hero.readDocs")}
               </Link>
             </div>
           </div>
@@ -69,32 +73,32 @@ export default function HomePage() {
         <section className="py-12 px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-8 text-[color:var(--sf-text)]">
-              Explore DIESEL
+              {t("home.explore.title")}
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <QuickLinkCard
                 href="/governance"
                 icon="🗳️"
-                title="Governance"
-                description="Vote on proposals and shape the protocol"
+                title={t("home.explore.governance.title")}
+                description={t("home.explore.governance.description")}
               />
               <QuickLinkCard
                 href="/forum"
                 icon="💬"
-                title="Forum"
-                description="Discuss proposals and ideas with the community"
+                title={t("home.explore.forum.title")}
+                description={t("home.explore.forum.description")}
               />
               <QuickLinkCard
                 href="/docs"
                 icon="📚"
-                title="Documentation"
-                description="Learn how to build with Alkanes"
+                title={t("home.explore.docs.title")}
+                description={t("home.explore.docs.description")}
               />
               <QuickLinkCard
                 href="/docs/quickstart"
                 icon="⚡"
-                title="Quick Start"
-                description="Deploy your first smart contract"
+                title={t("home.explore.quickstart.title")}
+                description={t("home.explore.quickstart.description")}
               />
             </div>
           </div>
@@ -104,23 +108,23 @@ export default function HomePage() {
         <section className="py-12 px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-8 text-[color:var(--sf-text)]">
-              Why DIESEL?
+              {t("home.features.title")}
             </h2>
             <div className="grid md:grid-cols-3 gap-6">
               <FeatureCard
                 icon="🔒"
-                title="Bitcoin Security"
-                description="All state is anchored to Bitcoin. No sidechains, no bridges - just Bitcoin."
+                title={t("home.features.security.title")}
+                description={t("home.features.security.description")}
               />
               <FeatureCard
                 icon="⚡"
-                title="WASM Runtime"
-                description="Write smart contracts in Rust, compile to WebAssembly, deploy to Bitcoin."
+                title={t("home.features.wasm.title")}
+                description={t("home.features.wasm.description")}
               />
               <FeatureCard
                 icon="🗳️"
-                title="Community Governed"
-                description="DIESEL holders vote on protocol upgrades, treasury allocation, and more."
+                title={t("home.features.governance.title")}
+                description={t("home.features.governance.description")}
               />
             </div>
           </div>
@@ -135,14 +139,14 @@ export default function HomePage() {
 
               <div className="relative z-10">
                 <h2 className="text-3xl font-bold mb-4 text-[color:var(--sf-text)]">
-                  Ready to participate?
+                  {t("home.cta.title")}
                 </h2>
                 <p className="text-lg text-[color:var(--sf-muted)] mb-8">
-                  Connect your wallet to vote on proposals and stake your DIESEL tokens.
+                  {t("home.cta.description")}
                 </p>
                 <div className="flex flex-wrap justify-center gap-4">
                   <Link href="/governance" className="btn-primary">
-                    View Active Proposals
+                    {t("home.cta.viewProposals")}
                   </Link>
                   <a
                     href="https://github.com/kungfuflex/alkanes-rs"
@@ -150,7 +154,7 @@ export default function HomePage() {
                     rel="noopener noreferrer"
                     className="btn-secondary"
                   >
-                    Explore on GitHub
+                    {t("home.cta.github")}
                   </a>
                 </div>
               </div>

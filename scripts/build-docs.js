@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
-const DOCS_DIR = path.join(PROJECT_ROOT, 'app', 'docs');
+const DOCS_DIR = path.join(PROJECT_ROOT, 'app', '[locale]', 'docs');
 const PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
 const META_DIR = path.join(PUBLIC_DIR, 'docs-meta');
 

@@ -1,6 +1,11 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 export function Footer() {
+  const t = useTranslations();
+
   return (
     <footer className="border-t border-[color:var(--sf-outline)] mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -12,20 +17,20 @@ export function Footer() {
             </div>
             <div>
               <span className="font-semibold text-[color:var(--sf-text)]">DIESEL</span>
-              <p className="text-xs text-[color:var(--sf-muted)]">Alkanes Metaprotocol</p>
+              <p className="text-xs text-[color:var(--sf-muted)]">{t("footer.tagline")}</p>
             </div>
           </div>
 
           {/* Links */}
           <nav className="flex flex-wrap justify-center gap-6 text-sm">
             <Link href="/docs" className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors">
-              Documentation
+              {t("footer.links.documentation")}
             </Link>
             <Link href="/governance" className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors">
-              Governance
+              {t("footer.links.governance")}
             </Link>
             <Link href="/forum" className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors">
-              Forum
+              {t("footer.links.forum")}
             </Link>
             <a
               href="https://github.com/kungfuflex/alkanes-rs"
@@ -33,7 +38,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors"
             >
-              GitHub
+              {t("footer.links.github")}
             </a>
             <a
               href="https://twitter.com/ptrk_btc"
@@ -41,7 +46,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors"
             >
-              Twitter
+              {t("footer.links.twitter")}
             </a>
           </nav>
 
@@ -73,7 +78,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-8 pt-6 border-t border-[color:var(--sf-outline)] text-center">
           <p className="text-xs text-[color:var(--sf-muted)]">
-            Built on Bitcoin. Powered by Alkanes.
+            {t("footer.copyright")}
           </p>
         </div>
       </div>

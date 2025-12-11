@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { useWallet } from "@/context/WalletContext";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -17,6 +18,7 @@ interface Category {
 }
 
 export default function NewDiscussionPage() {
+  const t = useTranslations();
   const router = useRouter();
   const { address, isConnected, signMessage } = useWallet();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -52,12 +54,12 @@ export default function NewDiscussionPage() {
     e.preventDefault();
 
     if (!isConnected || !address) {
-      alert("Please connect your wallet first");
+      alert(t("forum.new.alerts.connectWallet"));
       return;
     }
 
     if (!title.trim() || !content.trim() || !categoryId) {
-      alert("Please fill in all required fields");
+      alert(t("forum.new.alerts.fillFields"));
       return;
     }
 
@@ -83,11 +85,11 @@ export default function NewDiscussionPage() {
         router.push(`/forum/${data.discussion.slug}`);
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to create discussion");
+        alert(data.error || t("forum.new.alerts.failed"));
       }
     } catch (error) {
       console.error("Failed to create discussion:", error);
-      alert("Failed to create discussion");
+      alert(t("forum.new.alerts.failed"));
     } finally {
       setLoading(false);
     }
@@ -100,13 +102,13 @@ export default function NewDiscussionPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-[color:var(--sf-text)] mb-2">
-              Wallet Required
+              {t("forum.new.walletRequired.title")}
             </h1>
             <p className="text-[color:var(--sf-muted)] mb-4">
-              Please connect your wallet to create a discussion
+              {t("forum.new.walletRequired.description")}
             </p>
             <Link href="/forum" className="text-[color:var(--sf-primary)] hover:underline">
-              Back to Forum
+              {t("forum.new.backToForum")}
             </Link>
           </div>
         </div>
@@ -141,7 +143,7 @@ export default function NewDiscussionPage() {
             </svg>
           </Link>
           <h1 className="text-lg font-semibold text-[color:var(--sf-text)]">
-            New Discussion
+            {t("forum.new.title")}
           </h1>
         </div>
 
@@ -152,14 +154,14 @@ export default function NewDiscussionPage() {
               htmlFor="title"
               className="block text-sm font-medium text-[color:var(--sf-text)] mb-2"
             >
-              Title <span className="text-red-400">*</span>
+              {t("forum.new.form.title")} <span className="text-red-400">*</span>
             </label>
             <input
               id="title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="What's your discussion about?"
+              placeholder={t("forum.new.form.titlePlaceholder")}
               className="w-full px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] focus:outline-none focus:border-[color:var(--sf-primary)]"
               required
             />
@@ -172,7 +174,7 @@ export default function NewDiscussionPage() {
                 htmlFor="category"
                 className="block text-sm font-medium text-[color:var(--sf-text)] mb-2"
               >
-                Category <span className="text-red-400">*</span>
+                {t("forum.new.form.category")} <span className="text-red-400">*</span>
               </label>
               <select
                 id="category"
@@ -193,7 +195,7 @@ export default function NewDiscussionPage() {
                 htmlFor="type"
                 className="block text-sm font-medium text-[color:var(--sf-text)] mb-2"
               >
-                Type
+                {t("forum.new.form.type")}
               </label>
               <select
                 id="type"
@@ -201,8 +203,8 @@ export default function NewDiscussionPage() {
                 onChange={(e) => setType(e.target.value as any)}
                 className="w-full px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] focus:outline-none focus:border-[color:var(--sf-primary)]"
               >
-                <option value="GENERAL">Discussion</option>
-                <option value="QUESTION">Question</option>
+                <option value="GENERAL">{t("forum.types.discussion")}</option>
+                <option value="QUESTION">{t("forum.types.question")}</option>
               </select>
             </div>
           </div>
@@ -213,18 +215,18 @@ export default function NewDiscussionPage() {
               htmlFor="content"
               className="block text-sm font-medium text-[color:var(--sf-text)] mb-2"
             >
-              Content <span className="text-red-400">*</span>
+              {t("forum.new.form.content")} <span className="text-red-400">*</span>
             </label>
             <textarea
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your discussion content... (Markdown supported)"
+              placeholder={t("forum.new.form.contentPlaceholder")}
               className="w-full h-64 px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] resize-none focus:outline-none focus:border-[color:var(--sf-primary)]"
               required
             />
             <p className="mt-2 text-xs text-[color:var(--sf-muted)]">
-              Supports Markdown formatting. Mention users with @address
+              {t("forum.new.form.markdownHint")}
             </p>
           </div>
 
@@ -232,7 +234,7 @@ export default function NewDiscussionPage() {
           {content && (
             <div className="glass-card p-4">
               <h3 className="text-sm font-medium text-[color:var(--sf-muted)] mb-2">
-                Preview
+                {t("forum.new.form.preview")}
               </h3>
               <div className="prose prose-invert max-w-none">
                 {/* Simple markdown preview - in production would use marked */}
@@ -249,14 +251,14 @@ export default function NewDiscussionPage() {
               href="/forum"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors"
             >
-              Cancel
+              {t("common.cancel")}
             </Link>
             <button
               type="submit"
               disabled={loading || !title.trim() || !content.trim()}
               className="btn-primary px-8 py-3 rounded-lg disabled:opacity-50"
             >
-              {loading ? "Creating..." : "Create Discussion"}
+              {loading ? t("forum.new.form.creating") : t("forum.new.form.submit")}
             </button>
           </div>
         </form>

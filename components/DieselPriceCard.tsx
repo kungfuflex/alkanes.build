@@ -1,6 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 export function DieselPriceCard() {
+  const t = useTranslations("dashboard.diesel");
+
   // Mock data - in production, fetch from API
   const priceData = {
     priceBTC: "0.00000842",
@@ -23,8 +27,8 @@ export function DieselPriceCard() {
             <span className="text-black font-bold text-lg">D</span>
           </div>
           <div>
-            <h3 className="font-bold text-lg text-[color:var(--sf-text)]">DIESEL</h3>
-            <p className="text-xs text-[color:var(--sf-muted)]">Governance Token</p>
+            <h3 className="font-bold text-lg text-[color:var(--sf-text)]">{t("title")}</h3>
+            <p className="text-xs text-[color:var(--sf-muted)]">{t("subtitle")}</p>
           </div>
         </div>
         <span className={`badge ${isPositiveChange ? 'badge-active' : 'badge-closed'}`}>
@@ -58,25 +62,25 @@ export function DieselPriceCard() {
               />
             ))}
           </div>
-          <p className="text-xs text-[color:var(--sf-muted)] mt-2">24h Price Chart</p>
+          <p className="text-xs text-[color:var(--sf-muted)] mt-2">{t("chart")}</p>
         </div>
 
         {/* Stats Grid */}
         <div className="stats-grid grid-cols-2">
           <div className="stat-item">
-            <span className="stat-label">24h High</span>
+            <span className="stat-label">{t("high")}</span>
             <span className="stat-value">{priceData.high24h}</span>
           </div>
           <div className="stat-item">
-            <span className="stat-label">24h Low</span>
+            <span className="stat-label">{t("low")}</span>
             <span className="stat-value">{priceData.low24h}</span>
           </div>
           <div className="stat-item">
-            <span className="stat-label">24h Volume</span>
+            <span className="stat-label">{t("volume")}</span>
             <span className="stat-value">{priceData.volume24h}</span>
           </div>
           <div className="stat-item">
-            <span className="stat-label">Market Cap</span>
+            <span className="stat-label">{t("marketCap")}</span>
             <span className="stat-value">{priceData.marketCap}</span>
           </div>
         </div>

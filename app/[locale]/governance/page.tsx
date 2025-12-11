@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@/context/WalletContext";
 import { Header } from "@/components/Header";
@@ -31,6 +32,7 @@ interface Proposal {
 }
 
 export default function GovernancePage() {
+  const t = useTranslations();
   const { isConnected, address, onConnectModalOpenChange } = useWallet();
   const [filter, setFilter] = useState<string>("all");
 
@@ -47,6 +49,13 @@ export default function GovernancePage() {
     },
   });
 
+  const filters = [
+    { key: "all", label: t("governance.filters.all") },
+    { key: "active", label: t("governance.filters.active") },
+    { key: "pending", label: t("governance.filters.pending") },
+    { key: "closed", label: t("governance.filters.closed") },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -55,9 +64,9 @@ export default function GovernancePage() {
         {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2 text-[color:var(--sf-text)]">DIESEL Governance</h1>
+            <h1 className="text-3xl font-bold mb-2 text-[color:var(--sf-text)]">{t("governance.title")}</h1>
             <p className="text-[color:var(--sf-muted)]">
-              Vote on proposals to shape the future of Alkanes
+              {t("governance.subtitle")}
             </p>
           </div>
           {isConnected && (
@@ -65,24 +74,24 @@ export default function GovernancePage() {
               href="/governance/create"
               className="btn-primary"
             >
-              Create Proposal
+              {t("governance.createProposal")}
             </Link>
           )}
         </div>
 
         {/* Filters */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          {["all", "active", "pending", "closed"].map((state) => (
+          {filters.map(({ key, label }) => (
             <button
-              key={state}
-              onClick={() => setFilter(state)}
+              key={key}
+              onClick={() => setFilter(key)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === state
+                filter === key
                   ? "bg-[color:var(--sf-primary)] text-black"
                   : "bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)] hover:text-[color:var(--sf-primary)]"
               }`}
             >
-              {state.charAt(0).toUpperCase() + state.slice(1)}
+              {label}
             </button>
           ))}
         </div>
@@ -102,18 +111,32 @@ export default function GovernancePage() {
           </div>
         ) : error ? (
           <div className="glass-card p-6 text-center">
-            <p className="text-red-500">Failed to load proposals</p>
+            <p className="text-red-500">{t("governance.error")}</p>
           </div>
         ) : data?.proposals?.length === 0 ? (
           <div className="glass-card p-6 text-center">
             <p className="text-[color:var(--sf-muted)]">
-              No proposals found
+              {t("governance.noProposals")}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             {data?.proposals?.map((proposal: Proposal) => (
-              <ProposalCard key={proposal.id} proposal={proposal} />
+              <ProposalCard
+                key={proposal.id}
+                proposal={proposal}
+                byLabel={t("governance.proposal.by")}
+                votesLabel={t("governance.proposal.votes")}
+                voteLabel={t("governance.proposal.vote")}
+                startsLabel={t("governance.proposal.starts")}
+                stateLabels={{
+                  ACTIVE: t("governance.states.ACTIVE"),
+                  PENDING: t("governance.states.PENDING"),
+                  CLOSED: t("governance.states.CLOSED"),
+                  EXECUTED: t("governance.states.EXECUTED"),
+                  CANCELLED: t("governance.states.CANCELLED"),
+                }}
+              />
             ))}
           </div>
         )}
@@ -124,7 +147,21 @@ export default function GovernancePage() {
   );
 }
 
-function ProposalCard({ proposal }: { proposal: Proposal }) {
+function ProposalCard({
+  proposal,
+  byLabel,
+  votesLabel,
+  voteLabel,
+  startsLabel,
+  stateLabels,
+}: {
+  proposal: Proposal;
+  byLabel: string;
+  votesLabel: string;
+  voteLabel: string;
+  startsLabel: string;
+  stateLabels: Record<string, string>;
+}) {
   const totalVotes = BigInt(proposal.totalVotes || "0");
   const scores = proposal.scores.map((s) => BigInt(s || "0"));
   const maxScore = scores.reduce((a, b) => (a > b ? a : b), BigInt(0));
@@ -144,10 +181,10 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <span className={`badge ${stateClass}`}>
-                {proposal.state}
+                {stateLabels[proposal.state]}
               </span>
               <span className="text-sm text-[color:var(--sf-muted)]">
-                by {formatAddress(proposal.author)}
+                {byLabel} {formatAddress(proposal.author)}
               </span>
             </div>
             <h2 className="text-xl font-semibold mb-2 text-[color:var(--sf-text)] group-hover:text-[color:var(--sf-primary)] transition-colors">
@@ -195,14 +232,14 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
         {/* Footer */}
         <div className="flex items-center justify-between text-sm text-[color:var(--sf-muted)]">
           <span>
-            {proposal._count.votes} vote{proposal._count.votes !== 1 ? "s" : ""}{" "}
+            {proposal._count.votes} {proposal._count.votes !== 1 ? votesLabel : voteLabel}{" "}
             · {formatDiesel(totalVotes)} DIESEL
           </span>
           <span>
             {proposal.state === "ACTIVE"
               ? formatTimeRemaining(proposal.end)
               : proposal.state === "PENDING"
-              ? `Starts ${formatRelativeTime(proposal.start)}`
+              ? `${startsLabel} ${formatRelativeTime(proposal.start)}`
               : formatRelativeTime(proposal.end)}
           </span>
         </div>

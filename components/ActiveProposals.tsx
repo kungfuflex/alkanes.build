@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 interface Proposal {
   id: string;
@@ -13,6 +14,10 @@ interface Proposal {
 }
 
 export function ActiveProposals() {
+  const t = useTranslations("dashboard.proposals");
+  const tGov = useTranslations("governance");
+  const tCommon = useTranslations("common");
+
   // Mock data - in production, fetch from API
   const proposals: Proposal[] = [
     {
@@ -39,7 +44,7 @@ export function ActiveProposals() {
       state: "PENDING",
       votesFor: 0,
       votesAgainst: 0,
-      endTime: "Starts in 1 day",
+      endTime: "1 day",
       author: "bc1q...p9r8",
     },
   ];
@@ -54,20 +59,29 @@ export function ActiveProposals() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3 className="font-bold text-lg text-[color:var(--sf-text)]">Active Proposals</h3>
+          <h3 className="font-bold text-lg text-[color:var(--sf-text)]">{t("title")}</h3>
         </div>
         <Link
           href="/governance"
           className="btn-primary text-sm !py-2 !px-4"
         >
-          View All →
+          {tCommon("viewAll")} →
         </Link>
       </div>
 
       {/* Proposals List */}
       <div className="p-4 space-y-3">
         {proposals.map((proposal) => (
-          <ProposalCard key={proposal.id} proposal={proposal} />
+          <ProposalCard
+            key={proposal.id}
+            proposal={proposal}
+            forLabel={tGov("proposal.for")}
+            againstLabel={tGov("proposal.against")}
+            byLabel={t("by", { author: proposal.author })}
+            endsLabel={t("ends", { time: proposal.endTime })}
+            startsLabel={t("starts", { time: proposal.endTime })}
+            stateLabel={tGov(`states.${proposal.state}`)}
+          />
         ))}
       </div>
 
@@ -75,11 +89,11 @@ export function ActiveProposals() {
       <div className="p-4 bg-gradient-to-r from-[var(--sf-boost-bg-from)] to-[var(--sf-boost-bg-to)] border-t border-[color:var(--sf-primary)]/20">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-semibold text-[color:var(--sf-text)]">Shape the future of DIESEL</p>
-            <p className="text-sm text-[color:var(--sf-muted)]">Vote with your DIESEL tokens</p>
+            <p className="font-semibold text-[color:var(--sf-text)]">{t("cta.title")}</p>
+            <p className="text-sm text-[color:var(--sf-muted)]">{t("cta.description")}</p>
           </div>
           <Link href="/governance" className="btn-secondary !py-2 !px-4 text-sm">
-            Participate
+            {t("cta.button")}
           </Link>
         </div>
       </div>
@@ -87,7 +101,23 @@ export function ActiveProposals() {
   );
 }
 
-function ProposalCard({ proposal }: { proposal: Proposal }) {
+function ProposalCard({
+  proposal,
+  forLabel,
+  againstLabel,
+  byLabel,
+  endsLabel,
+  startsLabel,
+  stateLabel
+}: {
+  proposal: Proposal;
+  forLabel: string;
+  againstLabel: string;
+  byLabel: string;
+  endsLabel: string;
+  startsLabel: string;
+  stateLabel: string;
+}) {
   const totalVotes = proposal.votesFor + proposal.votesAgainst;
   const forPercentage = totalVotes > 0 ? (proposal.votesFor / totalVotes) * 100 : 50;
 
@@ -108,7 +138,7 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
           {proposal.title}
         </h4>
         <span className={`badge ${stateClass} flex-shrink-0`}>
-          {proposal.state}
+          {stateLabel}
         </span>
       </div>
 
@@ -116,8 +146,8 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
       {proposal.state === "ACTIVE" && (
         <div className="mb-3">
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-green-500">For: {proposal.votesFor}%</span>
-            <span className="text-red-500">Against: {proposal.votesAgainst}%</span>
+            <span className="text-green-500">{forLabel}: {proposal.votesFor}%</span>
+            <span className="text-red-500">{againstLabel}: {proposal.votesAgainst}%</span>
           </div>
           <div className="h-2 rounded-full bg-[color:var(--sf-outline)] overflow-hidden">
             <div
@@ -129,8 +159,8 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
       )}
 
       <div className="flex items-center justify-between text-xs text-[color:var(--sf-muted)]">
-        <span>By {proposal.author}</span>
-        <span>{proposal.state === "PENDING" ? proposal.endTime : `Ends in ${proposal.endTime}`}</span>
+        <span>{byLabel}</span>
+        <span>{proposal.state === "PENDING" ? startsLabel : endsLabel}</span>
       </div>
     </Link>
   );

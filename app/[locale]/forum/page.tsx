@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress, cn } from "@/lib/utils";
 import { Header } from "@/components/Header";
@@ -45,14 +46,8 @@ interface Discussion {
   };
 }
 
-const TYPE_BADGES: Record<string, { label: string; color: string }> = {
-  GENERAL: { label: "Discussion", color: "bg-gray-500" },
-  PROPOSAL: { label: "Proposal", color: "bg-emerald-500" },
-  ANNOUNCEMENT: { label: "Announcement", color: "bg-red-500" },
-  QUESTION: { label: "Question", color: "bg-blue-500" },
-};
-
 export default function ForumPage() {
+  const t = useTranslations();
   const { address, isConnected } = useWallet();
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -62,6 +57,13 @@ export default function ForumPage() {
   const [sort, setSort] = useState<"bumped" | "created" | "posts">("bumped");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  const TYPE_BADGES: Record<string, { label: string; color: string }> = {
+    GENERAL: { label: t("forum.types.discussion"), color: "bg-gray-500" },
+    PROPOSAL: { label: t("forum.types.proposal"), color: "bg-emerald-500" },
+    ANNOUNCEMENT: { label: t("forum.types.announcement"), color: "bg-red-500" },
+    QUESTION: { label: t("forum.types.question"), color: "bg-blue-500" },
+  };
 
   useEffect(() => {
     fetchCategories();
@@ -111,10 +113,10 @@ export default function ForumPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t("time.justNow");
+    if (diffMins < 60) return t("time.minutesAgo", { count: diffMins });
+    if (diffHours < 24) return t("time.hoursAgo", { count: diffHours });
+    if (diffDays < 7) return t("time.daysAgo", { count: diffDays });
     return date.toLocaleDateString();
   }
 
@@ -128,7 +130,7 @@ export default function ForumPage() {
           <aside className="lg:w-64 flex-shrink-0">
             <div className="glass-card p-4 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-[color:var(--sf-text)]">Categories</h2>
+                <h2 className="font-semibold text-[color:var(--sf-text)]">{t("forum.sidebar.categories")}</h2>
                 <button
                   onClick={() => setSelectedCategory(null)}
                   className={cn(
@@ -136,7 +138,7 @@ export default function ForumPage() {
                     !selectedCategory ? "text-[color:var(--sf-primary)]" : "text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]"
                   )}
                 >
-                  All
+                  {t("forum.sidebar.all")}
                 </button>
               </div>
               <div className="space-y-1">
@@ -164,7 +166,7 @@ export default function ForumPage() {
               <hr className="border-[color:var(--sf-outline)]" />
 
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-[color:var(--sf-muted)]">Type</h3>
+                <h3 className="text-sm font-medium text-[color:var(--sf-muted)]">{t("forum.sidebar.type")}</h3>
                 <div className="flex flex-wrap gap-1">
                   {Object.entries(TYPE_BADGES).map(([type, { label, color }]) => (
                     <button
@@ -192,11 +194,11 @@ export default function ForumPage() {
                   href="/forum/new"
                   className="btn-primary w-full text-center block py-2 rounded-lg"
                 >
-                  New Discussion
+                  {t("forum.newDiscussion")}
                 </Link>
               ) : (
                 <p className="text-xs text-[color:var(--sf-muted)] text-center">
-                  Connect wallet to post
+                  {t("forum.connectToPost")}
                 </p>
               )}
             </div>
@@ -206,17 +208,17 @@ export default function ForumPage() {
           <div className="flex-1 min-w-0">
             {/* Sort controls */}
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-[color:var(--sf-text)]">Discussions</h1>
+              <h1 className="text-2xl font-bold text-[color:var(--sf-text)]">{t("forum.title")}</h1>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-[color:var(--sf-muted)]">Sort:</span>
+                <span className="text-sm text-[color:var(--sf-muted)]">{t("forum.sort.label")}:</span>
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as any)}
                   className="bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg px-2 py-1 text-sm text-[color:var(--sf-text)]"
                 >
-                  <option value="bumped">Latest Activity</option>
-                  <option value="created">Newest</option>
-                  <option value="posts">Most Replies</option>
+                  <option value="bumped">{t("forum.sort.latestActivity")}</option>
+                  <option value="created">{t("forum.sort.newest")}</option>
+                  <option value="posts">{t("forum.sort.mostReplies")}</option>
                 </select>
               </div>
             </div>
@@ -236,13 +238,13 @@ export default function ForumPage() {
               </div>
             ) : discussions.length === 0 ? (
               <div className="glass-card p-8 text-center">
-                <p className="text-[color:var(--sf-muted)]">No discussions found</p>
+                <p className="text-[color:var(--sf-muted)]">{t("forum.noDiscussions")}</p>
                 {isConnected && (
                   <Link
                     href="/forum/new"
                     className="text-[color:var(--sf-primary)] hover:underline mt-2 inline-block"
                   >
-                    Start the first discussion
+                    {t("forum.startFirst")}
                   </Link>
                 )}
               </div>
@@ -311,13 +313,13 @@ export default function ForumPage() {
                           <div className="text-[color:var(--sf-text)] font-medium">
                             {discussion.postsCount - 1}
                           </div>
-                          <div>replies</div>
+                          <div>{t("forum.stats.replies")}</div>
                         </div>
                         <div className="text-center">
                           <div className="text-[color:var(--sf-text)] font-medium">
                             {discussion.viewsCount}
                           </div>
-                          <div>views</div>
+                          <div>{t("forum.stats.views")}</div>
                         </div>
                       </div>
                     </div>
@@ -334,17 +336,17 @@ export default function ForumPage() {
                   disabled={page === 1}
                   className="px-3 py-1 rounded-lg bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)]"
                 >
-                  Previous
+                  {t("forum.pagination.previous")}
                 </button>
                 <span className="text-[color:var(--sf-muted)]">
-                  Page {page} of {totalPages}
+                  {t("forum.pagination.page", { current: page, total: totalPages })}
                 </span>
                 <button
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
                   className="px-3 py-1 rounded-lg bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)]"
                 >
-                  Next
+                  {t("forum.pagination.next")}
                 </button>
               </div>
             )}

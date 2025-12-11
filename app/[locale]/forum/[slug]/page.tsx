@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress, cn } from "@/lib/utils";
 import { Header } from "@/components/Header";
@@ -70,6 +71,7 @@ export default function DiscussionPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
+  const t = useTranslations();
   const { address, isConnected, signMessage } = useWallet();
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -127,7 +129,7 @@ export default function DiscussionPage({
         fetchDiscussion(); // Refresh posts
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to post reply");
+        alert(data.error || t("forum.discussion.alerts.replyFailed"));
       }
     } catch (error) {
       console.error("Failed to submit reply:", error);
@@ -180,10 +182,10 @@ export default function DiscussionPage({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t("time.justNow");
+    if (diffMins < 60) return t("time.minutesAgo", { count: diffMins });
+    if (diffHours < 24) return t("time.hoursAgo", { count: diffHours });
+    if (diffDays < 7) return t("time.daysAgo", { count: diffDays });
     return date.toLocaleDateString();
   }
 
@@ -205,10 +207,10 @@ export default function DiscussionPage({
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-[color:var(--sf-text)] mb-2">Not Found</h1>
-            <p className="text-[color:var(--sf-muted)] mb-4">This discussion doesn't exist</p>
+            <h1 className="text-2xl font-bold text-[color:var(--sf-text)] mb-2">{t("forum.discussion.notFound.title")}</h1>
+            <p className="text-[color:var(--sf-muted)] mb-4">{t("forum.discussion.notFound.description")}</p>
             <Link href="/forum" className="text-[color:var(--sf-primary)] hover:underline">
-              Back to Forum
+              {t("forum.discussion.backToForum")}
             </Link>
           </div>
         </div>
@@ -247,10 +249,10 @@ export default function DiscussionPage({
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             {discussion.isPinned && (
-              <span className="text-amber-400 text-sm">Pinned</span>
+              <span className="text-amber-400 text-sm">{t("forum.discussion.pinned")}</span>
             )}
             {discussion.isLocked && (
-              <span className="text-[color:var(--sf-muted)] text-sm">🔒 Locked</span>
+              <span className="text-[color:var(--sf-muted)] text-sm">🔒 {t("forum.discussion.locked")}</span>
             )}
             {discussion.tags.map((tag) => (
               <span
@@ -264,13 +266,13 @@ export default function DiscussionPage({
           </div>
           <h1 className="text-3xl font-bold text-[color:var(--sf-text)] mb-2">{discussion.title}</h1>
           <div className="flex items-center gap-4 text-sm text-[color:var(--sf-muted)]">
-            <span>by {formatAddress(discussion.author)}</span>
+            <span>{t("forum.discussion.by")} {formatAddress(discussion.author)}</span>
             <span>&middot;</span>
             <span>{formatRelativeTime(discussion.createdAt)}</span>
             <span>&middot;</span>
-            <span>{discussion.postsCount} posts</span>
+            <span>{t("forum.discussion.posts", { count: discussion.postsCount })}</span>
             <span>&middot;</span>
-            <span>{discussion.viewsCount} views</span>
+            <span>{t("forum.discussion.views", { count: discussion.viewsCount })}</span>
           </div>
         </div>
 
@@ -279,7 +281,7 @@ export default function DiscussionPage({
           <div className="glass-card p-4 mb-6 border border-emerald-500/30">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-emerald-400 mb-1">Linked Proposal</div>
+                <div className="text-xs text-emerald-400 mb-1">{t("forum.discussion.linkedProposal")}</div>
                 <h3 className="text-[color:var(--sf-text)] font-medium">{discussion.proposal.title}</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={cn(
@@ -296,7 +298,7 @@ export default function DiscussionPage({
                 href={`/governance?proposal=${discussion.proposal.id}`}
                 className="btn-secondary text-sm px-4 py-2 rounded-lg"
               >
-                View Proposal
+                {t("forum.discussion.viewProposal")}
               </Link>
             </div>
           </div>
@@ -339,7 +341,7 @@ export default function DiscussionPage({
                     <div className="text-xs text-[color:var(--sf-muted)]">
                       {formatRelativeTime(post.createdAt)}
                       {post.isEdited && (
-                        <span className="ml-2">(edited)</span>
+                        <span className="ml-2">({t("forum.discussion.edited")})</span>
                       )}
                     </div>
                   </div>
@@ -354,7 +356,7 @@ export default function DiscussionPage({
                     href={`#post-${post.replyTo.postNumber}`}
                     className="text-xs text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]"
                   >
-                    Replying to #{post.replyTo.postNumber} by {formatAddress(post.replyTo.author)}
+                    {t("forum.discussion.replyingTo", { postNumber: post.replyTo.postNumber, author: formatAddress(post.replyTo.author) })}
                   </a>
                 </div>
               )}
@@ -396,7 +398,7 @@ export default function DiscussionPage({
                       onClick={() => setReplyingTo(post)}
                       className="text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors"
                     >
-                      Reply
+                      {t("forum.discussion.reply")}
                     </button>
                   )}
                 </div>
@@ -410,13 +412,13 @@ export default function DiscussionPage({
           <div className="mt-8 glass-card p-6">
             <h3 className="text-lg font-semibold text-[color:var(--sf-text)] mb-4">
               {replyingTo
-                ? `Replying to #${replyingTo.postNumber}`
-                : "Add a Reply"}
+                ? t("forum.discussion.replyingToPost", { postNumber: replyingTo.postNumber })
+                : t("forum.discussion.addReply")}
             </h3>
             {replyingTo && (
               <div className="mb-4 flex items-center justify-between p-2 bg-[color:var(--sf-surface)] rounded-lg">
                 <span className="text-sm text-[color:var(--sf-muted)]">
-                  Replying to {formatAddress(replyingTo.author)}
+                  {t("forum.discussion.replyingToUser", { author: formatAddress(replyingTo.author) })}
                 </span>
                 <button
                   onClick={() => setReplyingTo(null)}
@@ -433,25 +435,25 @@ export default function DiscussionPage({
                 <textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Write your reply... (Markdown supported)"
+                  placeholder={t("forum.discussion.replyPlaceholder")}
                   className="w-full h-32 px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] resize-none focus:outline-none focus:border-[color:var(--sf-primary)]"
                 />
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-xs text-[color:var(--sf-muted)]">
-                    Mention users with @address
+                    {t("forum.discussion.mentionHint")}
                   </p>
                   <button
                     onClick={handleSubmitReply}
                     disabled={!replyContent.trim() || submitting}
                     className="btn-primary px-6 py-2 rounded-lg disabled:opacity-50"
                   >
-                    {submitting ? "Posting..." : "Post Reply"}
+                    {submitting ? t("forum.discussion.posting") : t("forum.discussion.postReply")}
                   </button>
                 </div>
               </>
             ) : (
               <p className="text-[color:var(--sf-muted)] text-center py-4">
-                Connect your wallet to reply to this discussion
+                {t("forum.discussion.connectToReply")}
               </p>
             )}
           </div>

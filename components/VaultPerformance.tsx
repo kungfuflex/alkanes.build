@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 interface Vault {
   id: string;
@@ -13,6 +14,9 @@ interface Vault {
 }
 
 export function VaultPerformance() {
+  const t = useTranslations("dashboard.vaults");
+  const tCommon = useTranslations("common");
+
   // Mock data - in production, fetch from API
   const vaults: Vault[] = [
     {
@@ -45,12 +49,12 @@ export function VaultPerformance() {
     <div className="glass-card overflow-hidden">
       {/* Header */}
       <div className="card-header flex items-center justify-between">
-        <h3 className="font-bold text-lg text-[color:var(--sf-text)]">DIESEL Vaults</h3>
+        <h3 className="font-bold text-lg text-[color:var(--sf-text)]">{t("title")}</h3>
         <Link
           href="/vaults"
           className="text-sm text-[color:var(--sf-primary)] hover:text-[color:var(--sf-boost-label)] transition-colors"
         >
-          View All →
+          {tCommon("viewAll")} →
         </Link>
       </div>
 
@@ -58,7 +62,7 @@ export function VaultPerformance() {
       <div className="p-4">
         <div className="space-y-3">
           {vaults.map((vault) => (
-            <VaultRow key={vault.id} vault={vault} />
+            <VaultRow key={vault.id} vault={vault} tvlLabel={t("tvl")} apyLabel={t("apy")} />
           ))}
         </div>
 
@@ -66,7 +70,7 @@ export function VaultPerformance() {
         <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-[var(--sf-boost-bg-from)] to-[var(--sf-boost-bg-to)] border border-[color:var(--sf-primary)]/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-[color:var(--sf-boost-label)] uppercase tracking-wider font-bold">Total Value Locked</p>
+              <p className="text-xs text-[color:var(--sf-boost-label)] uppercase tracking-wider font-bold">{t("totalTvl")}</p>
               <p className="text-2xl font-bold text-[color:var(--sf-boost-value)]">$12.4M</p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--sf-boost-icon-from)] to-[var(--sf-boost-icon-to)] flex items-center justify-center">
@@ -81,7 +85,7 @@ export function VaultPerformance() {
   );
 }
 
-function VaultRow({ vault }: { vault: Vault }) {
+function VaultRow({ vault, tvlLabel, apyLabel }: { vault: Vault; tvlLabel: string; apyLabel: string }) {
   const isPositive = vault.change24h.startsWith("+");
 
   return (
@@ -92,11 +96,11 @@ function VaultRow({ vault }: { vault: Vault }) {
         </div>
         <div>
           <p className="font-semibold text-[color:var(--sf-text)]">{vault.name}</p>
-          <p className="text-xs text-[color:var(--sf-muted)]">TVL: {vault.tvl}</p>
+          <p className="text-xs text-[color:var(--sf-muted)]">{tvlLabel}: {vault.tvl}</p>
         </div>
       </div>
       <div className="text-right">
-        <p className="font-bold text-[color:var(--sf-primary)]">{vault.apy} APY</p>
+        <p className="font-bold text-[color:var(--sf-primary)]">{vault.apy} {apyLabel}</p>
         <p className={`text-xs ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
           {vault.change24h}
         </p>

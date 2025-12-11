@@ -3,12 +3,16 @@ import createMDX from "@next/mdx";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
+import createNextIntlPlugin from "next-intl/plugin";
 import path from "path";
 import fs from "fs";
 
 // Check if ts-sdk is built
 const tsSdkWasmPath = path.join(process.cwd(), "ts-sdk/build/wasm/alkanes_web_sys.js");
 const hasTsSdk = fs.existsSync(tsSdkWasmPath);
+
+// Create next-intl plugin
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployment
@@ -86,4 +90,5 @@ const withMDX = createMDX({
   },
 });
 
-export default withMDX(nextConfig);
+// Combine plugins: withNextIntl wraps withMDX wraps nextConfig
+export default withNextIntl(withMDX(nextConfig));

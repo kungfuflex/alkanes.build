@@ -1,9 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export function Header() {
+  const t = useTranslations();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -31,25 +34,25 @@ export function Header() {
               href="/"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
             >
-              Dashboard
+              {t("navigation.dashboard")}
             </Link>
             <Link
               href="/governance"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
             >
-              Governance
+              {t("navigation.governance")}
             </Link>
             <Link
               href="/forum"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
             >
-              Forum
+              {t("navigation.forum")}
             </Link>
             <Link
               href="/docs"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
             >
-              Docs
+              {t("navigation.docs")}
             </Link>
             <a
               href="https://github.com/kungfuflex/alkanes-rs"
@@ -57,12 +60,14 @@ export function Header() {
               rel="noopener noreferrer"
               className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
             >
-              GitHub
+              {t("navigation.github")}
             </a>
           </nav>
 
-          {/* Connect Wallet Button */}
+          {/* Right side: Language Switcher + Connect Wallet */}
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+
             {isConnected ? (
               <button
                 onClick={() => setIsConnected(false)}
@@ -76,7 +81,7 @@ export function Header() {
                 onClick={() => setIsConnected(true)}
                 className="btn-primary hidden sm:block text-sm"
               >
-                Connect Wallet
+                {t("wallet.connectWallet")}
               </button>
             )}
 
@@ -110,28 +115,28 @@ export function Header() {
                 className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Dashboard
+                {t("navigation.dashboard")}
               </Link>
               <Link
                 href="/governance"
                 className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Governance
+                {t("navigation.governance")}
               </Link>
               <Link
                 href="/forum"
                 className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Forum
+                {t("navigation.forum")}
               </Link>
               <Link
                 href="/docs"
                 className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Docs
+                {t("navigation.docs")}
               </Link>
               <a
                 href="https://github.com/kungfuflex/alkanes-rs"
@@ -139,7 +144,7 @@ export function Header() {
                 rel="noopener noreferrer"
                 className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
               >
-                GitHub
+                {t("navigation.github")}
               </a>
               {!isConnected && (
                 <button
@@ -149,7 +154,7 @@ export function Header() {
                   }}
                   className="btn-primary text-sm w-full mt-2"
                 >
-                  Connect Wallet
+                  {t("wallet.connectWallet")}
                 </button>
               )}
             </div>
