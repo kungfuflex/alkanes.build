@@ -397,8 +397,209 @@ export async function getAllPoolPrices(): Promise<Record<PoolKey, PoolPrice>> {
 }
 
 /**
+ * Build LEB128 encoded calldata for pool_details opcode (999)
+ */
+function buildPoolDetailsCalldata(poolBlock: number, poolTx: number): number[] {
+  const calldata: number[] = [];
+
+  // LEB128 encode helper
+  const leb128Encode = (value: number): number[] => {
+    const result: number[] = [];
+    do {
+      let byte = value & 0x7f;
+      value = Math.floor(value / 128);
+      if (value > 0) {
+        byte |= 0x80;
+      }
+      result.push(byte);
+    } while (value > 0);
+    return result;
+  };
+
+  // Target alkane block
+  calldata.push(...leb128Encode(poolBlock));
+  // Target alkane tx
+  calldata.push(...leb128Encode(poolTx));
+  // Opcode 999 (POOL_DETAILS)
+  calldata.push(...leb128Encode(999));
+
+  return calldata;
+}
+
+/**
+ * Parse pool details response from hex data
+ * Format: token_a(32) + token_b(32) + reserve_a(16) + reserve_b(16) + total_supply(16) + name_len(4) + name
+ */
+function parsePoolDetailsHex(dataHex: string): { reserve0: bigint; reserve1: bigint; totalSupply: bigint } | null {
+  try {
+    // Remove 0x prefix if present
+    const hex = dataHex.startsWith('0x') ? dataHex.slice(2) : dataHex;
+
+    // Need at least 112 bytes = 224 hex chars (without name)
+    if (hex.length < 224) {
+      return null;
+    }
+
+    // Helper to parse little-endian u128 from hex
+    const parseU128LE = (hexStr: string): bigint => {
+      // Reverse byte pairs for little-endian
+      let reversed = '';
+      for (let i = hexStr.length - 2; i >= 0; i -= 2) {
+        reversed += hexStr.slice(i, i + 2);
+      }
+      return BigInt('0x' + reversed);
+    };
+
+    // reserve_a is at offset 64 bytes (128 hex chars), 16 bytes (32 hex chars)
+    const reserve0Hex = hex.slice(128, 160);
+    // reserve_b is at offset 80 bytes (160 hex chars), 16 bytes (32 hex chars)
+    const reserve1Hex = hex.slice(160, 192);
+    // total_supply is at offset 96 bytes (192 hex chars), 16 bytes (32 hex chars)
+    const totalSupplyHex = hex.slice(192, 224);
+
+    return {
+      reserve0: parseU128LE(reserve0Hex),
+      reserve1: parseU128LE(reserve1Hex),
+      totalSupply: parseU128LE(totalSupplyHex),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch pool reserves at a specific block height using alkanes_simulate
+ */
+async function fetchPoolReservesAtHeight(
+  poolId: string,
+  blockHeight: number
+): Promise<{ reserve0: bigint; reserve1: bigint; totalSupply: bigint } | null> {
+  try {
+    const [poolBlock, poolTx] = poolId.split(':').map(Number);
+    const blockTag = blockHeight.toString();
+    const calldata = buildPoolDetailsCalldata(poolBlock, poolTx);
+
+    // Use JSON-RPC to call alkanes_simulate with the pool contract
+    const response = await fetch(RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'alkanes_simulate',
+        params: [{
+          target: poolId,
+          calldata,
+          height: blockHeight,
+          txindex: 0,
+          vout: 0,
+          pointer: 0,
+          refund_pointer: 0,
+          alkanes: [],
+          transaction: [],
+          block: [],
+        }, blockTag],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch reserves at height ${blockHeight}: ${response.status}`);
+      return null;
+    }
+
+    const json = await response.json() as {
+      result?: {
+        execution?: {
+          data?: string;
+        };
+        data?: string;
+      };
+      error?: { message: string };
+    };
+
+    if (json.error) {
+      console.error(`RPC error fetching reserves at height ${blockHeight}:`, json.error);
+      return null;
+    }
+
+    // Parse the result - data can be in execution.data or result.data
+    const dataHex = json.result?.execution?.data || json.result?.data;
+    if (dataHex) {
+      return parsePoolDetailsHex(dataHex);
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Error fetching reserves at height ${blockHeight}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Fetch historical pool data using batched lua_evalscript
+ * This is more efficient than individual RPC calls for many data points
+ */
+async function fetchHistoricalPoolDataBatched(
+  poolId: string,
+  startHeight: number,
+  endHeight: number,
+  interval: number
+): Promise<Array<{ height: number; reserve0: bigint; reserve1: bigint; totalSupply: bigint }>> {
+  try {
+    // Use lua_evalscript with the pool_candles.lua script
+    const response = await fetch(RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'lua_evalscript',
+        params: [
+          'pool_candles', // Script name (loaded from public/lua-examples/)
+          [poolId, startHeight.toString(), endHeight.toString(), interval.toString()],
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`Lua evalscript failed: ${response.status}`);
+      return [];
+    }
+
+    const json = await response.json() as {
+      result?: {
+        data_points?: Array<{
+          height: number;
+          reserve_a: number;
+          reserve_b: number;
+          total_supply: number;
+        }>;
+        error?: string;
+      };
+      error?: { message: string };
+    };
+
+    if (json.error || json.result?.error) {
+      console.error('Lua script error:', json.error || json.result?.error);
+      return [];
+    }
+
+    const dataPoints = json.result?.data_points || [];
+    return dataPoints.map(dp => ({
+      height: dp.height,
+      reserve0: BigInt(Math.floor(dp.reserve_a)),
+      reserve1: BigInt(Math.floor(dp.reserve_b)),
+      totalSupply: BigInt(Math.floor(dp.total_supply)),
+    }));
+  } catch (error) {
+    console.error('Error in batched historical data fetch:', error);
+    return [];
+  }
+}
+
+/**
  * Get historical prices for building candles
- * Note: This requires the Data API's trade history endpoint
+ * Uses batched lua_evalscript for efficiency, falls back to individual calls
  */
 export async function getHistoricalPrices(
   poolKey: PoolKey,
@@ -406,10 +607,117 @@ export async function getHistoricalPrices(
   endHeight: number,
   interval: number = 144
 ): Promise<PoolPrice[]> {
-  // For now, return current price only
-  // Full historical data would require walking blocks or using indexed trade history
-  const currentPrice = await getPoolPrice(poolKey);
-  return [currentPrice];
+  const pool = POOLS[poolKey];
+  const cacheKey = `pool:history:${pool.id}:${startHeight}:${endHeight}:${interval}`;
+
+  // Check cache first
+  const cached = await cacheGet<SerializedPoolPrice[]>(cacheKey);
+  if (cached) {
+    return cached.map(p => ({
+      ...p,
+      reserve0: BigInt(p.reserve0),
+      reserve1: BigInt(p.reserve1),
+    }));
+  }
+
+  const prices: PoolPrice[] = [];
+
+  // Try batched Lua script first for efficiency
+  const batchedData = await fetchHistoricalPoolDataBatched(pool.id, startHeight, endHeight, interval);
+
+  if (batchedData.length > 0) {
+    // Use batched results
+    for (const dp of batchedData) {
+      if (dp.reserve0 > 0) {
+        const price = calculatePrice(
+          dp.reserve0,
+          dp.reserve1,
+          pool.token0.decimals,
+          pool.token1.decimals
+        );
+
+        prices.push({
+          poolId: pool.id,
+          poolName: pool.name,
+          price,
+          priceInverse: price > 0 ? 1 / price : 0,
+          reserve0: dp.reserve0,
+          reserve1: dp.reserve1,
+          blockHeight: dp.height,
+          timestamp: Date.now(),
+        });
+      }
+    }
+  } else {
+    // Fallback to individual RPC calls
+    for (let height = startHeight; height <= endHeight; height += interval) {
+      // Check individual height cache
+      const heightCacheKey = `pool:reserves:${pool.id}:${height}`;
+      const cachedReserves = await cacheGet<{
+        reserve0: string;
+        reserve1: string;
+        totalSupply: string;
+      }>(heightCacheKey);
+
+      let reserves: { reserve0: bigint; reserve1: bigint; totalSupply: bigint } | null = null;
+
+      if (cachedReserves) {
+        reserves = {
+          reserve0: BigInt(cachedReserves.reserve0),
+          reserve1: BigInt(cachedReserves.reserve1),
+          totalSupply: BigInt(cachedReserves.totalSupply),
+        };
+      } else {
+        // Fetch from RPC
+        reserves = await fetchPoolReservesAtHeight(pool.id, height);
+
+        // Cache individual height data (long TTL since historical data doesn't change)
+        if (reserves) {
+          await cacheSet(heightCacheKey, {
+            reserve0: reserves.reserve0.toString(),
+            reserve1: reserves.reserve1.toString(),
+            totalSupply: reserves.totalSupply.toString(),
+          }, 86400); // 24 hours
+        }
+      }
+
+      if (reserves && reserves.reserve0 > 0) {
+        const price = calculatePrice(
+          reserves.reserve0,
+          reserves.reserve1,
+          pool.token0.decimals,
+          pool.token1.decimals
+        );
+
+        prices.push({
+          poolId: pool.id,
+          poolName: pool.name,
+          price,
+          priceInverse: price > 0 ? 1 / price : 0,
+          reserve0: reserves.reserve0,
+          reserve1: reserves.reserve1,
+          blockHeight: height,
+          timestamp: Date.now(),
+        });
+      }
+    }
+  }
+
+  // If we couldn't get any historical data, fall back to current price
+  if (prices.length === 0) {
+    const currentPrice = await getPoolPrice(poolKey);
+    return [currentPrice];
+  }
+
+  // Cache the complete result (shorter TTL since it may be extended)
+  const serialized: SerializedPoolPrice[] = prices.map(p => ({
+    ...p,
+    reserve0: p.reserve0.toString(),
+    reserve1: p.reserve1.toString(),
+  }));
+  await cacheSet(cacheKey, serialized, CACHE_TTL_CANDLES);
+
+  return prices;
 }
 
 /**
