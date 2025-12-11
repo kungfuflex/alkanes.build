@@ -322,12 +322,12 @@ export default function ConnectWalletModal() {
       onClick={handleClose}
     >
       <div
-        className="w-[480px] max-w-[92vw] overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
+        className="w-[480px] max-w-[92vw] overflow-hidden rounded-2xl border border-white/20 bg-black shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-4 pb-2">
-          <h2 className="text-xl font-semibold text-foreground">
+          <h2 className="text-xl font-semibold text-white">
             {view === 'select' && 'Connect Wallet'}
             {view === 'create' && 'Create New Wallet'}
             {view === 'restore-mnemonic' && 'Restore from Mnemonic'}
@@ -340,7 +340,7 @@ export default function ConnectWalletModal() {
           </h2>
           <button
             onClick={handleClose}
-            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
           >
             <X size={20} />
           </button>
@@ -352,110 +352,110 @@ export default function ConnectWalletModal() {
             <div className="flex flex-col gap-3">
               {/* Keystore Options */}
               <div className="mb-2">
-                <div className="mb-2 text-sm font-medium text-muted-foreground">Keystore Wallet</div>
+                <div className="mb-2 text-sm font-medium text-white/70">Keystore Wallet</div>
 
                 {hasExistingKeystore && (
                   <button
                     onClick={() => setView('unlock')}
-                    className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4 mb-2 transition-colors hover:bg-muted"
+                    className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 mb-2 transition-colors hover:bg-white/10"
                   >
                     <div className="flex items-center gap-3">
-                      <Lock size={24} className="text-blue-500" />
+                      <Lock size={24} className="text-blue-400" />
                       <div className="text-left">
-                        <div className="font-medium text-foreground">Unlock Existing Wallet</div>
-                        <div className="text-sm text-muted-foreground">Enter password to unlock</div>
+                        <div className="font-medium text-white">Unlock Existing Wallet</div>
+                        <div className="text-sm text-white/50">Enter password to unlock</div>
                       </div>
                     </div>
-                    <ChevronRight size={20} className="text-muted-foreground" />
+                    <ChevronRight size={20} className="text-white/50" />
                   </button>
                 )}
 
                 <button
                   onClick={() => setView('create')}
-                  className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4 mb-2 transition-colors hover:bg-muted"
+                  className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 mb-2 transition-colors hover:bg-white/10"
                 >
                   <div className="flex items-center gap-3">
-                    <Plus size={24} className="text-green-500" />
+                    <Plus size={24} className="text-green-400" />
                     <div className="text-left">
-                      <div className="font-medium text-foreground">Create New Wallet</div>
-                      <div className="text-sm text-muted-foreground">Generate a new recovery phrase</div>
+                      <div className="font-medium text-white">Create New Wallet</div>
+                      <div className="text-sm text-white/50">Generate a new recovery phrase</div>
                     </div>
                   </div>
-                  <ChevronRight size={20} className="text-muted-foreground" />
+                  <ChevronRight size={20} className="text-white/50" />
                 </button>
 
                 <button
                   onClick={() => setView('restore-mnemonic')}
-                  className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4 mb-2 transition-colors hover:bg-muted"
+                  className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 mb-2 transition-colors hover:bg-white/10"
                 >
                   <div className="flex items-center gap-3">
-                    <Key size={24} className="text-yellow-500" />
+                    <Key size={24} className="text-yellow-400" />
                     <div className="text-left">
-                      <div className="font-medium text-foreground">Restore from Mnemonic</div>
-                      <div className="text-sm text-muted-foreground">Import existing recovery phrase</div>
+                      <div className="font-medium text-white">Restore from Mnemonic</div>
+                      <div className="text-sm text-white/50">Import existing recovery phrase</div>
                     </div>
                   </div>
-                  <ChevronRight size={20} className="text-muted-foreground" />
+                  <ChevronRight size={20} className="text-white/50" />
                 </button>
 
                 <button
                   onClick={() => setView('restore-json')}
-                  className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4 mb-2 transition-colors hover:bg-muted"
+                  className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 mb-2 transition-colors hover:bg-white/10"
                 >
                   <div className="flex items-center gap-3">
-                    <Upload size={24} className="text-orange-500" />
+                    <Upload size={24} className="text-orange-400" />
                     <div className="text-left">
-                      <div className="font-medium text-foreground">Restore from Keystore File</div>
-                      <div className="text-sm text-muted-foreground">Import exported JSON keystore</div>
+                      <div className="font-medium text-white">Restore from Keystore File</div>
+                      <div className="text-sm text-white/50">Import exported JSON keystore</div>
                     </div>
                   </div>
-                  <ChevronRight size={20} className="text-muted-foreground" />
+                  <ChevronRight size={20} className="text-white/50" />
                 </button>
 
                 {driveConfigured && (
                   <button
                     onClick={handleLoadDriveBackups}
                     disabled={isLoading}
-                    className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4 transition-colors hover:bg-muted disabled:opacity-50"
+                    className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10 disabled:opacity-50"
                   >
                     <div className="flex items-center gap-3">
-                      <Cloud size={24} className="text-blue-500" />
+                      <Cloud size={24} className="text-blue-400" />
                       <div className="text-left">
-                        <div className="font-medium text-foreground">Restore from Google Drive</div>
-                        <div className="text-sm text-muted-foreground">Recover wallet from your Drive</div>
+                        <div className="font-medium text-white">Restore from Google Drive</div>
+                        <div className="text-sm text-white/50">Recover wallet from your Drive</div>
                       </div>
                     </div>
-                    <ChevronRight size={20} className="text-muted-foreground" />
+                    <ChevronRight size={20} className="text-white/50" />
                   </button>
                 )}
               </div>
 
               {/* Browser Extension Wallets */}
               <div className="mt-2">
-                <div className="mb-2 text-sm font-medium text-muted-foreground">Browser Extension</div>
+                <div className="mb-2 text-sm font-medium text-white/70">Browser Extension</div>
                 <button
                   onClick={() => setView('browser-extension')}
-                  className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4 transition-colors hover:bg-muted"
+                  className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10"
                 >
                   <div className="flex items-center gap-3">
-                    <Download size={24} className="text-purple-500" />
+                    <Download size={24} className="text-purple-400" />
                     <div className="text-left">
-                      <div className="font-medium text-foreground">Connect Browser Extension</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="font-medium text-white">Connect Browser Extension</div>
+                      <div className="text-sm text-white/50">
                         {installedWallets.length > 0
                           ? `${installedWallets.length} wallet${installedWallets.length > 1 ? 's' : ''} detected`
                           : 'No wallets detected'}
                       </div>
                     </div>
                   </div>
-                  <ChevronRight size={20} className="text-muted-foreground" />
+                  <ChevronRight size={20} className="text-white/50" />
                 </button>
               </div>
 
               {hasExistingKeystore && (
                 <button
                   onClick={handleDeleteKeystore}
-                  className="mt-3 text-sm text-destructive hover:text-destructive/80"
+                  className="mt-3 text-sm text-red-400 hover:text-red-300"
                 >
                   Delete stored wallet
                 </button>
@@ -466,19 +466,19 @@ export default function ConnectWalletModal() {
           {view === 'create' && (
             <div className="flex flex-col gap-4">
               <div>
-                <label className="mb-1 block text-sm text-muted-foreground">Password (min 8 characters)</label>
+                <label className="mb-1 block text-sm text-white/70">Password (min 8 characters)</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 pr-10 outline-none focus:border-primary"
+                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
                     placeholder="Enter password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -486,40 +486,40 @@ export default function ConnectWalletModal() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-muted-foreground">Confirm Password</label>
+                <label className="mb-1 block text-sm text-white/70">Confirm Password</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:border-primary"
+                  className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 text-white placeholder:text-white/50 outline-none focus:border-white"
                   placeholder="Confirm password"
                 />
               </div>
 
               {driveConfigured && (
                 <div>
-                  <label className="mb-1 block text-sm text-muted-foreground">
+                  <label className="mb-1 block text-sm text-white/70">
                     Password Hint (Optional)
                   </label>
                   <input
                     type="text"
                     value={passwordHintInput}
                     onChange={(e) => setPasswordHintInput(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:border-primary"
+                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 text-white placeholder:text-white/50 outline-none focus:border-white"
                     placeholder="e.g., My cat's name + birth year"
                   />
-                  <div className="mt-1 text-xs text-muted-foreground">
+                  <div className="mt-1 text-xs text-white/50">
                     For Google Drive backup. Don't include your actual password.
                   </div>
                 </div>
               )}
 
-              {error && <div className="text-sm text-destructive">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
 
               <div className="flex gap-3">
                 <button
                   onClick={() => { setView('select'); resetForm(); }}
-                  className="flex-1 rounded-lg border border-border py-3 font-medium transition-colors hover:bg-muted"
+                  className="flex-1 rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
                 >
                   Back
                 </button>
@@ -536,29 +536,29 @@ export default function ConnectWalletModal() {
 
           {view === 'show-mnemonic' && (
             <div className="flex flex-col gap-4">
-              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-600 dark:text-yellow-400">
+              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-400">
                 Write down these words in order and store them safely. This is the only way to recover your wallet.
               </div>
 
-              <div className="relative rounded-lg border border-border bg-muted/50 p-4">
+              <div className="relative rounded-lg border border-white/20 bg-white/5 p-4">
                 <div className="grid grid-cols-3 gap-2 font-mono text-sm">
                   {generatedMnemonic.split(' ').map((word, i) => (
                     <div key={i} className="flex gap-2">
-                      <span className="text-muted-foreground">{i + 1}.</span>
-                      <span className="text-foreground">{word}</span>
+                      <span className="text-white/50">{i + 1}.</span>
+                      <span className="text-white">{word}</span>
                     </div>
                   ))}
                 </div>
                 <button
                   onClick={copyMnemonic}
-                  className="absolute right-2 top-2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="absolute right-2 top-2 rounded p-1 text-white/50 hover:bg-white/10 hover:text-white"
                   title="Copy to clipboard"
                 >
-                  {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
                 </button>
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <label className="flex items-center gap-2 text-sm text-white/70">
                 <input
                   type="checkbox"
                   checked={mnemonicConfirmed}
@@ -568,7 +568,7 @@ export default function ConnectWalletModal() {
                 I have saved my recovery phrase securely
               </label>
 
-              {error && <div className="text-sm text-destructive">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
 
               {driveConfigured && (
                 <div className="flex flex-col gap-2">
@@ -592,7 +592,7 @@ export default function ConnectWalletModal() {
                   <button
                     onClick={handleConfirmMnemonic}
                     disabled={!mnemonicConfirmed}
-                    className="text-sm text-muted-foreground hover:text-foreground py-2 disabled:opacity-50"
+                    className="text-sm text-white/50 hover:text-white py-2 disabled:opacity-50"
                   >
                     Skip backup
                   </button>
@@ -614,41 +614,41 @@ export default function ConnectWalletModal() {
           {view === 'restore-mnemonic' && (
             <div className="flex flex-col gap-4">
               <div>
-                <label className="mb-1 block text-sm text-muted-foreground">Recovery Phrase</label>
+                <label className="mb-1 block text-sm text-white/70">Recovery Phrase</label>
                 <textarea
                   value={mnemonic}
                   onChange={(e) => setMnemonic(e.target.value)}
-                  className="h-24 w-full resize-none rounded-lg border border-border bg-background px-4 py-3 outline-none focus:border-primary"
+                  className="h-24 w-full resize-none rounded-lg border border-white/50 bg-transparent px-4 py-3 text-white placeholder:text-white/50 outline-none focus:border-white"
                   placeholder="Enter your 12 or 24 word recovery phrase"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-muted-foreground">New Password</label>
+                <label className="mb-1 block text-sm text-white/70">New Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 pr-10 outline-none focus:border-primary"
+                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
                     placeholder="Create a password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
 
-              {error && <div className="text-sm text-destructive">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
 
               <div className="flex gap-3">
                 <button
                   onClick={() => { setView('select'); resetForm(); }}
-                  className="flex-1 rounded-lg border border-border py-3 font-medium transition-colors hover:bg-muted"
+                  className="flex-1 rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
                 >
                   Back
                 </button>
@@ -665,12 +665,12 @@ export default function ConnectWalletModal() {
 
           {view === 'restore-json' && (
             <div className="flex flex-col gap-4">
-              <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-600 dark:text-orange-400">
+              <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-400">
                 Upload a previously exported JSON keystore file to restore your wallet.
               </div>
 
               <div>
-                <label className="mb-2 block text-sm text-muted-foreground">Keystore File</label>
+                <label className="mb-2 block text-sm text-white/70">Keystore File</label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -684,16 +684,16 @@ export default function ConnectWalletModal() {
                   className={`w-full rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
                     uploadedKeystore
                       ? 'border-green-500/50 bg-green-500/10'
-                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                      : 'border-white/30 hover:border-white/50 hover:bg-white/5'
                   }`}
                 >
                   {uploadedKeystore ? (
-                    <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+                    <div className="flex items-center justify-center gap-2 text-green-400">
                       <Check size={20} />
                       <span>Keystore file loaded</span>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2 text-white/50">
                       <Upload size={24} />
                       <span>Click to upload keystore JSON</span>
                     </div>
@@ -702,32 +702,32 @@ export default function ConnectWalletModal() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-muted-foreground">Password</label>
+                <label className="mb-1 block text-sm text-white/70">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleRestoreFromJson()}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 pr-10 outline-none focus:border-primary"
+                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
                     placeholder="Enter keystore password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
 
-              {error && <div className="text-sm text-destructive">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
 
               <div className="flex gap-3">
                 <button
                   onClick={() => { setView('select'); resetForm(); }}
-                  className="flex-1 rounded-lg border border-border py-3 font-medium transition-colors hover:bg-muted"
+                  className="flex-1 rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
                 >
                   Back
                 </button>
@@ -744,7 +744,7 @@ export default function ConnectWalletModal() {
 
           {view === 'browser-extension' && (
             <div className="flex flex-col gap-3">
-              <div className="mb-2 text-sm text-muted-foreground">
+              <div className="mb-2 text-sm text-white/70">
                 Connect using a browser extension wallet:
               </div>
 
@@ -755,26 +755,26 @@ export default function ConnectWalletModal() {
                       key={wallet.id}
                       onClick={() => handleConnectBrowserWallet(wallet)}
                       disabled={isLoading}
-                      className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4 transition-colors hover:bg-muted disabled:opacity-50"
+                      className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10 disabled:opacity-50"
                     >
                       <div className="flex items-center gap-3">
                         <img src={wallet.icon} alt={wallet.name} className="w-8 h-8" />
                         <div className="text-left">
-                          <div className="font-medium text-foreground">{wallet.name}</div>
-                          <div className="text-xs text-muted-foreground flex gap-2">
+                          <div className="font-medium text-white">{wallet.name}</div>
+                          <div className="text-xs text-white/50 flex gap-2">
                             {wallet.supportsTaproot && <span>Taproot</span>}
                             {wallet.supportsOrdinals && <span>Ordinals</span>}
                           </div>
                         </div>
                       </div>
-                      <ChevronRight size={20} className="text-muted-foreground" />
+                      <ChevronRight size={20} className="text-white/50" />
                     </button>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="text-muted-foreground mb-4">No browser wallets detected</div>
-                  <div className="text-sm text-muted-foreground/60 mb-4">Install one of these wallets:</div>
+                  <div className="text-white/70 mb-4">No browser wallets detected</div>
+                  <div className="text-sm text-white/50 mb-4">Install one of these wallets:</div>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {BROWSER_WALLETS.slice(0, 5).map((wallet) => (
                       <a
@@ -782,22 +782,22 @@ export default function ConnectWalletModal() {
                         href={wallet.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-white/20 hover:bg-white/5 transition-colors"
                       >
                         <img src={wallet.icon} alt={wallet.name} className="w-6 h-6" />
-                        <span className="flex-1 text-left text-sm">{wallet.name}</span>
-                        <Download size={16} className="text-muted-foreground" />
+                        <span className="flex-1 text-left text-sm text-white">{wallet.name}</span>
+                        <Download size={16} className="text-white/50" />
                       </a>
                     ))}
                   </div>
                 </div>
               )}
 
-              {error && <div className="text-sm text-destructive">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
 
               <button
                 onClick={() => { setView('select'); resetForm(); }}
-                className="w-full rounded-lg border border-border py-3 font-medium transition-colors hover:bg-muted"
+                className="w-full rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
               >
                 Back
               </button>
@@ -808,7 +808,7 @@ export default function ConnectWalletModal() {
             <div className="flex flex-col gap-3">
               {driveBackups.length > 0 ? (
                 <>
-                  <div className="text-sm text-muted-foreground mb-2">
+                  <div className="text-sm text-white/70 mb-2">
                     Select a wallet backup to restore:
                   </div>
                   <div className="max-h-80 overflow-y-auto space-y-2">
@@ -817,34 +817,34 @@ export default function ConnectWalletModal() {
                         key={backup.folderId}
                         onClick={() => handleSelectDriveWallet(backup)}
                         disabled={isLoading}
-                        className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/50 p-4 transition-colors hover:bg-muted disabled:opacity-50"
+                        className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10 disabled:opacity-50"
                       >
                         <div className="flex items-center gap-3">
-                          <Cloud size={24} className="text-blue-500" />
+                          <Cloud size={24} className="text-blue-400" />
                           <div className="text-left">
-                            <div className="font-medium text-foreground">{backup.walletLabel}</div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="font-medium text-white">{backup.walletLabel}</div>
+                            <div className="text-xs text-white/50">
                               {new Date(backup.timestamp).toLocaleDateString()}
                               {backup.hasPasswordHint && ' - Has password hint'}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight size={20} className="text-muted-foreground" />
+                        <ChevronRight size={20} className="text-white/50" />
                       </button>
                     ))}
                   </div>
                 </>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-white/50">
                   No wallet backups found in your Google Drive
                 </div>
               )}
 
-              {error && <div className="text-sm text-destructive">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
 
               <button
                 onClick={() => { setView('select'); resetForm(); }}
-                className="w-full rounded-lg border border-border py-3 font-medium transition-colors hover:bg-muted"
+                className="w-full rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
               >
                 Back
               </button>
@@ -855,40 +855,40 @@ export default function ConnectWalletModal() {
             <div className="flex flex-col gap-4">
               <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <Cloud size={16} className="text-blue-500" />
-                  <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  <Cloud size={16} className="text-blue-400" />
+                  <div className="text-sm font-medium text-blue-400">
                     {selectedDriveWallet.walletLabel}
                   </div>
                 </div>
                 {passwordHint && (
-                  <div className="text-xs text-muted-foreground mt-1">
+                  <div className="text-xs text-white/50 mt-1">
                     <span className="font-medium">Hint:</span> {passwordHint}
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-muted-foreground">Password</label>
+                <label className="mb-1 block text-sm text-white/70">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleRestoreFromDrive()}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 pr-10 outline-none focus:border-primary"
+                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
                     placeholder="Enter wallet password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
 
-              {error && <div className="text-sm text-destructive">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
 
               <button
                 onClick={handleRestoreFromDrive}
@@ -900,7 +900,7 @@ export default function ConnectWalletModal() {
 
               <button
                 onClick={() => { setView('restore-drive-picker'); resetForm(); }}
-                className="w-full rounded-lg border border-border py-3 font-medium transition-colors hover:bg-muted"
+                className="w-full rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
               >
                 Back
               </button>
@@ -910,32 +910,32 @@ export default function ConnectWalletModal() {
           {view === 'unlock' && (
             <div className="flex flex-col gap-4">
               <div>
-                <label className="mb-1 block text-sm text-muted-foreground">Password</label>
+                <label className="mb-1 block text-sm text-white/70">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleUnlockKeystore()}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 pr-10 outline-none focus:border-primary"
+                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
                     placeholder="Enter your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
 
-              {error && <div className="text-sm text-destructive">{error}</div>}
+              {error && <div className="text-sm text-red-400">{error}</div>}
 
               <div className="flex gap-3">
                 <button
                   onClick={() => { setView('select'); resetForm(); }}
-                  className="flex-1 rounded-lg border border-border py-3 font-medium transition-colors hover:bg-muted"
+                  className="flex-1 rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
                 >
                   Back
                 </button>
