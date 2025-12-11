@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@/context/WalletContext";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import {
   formatAddress,
   formatDiesel,
@@ -46,62 +48,22 @@ export default function GovernancePage() {
   });
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="glass sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-6">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-alkane rounded-lg" />
-                <span className="font-bold text-xl">Alkanes</span>
-              </Link>
-              <nav className="hidden md:flex items-center gap-6">
-                <Link
-                  href="/docs"
-                  className="text-slate-600 hover:text-alkane-600 dark:text-slate-300 dark:hover:text-alkane-400 transition-colors"
-                >
-                  Documentation
-                </Link>
-                <Link
-                  href="/governance"
-                  className="text-alkane-600 dark:text-alkane-400 font-medium"
-                >
-                  Governance
-                </Link>
-              </nav>
-            </div>
-            <div>
-              {isConnected ? (
-                <div className="px-4 py-2 bg-alkane-100 dark:bg-alkane-900 rounded-lg text-sm font-mono">
-                  {formatAddress(address)}
-                </div>
-              ) : (
-                <button
-                  onClick={() => onConnectModalOpenChange(true)}
-                  className="px-4 py-2 bg-gradient-alkane text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-                >
-                  Connect Wallet
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <Header />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
         {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">DIESEL Governance</h1>
-            <p className="text-slate-600 dark:text-slate-400">
+            <h1 className="text-3xl font-bold mb-2 text-[color:var(--sf-text)]">DIESEL Governance</h1>
+            <p className="text-[color:var(--sf-muted)]">
               Vote on proposals to shape the future of Alkanes
             </p>
           </div>
           {isConnected && (
             <Link
               href="/governance/create"
-              className="px-4 py-2 bg-gradient-alkane text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+              className="btn-primary"
             >
               Create Proposal
             </Link>
@@ -109,15 +71,15 @@ export default function GovernancePage() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           {["all", "active", "pending", "closed"].map((state) => (
             <button
               key={state}
               onClick={() => setFilter(state)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === state
-                  ? "bg-alkane-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  ? "bg-[color:var(--sf-primary)] text-black"
+                  : "bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)] hover:text-[color:var(--sf-primary)]"
               }`}
             >
               {state.charAt(0).toUpperCase() + state.slice(1)}
@@ -133,8 +95,8 @@ export default function GovernancePage() {
                 key={i}
                 className="glass-card p-6 animate-pulse"
               >
-                <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-4" />
-                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
+                <div className="h-6 bg-[color:var(--sf-surface)] rounded w-3/4 mb-4" />
+                <div className="h-4 bg-[color:var(--sf-surface)] rounded w-1/2" />
               </div>
             ))}
           </div>
@@ -144,7 +106,7 @@ export default function GovernancePage() {
           </div>
         ) : data?.proposals?.length === 0 ? (
           <div className="glass-card p-6 text-center">
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-[color:var(--sf-muted)]">
               No proposals found
             </p>
           </div>
@@ -156,6 +118,8 @@ export default function GovernancePage() {
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }
@@ -165,29 +129,31 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
   const scores = proposal.scores.map((s) => BigInt(s || "0"));
   const maxScore = scores.reduce((a, b) => (a > b ? a : b), BigInt(0));
 
+  const stateClass = {
+    ACTIVE: "badge-active",
+    PENDING: "badge-pending",
+    CLOSED: "badge-closed",
+    EXECUTED: "badge-executed",
+    CANCELLED: "badge-closed",
+  }[proposal.state];
+
   return (
     <Link href={`/governance/${proposal.id}`}>
-      <div className="proposal-card cursor-pointer">
+      <div className="glass-card p-6 hover:shadow-lg transition-all cursor-pointer group">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <span
-                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                  proposal.state === "ACTIVE"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                    : proposal.state === "PENDING"
-                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-                    : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                }`}
-              >
+              <span className={`badge ${stateClass}`}>
                 {proposal.state}
               </span>
-              <span className="text-sm text-slate-500">
+              <span className="text-sm text-[color:var(--sf-muted)]">
                 by {formatAddress(proposal.author)}
               </span>
             </div>
-            <h2 className="text-xl font-semibold mb-2">{proposal.title}</h2>
-            <p className="text-slate-600 dark:text-slate-400 line-clamp-2">
+            <h2 className="text-xl font-semibold mb-2 text-[color:var(--sf-text)] group-hover:text-[color:var(--sf-primary)] transition-colors">
+              {proposal.title}
+            </h2>
+            <p className="text-[color:var(--sf-muted)] line-clamp-2">
               {proposal.body}
             </p>
           </div>
@@ -209,14 +175,14 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
                   <div
                     className={`absolute inset-0 rounded ${
                       isWinning
-                        ? "bg-green-100 dark:bg-green-900/30"
-                        : "bg-slate-100 dark:bg-slate-800"
+                        ? "bg-green-500/20"
+                        : "bg-[color:var(--sf-surface)]"
                     }`}
                     style={{ width: `${percentage}%` }}
                   />
                   <div className="relative flex justify-between px-3 py-1.5 text-sm">
-                    <span>{choice}</span>
-                    <span className="font-medium">
+                    <span className="text-[color:var(--sf-text)]">{choice}</span>
+                    <span className="font-medium text-[color:var(--sf-text)]">
                       {percentage.toFixed(1)}%
                     </span>
                   </div>
@@ -227,7 +193,7 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-sm text-slate-500">
+        <div className="flex items-center justify-between text-sm text-[color:var(--sf-muted)]">
           <span>
             {proposal._count.votes} vote{proposal._count.votes !== 1 ? "s" : ""}{" "}
             · {formatDiesel(totalVotes)} DIESEL

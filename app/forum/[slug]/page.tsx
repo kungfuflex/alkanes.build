@@ -4,6 +4,8 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress, cn } from "@/lib/utils";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 interface Post {
   id: string;
@@ -187,54 +189,60 @@ export default function DiscussionPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-alkane-500" />
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[color:var(--sf-primary)]" />
+        </div>
+        <Footer />
       </div>
     );
   }
 
   if (!discussion) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Not Found</h1>
-          <p className="text-slate-400 mb-4">This discussion doesn't exist</p>
-          <Link href="/forum" className="text-alkane-400 hover:text-alkane-300">
-            Back to Forum
-          </Link>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-[color:var(--sf-text)] mb-2">Not Found</h1>
+            <p className="text-[color:var(--sf-muted)] mb-4">This discussion doesn't exist</p>
+            <Link href="/forum" className="text-[color:var(--sf-primary)] hover:underline">
+              Back to Forum
+            </Link>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Header */}
-      <header className="glass border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/forum"
-              className="text-slate-400 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <span
-              className="px-2 py-0.5 rounded text-xs"
-              style={{
-                backgroundColor: `${discussion.category.color}20`,
-                color: discussion.category.color,
-              }}
-            >
-              {discussion.category.name}
-            </span>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <Header />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Back link and category */}
+        <div className="flex items-center gap-4 mb-6">
+          <Link
+            href="/forum"
+            className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+          <span
+            className="px-2 py-0.5 rounded text-xs"
+            style={{
+              backgroundColor: `${discussion.category.color}20`,
+              color: discussion.category.color,
+            }}
+          >
+            {discussion.category.name}
+          </span>
+        </div>
+
         {/* Discussion header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
@@ -242,7 +250,7 @@ export default function DiscussionPage({
               <span className="text-amber-400 text-sm">Pinned</span>
             )}
             {discussion.isLocked && (
-              <span className="text-slate-500 text-sm">🔒 Locked</span>
+              <span className="text-[color:var(--sf-muted)] text-sm">🔒 Locked</span>
             )}
             {discussion.tags.map((tag) => (
               <span
@@ -254,8 +262,8 @@ export default function DiscussionPage({
               </span>
             ))}
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">{discussion.title}</h1>
-          <div className="flex items-center gap-4 text-sm text-slate-400">
+          <h1 className="text-3xl font-bold text-[color:var(--sf-text)] mb-2">{discussion.title}</h1>
+          <div className="flex items-center gap-4 text-sm text-[color:var(--sf-muted)]">
             <span>by {formatAddress(discussion.author)}</span>
             <span>&middot;</span>
             <span>{formatRelativeTime(discussion.createdAt)}</span>
@@ -268,16 +276,16 @@ export default function DiscussionPage({
 
         {/* Linked proposal card */}
         {discussion.proposal && (
-          <div className="glass rounded-xl p-4 mb-6 border border-emerald-500/30">
+          <div className="glass-card p-4 mb-6 border border-emerald-500/30">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-emerald-400 mb-1">Linked Proposal</div>
-                <h3 className="text-white font-medium">{discussion.proposal.title}</h3>
+                <h3 className="text-[color:var(--sf-text)] font-medium">{discussion.proposal.title}</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={cn(
                     "px-2 py-0.5 rounded text-xs",
                     discussion.proposal.state === "ACTIVE" ? "bg-emerald-500/20 text-emerald-400" :
-                    discussion.proposal.state === "CLOSED" ? "bg-slate-500/20 text-slate-400" :
+                    discussion.proposal.state === "CLOSED" ? "bg-gray-500/20 text-[color:var(--sf-muted)]" :
                     "bg-amber-500/20 text-amber-400"
                   )}>
                     {discussion.proposal.state}
@@ -301,24 +309,24 @@ export default function DiscussionPage({
               key={post.id}
               id={`post-${post.postNumber}`}
               className={cn(
-                "glass rounded-xl p-6",
-                post.postType === "SYSTEM" && "bg-blue-500/10 border border-blue-500/30",
-                post.postType === "MODERATOR" && "bg-amber-500/10 border border-amber-500/30"
+                "glass-card p-6",
+                post.postType === "SYSTEM" && "border border-blue-500/30",
+                post.postType === "MODERATOR" && "border border-amber-500/30"
               )}
             >
               {/* Post header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-alkane-500 to-diesel-500 flex items-center justify-center text-white font-bold">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[color:var(--sf-primary)] to-orange-600 flex items-center justify-center text-black font-bold">
                     {post.author.slice(0, 2).toUpperCase()}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">
+                      <span className="text-[color:var(--sf-text)] font-medium">
                         {formatAddress(post.author)}
                       </span>
                       {post.author === discussion.author && (
-                        <span className="text-xs bg-alkane-500/20 text-alkane-400 px-1.5 py-0.5 rounded">
+                        <span className="text-xs bg-[color:var(--sf-primary)]/20 text-[color:var(--sf-primary)] px-1.5 py-0.5 rounded">
                           OP
                         </span>
                       )}
@@ -328,7 +336,7 @@ export default function DiscussionPage({
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-[color:var(--sf-muted)]">
                       {formatRelativeTime(post.createdAt)}
                       {post.isEdited && (
                         <span className="ml-2">(edited)</span>
@@ -336,15 +344,15 @@ export default function DiscussionPage({
                     </div>
                   </div>
                 </div>
-                <span className="text-xs text-slate-500">#{post.postNumber}</span>
+                <span className="text-xs text-[color:var(--sf-muted)]">#{post.postNumber}</span>
               </div>
 
               {/* Reply context */}
               {post.replyTo && (
-                <div className="mb-3 p-2 bg-slate-800/50 rounded-lg border-l-2 border-slate-600">
+                <div className="mb-3 p-2 bg-[color:var(--sf-surface)] rounded-lg border-l-2 border-[color:var(--sf-outline)]">
                   <a
                     href={`#post-${post.replyTo.postNumber}`}
-                    className="text-xs text-slate-400 hover:text-white"
+                    className="text-xs text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]"
                   >
                     Replying to #{post.replyTo.postNumber} by {formatAddress(post.replyTo.author)}
                   </a>
@@ -353,12 +361,12 @@ export default function DiscussionPage({
 
               {/* Post content */}
               <div
-                className="prose prose-invert prose-slate max-w-none mb-4"
+                className="prose prose-invert max-w-none mb-4 text-[color:var(--sf-text)]"
                 dangerouslySetInnerHTML={{ __html: post.cooked }}
               />
 
               {/* Reactions and actions */}
-              <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between pt-4 border-t border-[color:var(--sf-outline)]">
                 <div className="flex items-center gap-2">
                   {Object.entries(REACTION_EMOJIS).map(([type, emoji]) => {
                     const count = post.reactionCounts[type] || 0;
@@ -371,8 +379,8 @@ export default function DiscussionPage({
                         className={cn(
                           "flex items-center gap-1 px-2 py-1 rounded-lg text-sm transition-colors",
                           isActive
-                            ? "bg-alkane-500/20 text-alkane-400"
-                            : "bg-slate-800/50 text-slate-400 hover:bg-slate-700/50",
+                            ? "bg-[color:var(--sf-primary)]/20 text-[color:var(--sf-primary)]"
+                            : "bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] hover:bg-[color:var(--sf-outline)]",
                           !isConnected && "opacity-50 cursor-not-allowed"
                         )}
                       >
@@ -386,7 +394,7 @@ export default function DiscussionPage({
                   {!discussion.isLocked && isConnected && (
                     <button
                       onClick={() => setReplyingTo(post)}
-                      className="text-sm text-slate-400 hover:text-white transition-colors"
+                      className="text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors"
                     >
                       Reply
                     </button>
@@ -399,20 +407,20 @@ export default function DiscussionPage({
 
         {/* Reply form */}
         {!discussion.isLocked && (
-          <div className="mt-8 glass rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">
+          <div className="mt-8 glass-card p-6">
+            <h3 className="text-lg font-semibold text-[color:var(--sf-text)] mb-4">
               {replyingTo
                 ? `Replying to #${replyingTo.postNumber}`
                 : "Add a Reply"}
             </h3>
             {replyingTo && (
-              <div className="mb-4 flex items-center justify-between p-2 bg-slate-800/50 rounded-lg">
-                <span className="text-sm text-slate-400">
+              <div className="mb-4 flex items-center justify-between p-2 bg-[color:var(--sf-surface)] rounded-lg">
+                <span className="text-sm text-[color:var(--sf-muted)]">
                   Replying to {formatAddress(replyingTo.author)}
                 </span>
                 <button
                   onClick={() => setReplyingTo(null)}
-                  className="text-slate-500 hover:text-white"
+                  className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -426,10 +434,10 @@ export default function DiscussionPage({
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder="Write your reply... (Markdown supported)"
-                  className="w-full h-32 px-4 py-3 bg-slate-800/50 border border-white/10 rounded-lg text-white placeholder:text-slate-500 resize-none focus:outline-none focus:border-alkane-500"
+                  className="w-full h-32 px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] resize-none focus:outline-none focus:border-[color:var(--sf-primary)]"
                 />
                 <div className="flex items-center justify-between mt-4">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[color:var(--sf-muted)]">
                     Mention users with @address
                   </p>
                   <button
@@ -442,13 +450,15 @@ export default function DiscussionPage({
                 </div>
               </>
             ) : (
-              <p className="text-slate-400 text-center py-4">
+              <p className="text-[color:var(--sf-muted)] text-center py-4">
                 Connect your wallet to reply to this discussion
               </p>
             )}
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
 }

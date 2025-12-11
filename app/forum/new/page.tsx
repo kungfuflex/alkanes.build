@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useWallet } from "@/context/WalletContext";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 interface Category {
   id: string;
@@ -93,60 +95,62 @@ export default function NewDiscussionPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">
-            Wallet Required
-          </h1>
-          <p className="text-slate-400 mb-4">
-            Please connect your wallet to create a discussion
-          </p>
-          <Link href="/forum" className="text-alkane-400 hover:text-alkane-300">
-            Back to Forum
-          </Link>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-[color:var(--sf-text)] mb-2">
+              Wallet Required
+            </h1>
+            <p className="text-[color:var(--sf-muted)] mb-4">
+              Please connect your wallet to create a discussion
+            </p>
+            <Link href="/forum" className="text-[color:var(--sf-primary)] hover:underline">
+              Back to Forum
+            </Link>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Header */}
-      <header className="glass border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/forum"
-              className="text-slate-400 hover:text-white transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </Link>
-            <h1 className="text-lg font-semibold text-white">
-              New Discussion
-            </h1>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <Header />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Back link and title */}
+        <div className="flex items-center gap-4 mb-6">
+          <Link
+            href="/forum"
+            className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </Link>
+          <h1 className="text-lg font-semibold text-[color:var(--sf-text)]">
+            New Discussion
+          </h1>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div>
             <label
               htmlFor="title"
-              className="block text-sm font-medium text-slate-300 mb-2"
+              className="block text-sm font-medium text-[color:var(--sf-text)] mb-2"
             >
               Title <span className="text-red-400">*</span>
             </label>
@@ -156,7 +160,7 @@ export default function NewDiscussionPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What's your discussion about?"
-              className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-alkane-500"
+              className="w-full px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] focus:outline-none focus:border-[color:var(--sf-primary)]"
               required
             />
           </div>
@@ -166,7 +170,7 @@ export default function NewDiscussionPage() {
             <div>
               <label
                 htmlFor="category"
-                className="block text-sm font-medium text-slate-300 mb-2"
+                className="block text-sm font-medium text-[color:var(--sf-text)] mb-2"
               >
                 Category <span className="text-red-400">*</span>
               </label>
@@ -174,7 +178,7 @@ export default function NewDiscussionPage() {
                 id="category"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-lg text-white focus:outline-none focus:border-alkane-500"
+                className="w-full px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] focus:outline-none focus:border-[color:var(--sf-primary)]"
                 required
               >
                 {categories.map((cat) => (
@@ -187,7 +191,7 @@ export default function NewDiscussionPage() {
             <div>
               <label
                 htmlFor="type"
-                className="block text-sm font-medium text-slate-300 mb-2"
+                className="block text-sm font-medium text-[color:var(--sf-text)] mb-2"
               >
                 Type
               </label>
@@ -195,7 +199,7 @@ export default function NewDiscussionPage() {
                 id="type"
                 value={type}
                 onChange={(e) => setType(e.target.value as any)}
-                className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-lg text-white focus:outline-none focus:border-alkane-500"
+                className="w-full px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] focus:outline-none focus:border-[color:var(--sf-primary)]"
               >
                 <option value="GENERAL">Discussion</option>
                 <option value="QUESTION">Question</option>
@@ -207,7 +211,7 @@ export default function NewDiscussionPage() {
           <div>
             <label
               htmlFor="content"
-              className="block text-sm font-medium text-slate-300 mb-2"
+              className="block text-sm font-medium text-[color:var(--sf-text)] mb-2"
             >
               Content <span className="text-red-400">*</span>
             </label>
@@ -216,23 +220,23 @@ export default function NewDiscussionPage() {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your discussion content... (Markdown supported)"
-              className="w-full h-64 px-4 py-3 bg-slate-800/50 border border-white/10 rounded-lg text-white placeholder:text-slate-500 resize-none focus:outline-none focus:border-alkane-500"
+              className="w-full h-64 px-4 py-3 bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] resize-none focus:outline-none focus:border-[color:var(--sf-primary)]"
               required
             />
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-[color:var(--sf-muted)]">
               Supports Markdown formatting. Mention users with @address
             </p>
           </div>
 
           {/* Preview */}
           {content && (
-            <div className="glass rounded-xl p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">
+            <div className="glass-card p-4">
+              <h3 className="text-sm font-medium text-[color:var(--sf-muted)] mb-2">
                 Preview
               </h3>
-              <div className="prose prose-invert prose-slate max-w-none">
+              <div className="prose prose-invert max-w-none">
                 {/* Simple markdown preview - in production would use marked */}
-                <div className="whitespace-pre-wrap text-slate-300">
+                <div className="whitespace-pre-wrap text-[color:var(--sf-text)]">
                   {content}
                 </div>
               </div>
@@ -240,10 +244,10 @@ export default function NewDiscussionPage() {
           )}
 
           {/* Submit */}
-          <div className="flex items-center justify-between pt-4 border-t border-white/10">
+          <div className="flex items-center justify-between pt-4 border-t border-[color:var(--sf-outline)]">
             <Link
               href="/forum"
-              className="text-slate-400 hover:text-white transition-colors"
+              className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors"
             >
               Cancel
             </Link>
@@ -257,6 +261,8 @@ export default function NewDiscussionPage() {
           </div>
         </form>
       </main>
+
+      <Footer />
     </div>
   );
 }

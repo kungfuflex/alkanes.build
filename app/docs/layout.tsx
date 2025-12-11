@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 // Navigation structure
 const navigation = [
@@ -63,51 +65,17 @@ export default function DocsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="glass sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-6">
-              <Link href="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-alkane rounded-lg" />
-                <span className="font-bold text-xl">Alkanes</span>
-              </Link>
-              <nav className="hidden md:flex items-center gap-6">
-                <Link
-                  href="/docs"
-                  className="text-alkane-600 dark:text-alkane-400 font-medium"
-                >
-                  Documentation
-                </Link>
-                <Link
-                  href="/governance"
-                  className="text-slate-600 hover:text-alkane-600 dark:text-slate-300 dark:hover:text-alkane-400 transition-colors"
-                >
-                  Governance
-                </Link>
-                <a
-                  href="https://github.com/kungfuflex/alkanes-rs"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-600 hover:text-alkane-600 dark:text-slate-300 dark:hover:text-alkane-400 transition-colors"
-                >
-                  GitHub
-                </a>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <Header />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <div className="flex gap-8">
           {/* Sidebar */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
             <nav className="sticky top-24 space-y-8">
               {navigation.map((section) => (
                 <div key={section.title}>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                  <h3 className="font-semibold text-[color:var(--sf-text)] mb-2">
                     {section.title}
                   </h3>
                   <ul className="space-y-1">
@@ -115,7 +83,7 @@ export default function DocsLayout({
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          className="block py-1.5 px-3 rounded-lg text-slate-600 hover:text-alkane-600 hover:bg-alkane-50 dark:text-slate-400 dark:hover:text-alkane-400 dark:hover:bg-alkane-900/20 transition-colors"
+                          className="block py-1.5 px-3 rounded-lg text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] hover:bg-[color:var(--sf-surface)] transition-colors"
                         >
                           {item.title}
                         </Link>
@@ -129,12 +97,14 @@ export default function DocsLayout({
 
           {/* Main Content */}
           <main className="flex-1 min-w-0">
-            <article className="prose dark:prose-invert max-w-none">
+            <article className="prose prose-invert max-w-none prose-headings:text-[color:var(--sf-text)] prose-p:text-[color:var(--sf-text)] prose-a:text-[color:var(--sf-primary)] prose-strong:text-[color:var(--sf-text)] prose-code:text-[color:var(--sf-primary)]">
               {children}
             </article>
           </main>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

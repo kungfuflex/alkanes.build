@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress, cn } from "@/lib/utils";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 interface Category {
   id: string;
@@ -44,7 +46,7 @@ interface Discussion {
 }
 
 const TYPE_BADGES: Record<string, { label: string; color: string }> = {
-  GENERAL: { label: "Discussion", color: "bg-slate-500" },
+  GENERAL: { label: "Discussion", color: "bg-gray-500" },
   PROPOSAL: { label: "Proposal", color: "bg-emerald-500" },
   ANNOUNCEMENT: { label: "Announcement", color: "bg-red-500" },
   QUESTION: { label: "Question", color: "bg-blue-500" },
@@ -117,54 +119,21 @@ export default function ForumPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Header */}
-      <header className="glass border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <Link href="/" className="text-xl font-bold text-white">
-                ALKANES
-              </Link>
-              <nav className="hidden md:flex items-center gap-4">
-                <Link
-                  href="/docs"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Docs
-                </Link>
-                <Link
-                  href="/governance"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Governance
-                </Link>
-                <Link href="/forum" className="text-white font-medium">
-                  Forum
-                </Link>
-              </nav>
-            </div>
-            {isConnected && address && (
-              <div className="text-sm text-slate-400">
-                {formatAddress(address)}
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col">
+      <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <aside className="lg:w-64 flex-shrink-0">
-            <div className="glass rounded-xl p-4 space-y-4">
+            <div className="glass-card p-4 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-white">Categories</h2>
+                <h2 className="font-semibold text-[color:var(--sf-text)]">Categories</h2>
                 <button
                   onClick={() => setSelectedCategory(null)}
                   className={cn(
                     "text-xs",
-                    !selectedCategory ? "text-alkane-400" : "text-slate-400 hover:text-white"
+                    !selectedCategory ? "text-[color:var(--sf-primary)]" : "text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]"
                   )}
                 >
                   All
@@ -178,8 +147,8 @@ export default function ForumPage() {
                     className={cn(
                       "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-sm transition-colors",
                       selectedCategory === cat.id
-                        ? "bg-white/10 text-white"
-                        : "text-slate-400 hover:bg-white/5 hover:text-white"
+                        ? "bg-[color:var(--sf-surface)] text-[color:var(--sf-text)]"
+                        : "text-[color:var(--sf-muted)] hover:bg-[color:var(--sf-surface)] hover:text-[color:var(--sf-text)]"
                     )}
                   >
                     <span
@@ -192,10 +161,10 @@ export default function ForumPage() {
                 ))}
               </div>
 
-              <hr className="border-white/10" />
+              <hr className="border-[color:var(--sf-outline)]" />
 
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-slate-400">Type</h3>
+                <h3 className="text-sm font-medium text-[color:var(--sf-muted)]">Type</h3>
                 <div className="flex flex-wrap gap-1">
                   {Object.entries(TYPE_BADGES).map(([type, { label, color }]) => (
                     <button
@@ -207,7 +176,7 @@ export default function ForumPage() {
                         "px-2 py-0.5 rounded text-xs transition-colors",
                         selectedType === type
                           ? `${color} text-white`
-                          : "bg-white/5 text-slate-400 hover:bg-white/10"
+                          : "bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] hover:bg-[color:var(--sf-outline)]"
                       )}
                     >
                       {label}
@@ -216,7 +185,7 @@ export default function ForumPage() {
                 </div>
               </div>
 
-              <hr className="border-white/10" />
+              <hr className="border-[color:var(--sf-outline)]" />
 
               {isConnected ? (
                 <Link
@@ -226,7 +195,7 @@ export default function ForumPage() {
                   New Discussion
                 </Link>
               ) : (
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-xs text-[color:var(--sf-muted)] text-center">
                   Connect wallet to post
                 </p>
               )}
@@ -237,13 +206,13 @@ export default function ForumPage() {
           <div className="flex-1 min-w-0">
             {/* Sort controls */}
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-white">Discussions</h1>
+              <h1 className="text-2xl font-bold text-[color:var(--sf-text)]">Discussions</h1>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400">Sort:</span>
+                <span className="text-sm text-[color:var(--sf-muted)]">Sort:</span>
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as any)}
-                  className="bg-slate-800 border border-white/10 rounded-lg px-2 py-1 text-sm text-white"
+                  className="bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] rounded-lg px-2 py-1 text-sm text-[color:var(--sf-text)]"
                 >
                   <option value="bumped">Latest Activity</option>
                   <option value="created">Newest</option>
@@ -258,20 +227,20 @@ export default function ForumPage() {
                 {[...Array(5)].map((_, i) => (
                   <div
                     key={i}
-                    className="glass rounded-xl p-4 animate-pulse"
+                    className="glass-card p-4 animate-pulse"
                   >
-                    <div className="h-5 bg-slate-700 rounded w-2/3 mb-2" />
-                    <div className="h-4 bg-slate-700 rounded w-1/4" />
+                    <div className="h-5 bg-[color:var(--sf-surface)] rounded w-2/3 mb-2" />
+                    <div className="h-4 bg-[color:var(--sf-surface)] rounded w-1/4" />
                   </div>
                 ))}
               </div>
             ) : discussions.length === 0 ? (
-              <div className="glass rounded-xl p-8 text-center">
-                <p className="text-slate-400">No discussions found</p>
+              <div className="glass-card p-8 text-center">
+                <p className="text-[color:var(--sf-muted)]">No discussions found</p>
                 {isConnected && (
                   <Link
                     href="/forum/new"
-                    className="text-alkane-400 hover:text-alkane-300 mt-2 inline-block"
+                    className="text-[color:var(--sf-primary)] hover:underline mt-2 inline-block"
                   >
                     Start the first discussion
                   </Link>
@@ -283,7 +252,7 @@ export default function ForumPage() {
                   <Link
                     key={discussion.id}
                     href={`/forum/${discussion.slug}`}
-                    className="glass rounded-xl p-4 block hover:bg-white/5 transition-colors group"
+                    className="glass-card p-4 block hover:shadow-lg transition-all group"
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">
@@ -296,7 +265,7 @@ export default function ForumPage() {
                             </span>
                           )}
                           {discussion.isLocked && (
-                            <span className="text-slate-500 text-xs">
+                            <span className="text-[color:var(--sf-muted)] text-xs">
                               <svg className="w-3 h-3 inline" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                               </svg>
@@ -320,10 +289,10 @@ export default function ForumPage() {
                             {discussion.category.name}
                           </span>
                         </div>
-                        <h3 className="text-white font-medium group-hover:text-alkane-400 transition-colors truncate">
+                        <h3 className="text-[color:var(--sf-text)] font-medium group-hover:text-[color:var(--sf-primary)] transition-colors truncate">
                           {discussion.title}
                         </h3>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                        <div className="flex items-center gap-3 mt-1 text-xs text-[color:var(--sf-muted)]">
                           <span>{formatAddress(discussion.author)}</span>
                           <span>&middot;</span>
                           <span>{formatRelativeTime(discussion.bumpedAt)}</span>
@@ -337,15 +306,15 @@ export default function ForumPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <div className="flex items-center gap-4 text-xs text-[color:var(--sf-muted)]">
                         <div className="text-center">
-                          <div className="text-white font-medium">
+                          <div className="text-[color:var(--sf-text)] font-medium">
                             {discussion.postsCount - 1}
                           </div>
                           <div>replies</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-white font-medium">
+                          <div className="text-[color:var(--sf-text)] font-medium">
                             {discussion.viewsCount}
                           </div>
                           <div>views</div>
@@ -363,17 +332,17 @@ export default function ForumPage() {
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 rounded-lg bg-slate-800 text-slate-400 disabled:opacity-50 hover:bg-slate-700"
+                  className="px-3 py-1 rounded-lg bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)]"
                 >
                   Previous
                 </button>
-                <span className="text-slate-400">
+                <span className="text-[color:var(--sf-muted)]">
                   Page {page} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1 rounded-lg bg-slate-800 text-slate-400 disabled:opacity-50 hover:bg-slate-700"
+                  className="px-3 py-1 rounded-lg bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)]"
                 >
                   Next
                 </button>
@@ -382,6 +351,8 @@ export default function ForumPage() {
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
