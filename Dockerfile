@@ -42,6 +42,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN pnpm build
 
+# Prepare prisma packages for production (resolve symlinks)
+RUN mkdir -p /app/prisma-pkg && \
+    cp -rL node_modules/@prisma /app/prisma-pkg/ && \
+    cp -rL node_modules/prisma /app/prisma-pkg/
+
 # ============================================
 # Stage 3: Runner
 # ============================================
@@ -66,13 +71,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy Prisma for migrations
+# Copy Prisma for migrations (from prepared directory with resolved symlinks)
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.pnpm/@prisma+client* ./node_modules/.pnpm/
-COPY --from=builder /app/node_modules/.pnpm/@prisma+engines* ./node_modules/.pnpm/
-COPY --from=builder /app/node_modules/.pnpm/prisma* ./node_modules/.pnpm/
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/prisma-pkg/@prisma ./node_modules/@prisma
+COPY --from=builder /app/prisma-pkg/prisma ./node_modules/prisma
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app
