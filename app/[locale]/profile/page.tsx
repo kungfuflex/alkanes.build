@@ -49,14 +49,21 @@ export default function ProfilePage() {
   const [isVerifying, setIsVerifying] = useState(false);
 
   // Fetch existing profile
-  const { data: profile, isLoading: profileLoading } = useQuery<UserProfile>({
+  const { data: profile, isLoading: profileLoading } = useQuery<UserProfile | null>({
     queryKey: ["profile", address],
     queryFn: async () => {
       if (!address) throw new Error("No address");
       const res = await fetch(`/api/profile?address=${address}`);
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error("Failed to fetch profile");
-      return res.json();
+      if (!res.ok && res.status !== 200) {
+        // Return null for any error, let the UI handle it gracefully
+        return null;
+      }
+      const data = await res.json();
+      // Handle the case where id is null (new user or DB unavailable)
+      if (!data.id) {
+        return null;
+      }
+      return data;
     },
     enabled: !!address && isConnected,
   });

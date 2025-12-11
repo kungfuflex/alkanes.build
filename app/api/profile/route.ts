@@ -17,30 +17,65 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const profile = await prisma.userProfile.findUnique({
-      where: { address },
-      select: {
-        id: true,
-        address: true,
-        displayName: true,
-        bio: true,
-        avatarUrl: true,
-        verified: true,
-        postsCount: true,
-        discussionsCount: true,
-        likesReceived: true,
-        likesGiven: true,
-        trustLevel: true,
-        createdAt: true,
-        lastSeenAt: true,
-      },
-    });
+    // Try to find existing profile
+    let profile;
+    try {
+      profile = await prisma.userProfile.findUnique({
+        where: { address },
+        select: {
+          id: true,
+          address: true,
+          displayName: true,
+          bio: true,
+          avatarUrl: true,
+          verified: true,
+          postsCount: true,
+          discussionsCount: true,
+          likesReceived: true,
+          likesGiven: true,
+          trustLevel: true,
+          createdAt: true,
+          lastSeenAt: true,
+        },
+      });
+    } catch (dbError) {
+      console.error("Database error fetching profile:", dbError);
+      // Return a default profile structure if DB is unavailable
+      return NextResponse.json({
+        id: null,
+        address,
+        displayName: null,
+        bio: null,
+        avatarUrl: null,
+        verified: false,
+        postsCount: 0,
+        discussionsCount: 0,
+        likesReceived: 0,
+        likesGiven: 0,
+        trustLevel: 0,
+        createdAt: null,
+        lastSeenAt: null,
+        _dbUnavailable: true,
+      });
+    }
 
     if (!profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 }
-      );
+      // Return a default profile for new users instead of 404
+      return NextResponse.json({
+        id: null,
+        address,
+        displayName: null,
+        bio: null,
+        avatarUrl: null,
+        verified: false,
+        postsCount: 0,
+        discussionsCount: 0,
+        likesReceived: 0,
+        likesGiven: 0,
+        trustLevel: 0,
+        createdAt: null,
+        lastSeenAt: null,
+      });
     }
 
     return NextResponse.json(profile);
@@ -90,39 +125,47 @@ export async function POST(request: NextRequest) {
       ? displayName.trim().replace(/[<>]/g, "")
       : null;
 
-    // Upsert profile
-    const profile = await prisma.userProfile.upsert({
-      where: { address },
-      create: {
-        address,
-        displayName: sanitizedDisplayName,
-        bio: bio?.trim() || null,
-        avatarUrl: avatarUrl || null,
-        lastSeenAt: new Date(),
-      },
-      update: {
-        displayName: sanitizedDisplayName,
-        bio: bio?.trim() || null,
-        avatarUrl: avatarUrl || null,
-        lastSeenAt: new Date(),
-      },
-      select: {
-        id: true,
-        address: true,
-        displayName: true,
-        bio: true,
-        avatarUrl: true,
-        verified: true,
-        postsCount: true,
-        discussionsCount: true,
-        likesReceived: true,
-        trustLevel: true,
-        createdAt: true,
-        lastSeenAt: true,
-      },
-    });
+    // Try to upsert profile
+    try {
+      const profile = await prisma.userProfile.upsert({
+        where: { address },
+        create: {
+          address,
+          displayName: sanitizedDisplayName,
+          bio: bio?.trim() || null,
+          avatarUrl: avatarUrl || null,
+          lastSeenAt: new Date(),
+        },
+        update: {
+          displayName: sanitizedDisplayName,
+          bio: bio?.trim() || null,
+          avatarUrl: avatarUrl || null,
+          lastSeenAt: new Date(),
+        },
+        select: {
+          id: true,
+          address: true,
+          displayName: true,
+          bio: true,
+          avatarUrl: true,
+          verified: true,
+          postsCount: true,
+          discussionsCount: true,
+          likesReceived: true,
+          trustLevel: true,
+          createdAt: true,
+          lastSeenAt: true,
+        },
+      });
 
-    return NextResponse.json(profile);
+      return NextResponse.json(profile);
+    } catch (dbError) {
+      console.error("Database error saving profile:", dbError);
+      return NextResponse.json(
+        { error: "Database unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
   } catch (error) {
     console.error("Error saving profile:", error);
     return NextResponse.json(
