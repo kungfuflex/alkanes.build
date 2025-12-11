@@ -1,10 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
-    "types": ["node", "react", "react-dom"],
+    "types": [
+      "node",
+      "react",
+      "react-dom"
+    ],
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -12,7 +20,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -20,12 +28,24 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/ts-sdk": ["./ts-sdk"],
-      "@/ts-sdk/*": ["./ts-sdk/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/hooks/*": [
+        "./hooks/*"
+      ],
+      "@/ts-sdk": [
+        "./ts-sdk"
+      ],
+      "@/ts-sdk/*": [
+        "./ts-sdk/*"
+      ]
     }
   },
   "include": [
@@ -34,7 +54,14 @@
     "**/*.ts",
     "**/*.tsx",
     "**/*.mdx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".external-build", "reference", "ts-sdk", "tests"]
+  "exclude": [
+    "node_modules",
+    ".external-build",
+    "reference",
+    "ts-sdk",
+    "tests"
+  ]
 }

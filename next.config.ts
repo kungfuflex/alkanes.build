@@ -6,6 +6,7 @@ import rehypeHighlight from "rehype-highlight";
 import createNextIntlPlugin from "next-intl/plugin";
 import path from "path";
 import fs from "fs";
+import webpack from "webpack";
 
 // Check if ts-sdk is built
 const tsSdkWasmPath = path.join(process.cwd(), "ts-sdk/build/wasm/alkanes_web_sys.js");
@@ -61,6 +62,22 @@ const nextConfig: NextConfig = {
         tls: false,
         crypto: false,
       };
+
+      // Polyfill Buffer and process for browser
+      // Required by libraries like randombytes, ecpair, bitcoinjs-lib
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          Buffer: ["buffer", "Buffer"],
+          process: "process/browser",
+        })
+      );
+
+      // Define global as globalThis (built-in, not a module)
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          global: "globalThis",
+        })
+      );
     }
 
     return config;
@@ -74,11 +91,6 @@ const nextConfig: NextConfig = {
   // Ignore TypeScript errors for optional dependencies
   typescript: {
     ignoreBuildErrors: false,
-  },
-
-  // ESLint during builds
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 };
 
