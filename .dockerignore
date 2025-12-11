@@ -30,9 +30,9 @@ dist
 # Reference files (large)
 reference
 
-# External builds
+# External builds (source repo, not the built artifacts)
 .external-build
-ts-sdk
+# ts-sdk is needed - contains built SDK artifacts
 
 # GCP scripts (not needed in container)
 gcp/
