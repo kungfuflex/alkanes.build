@@ -126,7 +126,8 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           DOMAIN="${{ vars.CLOUDFLARE_DOMAIN }}"
-          TARGET="${{ steps.service.outputs.hostname }}"
+          # Use Google's domain mapping IP (Cloud Run domain mapping)
+          TARGET="216.239.32.21"
 
           # Use provided Zone ID or look it up dynamically
           if [ -n "${{ vars.CLOUDFLARE_ZONE_ID }}" ]; then
@@ -153,7 +154,7 @@ jobs:
           # Extract root domain for comparison
           ROOT_DOMAIN=$(echo "$DOMAIN" | awk -F. '{print $(NF-1)"."$NF}')
 
-          # For apex domain, use @ as name; Cloudflare will CNAME flatten
+          # For apex domain, use @ as name
           if [ "$DOMAIN" = "$ROOT_DOMAIN" ]; then
             RECORD_NAME="@"
           else
@@ -177,33 +178,32 @@ jobs:
 
           if [ -n "$RECORD_ID" ]; then
             echo "Found existing ${RECORD_TYPE} record: ${RECORD_ID}"
-            # Delete existing record first (can't change type with PUT)
-            if [ "$RECORD_TYPE" != "CNAME" ]; then
+            if [ "$RECORD_TYPE" = "A" ]; then
+              # Update existing A record
+              RESPONSE=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${RECORD_ID}" \
+                -H "Authorization: Bearer ${CF_API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                --data "{\"type\":\"A\",\"name\":\"${RECORD_NAME}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}")
+              echo "Updated A record: ${DOMAIN} -> ${TARGET}"
+            else
+              # Delete AAAA/CNAME and create A record
               echo "Deleting existing ${RECORD_TYPE} record..."
               curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${RECORD_ID}" \
                 -H "Authorization: Bearer ${CF_API_TOKEN}" \
                 -H "Content-Type: application/json" > /dev/null
-              # Create new CNAME
               RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records" \
                 -H "Authorization: Bearer ${CF_API_TOKEN}" \
                 -H "Content-Type: application/json" \
-                --data "{\"type\":\"CNAME\",\"name\":\"${RECORD_NAME}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}")
-              echo "Created CNAME record: ${DOMAIN} -> ${TARGET}"
-            else
-              # Update existing CNAME
-              RESPONSE=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/${RECORD_ID}" \
-                -H "Authorization: Bearer ${CF_API_TOKEN}" \
-                -H "Content-Type: application/json" \
-                --data "{\"type\":\"CNAME\",\"name\":\"${RECORD_NAME}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}")
-              echo "Updated CNAME record: ${DOMAIN} -> ${TARGET}"
+                --data "{\"type\":\"A\",\"name\":\"${RECORD_NAME}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}")
+              echo "Created A record: ${DOMAIN} -> ${TARGET}"
             fi
           else
-            # Create new record
+            # Create new A record
             RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records" \
               -H "Authorization: Bearer ${CF_API_TOKEN}" \
               -H "Content-Type: application/json" \
-              --data "{\"type\":\"CNAME\",\"name\":\"${RECORD_NAME}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}")
-            echo "Created DNS record: ${DOMAIN} -> ${TARGET}"
+              --data "{\"type\":\"A\",\"name\":\"${RECORD_NAME}\",\"content\":\"${TARGET}\",\"ttl\":1,\"proxied\":false}")
+            echo "Created A record: ${DOMAIN} -> ${TARGET}"
           fi
 
           # Check final response
