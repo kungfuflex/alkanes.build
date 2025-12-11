@@ -75,11 +75,22 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-8 pt-6 border-t border-[color:var(--sf-outline)] text-center">
-          <p className="text-xs text-[color:var(--sf-muted)]">
-            {t("footer.copyright")}
-          </p>
+        {/* Bottom bar with legal links */}
+        <div className="mt-8 pt-6 border-t border-[color:var(--sf-outline)]">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-xs text-[color:var(--sf-muted)]">
+              {t("footer.copyright")}
+            </p>
+            <nav className="flex items-center gap-4 text-xs">
+              <Link href="/privacy" className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors">
+                {t("footer.links.privacy")}
+              </Link>
+              <span className="text-[color:var(--sf-outline)]">|</span>
+              <Link href="/terms" className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors">
+                {t("footer.links.terms")}
+              </Link>
+            </nav>
+          </div>
         </div>
       </div>
     </footer>

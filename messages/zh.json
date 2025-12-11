@@ -220,9 +220,11 @@
       "governance": "治理",
       "forum": "论坛",
       "github": "GitHub",
-      "twitter": "Twitter"
+      "twitter": "Twitter",
+      "privacy": "隐私政策",
+      "terms": "服务条款"
     },
-    "copyright": "基于比特币构建。由 Alkanes 驱动。"
+    "copyright": "© 2025 Alkanes 基金会。基于比特币构建。MIT 许可证。"
   },
   "docs": {
     "nav": {

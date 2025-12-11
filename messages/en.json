@@ -220,9 +220,11 @@
       "governance": "Governance",
       "forum": "Forum",
       "github": "GitHub",
-      "twitter": "Twitter"
+      "twitter": "Twitter",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
     },
-    "copyright": "Built on Bitcoin. Powered by Alkanes."
+    "copyright": "© 2025 Alkanes Foundation. Built on Bitcoin. MIT Licensed."
   },
   "docs": {
     "nav": {
