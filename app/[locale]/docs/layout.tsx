@@ -13,7 +13,6 @@ export default function DocsLayout({
   const t = useTranslations("docs.nav");
 
   // Navigation structure with translation keys
-  // Only include pages that actually exist
   const navigation = [
     {
       titleKey: "gettingStarted.title",
@@ -33,12 +32,29 @@ export default function DocsLayout({
       titleKey: "cli.title",
       items: [
         { titleKey: "cli.overview", href: "/docs/cli" },
+        { titleKey: "cli.installation", href: "/docs/cli/installation" },
+        { titleKey: "cli.wallet", href: "/docs/cli/wallet" },
+        { titleKey: "cli.alkanes", href: "/docs/cli/alkanes" },
+        { titleKey: "cli.ord", href: "/docs/cli/ord" },
+        { titleKey: "cli.esplora", href: "/docs/cli/esplora" },
+        { titleKey: "cli.brc20prog", href: "/docs/cli/brc20-prog" },
+        { titleKey: "cli.dataapi", href: "/docs/cli/dataapi" },
+      ],
+    },
+    {
+      titleKey: "jsonrpc.title",
+      items: [
+        { titleKey: "jsonrpc.overview", href: "/docs/jsonrpc/overview" },
+        { titleKey: "jsonrpc.alkanes", href: "/docs/jsonrpc/alkanes" },
+        { titleKey: "jsonrpc.bitcoind", href: "/docs/jsonrpc/bitcoind" },
+        { titleKey: "jsonrpc.esplora", href: "/docs/jsonrpc/esplora" },
       ],
     },
     {
       titleKey: "api.title",
       items: [
         { titleKey: "api.overview", href: "/docs/api" },
+        { titleKey: "api.rest", href: "/docs/rest" },
       ],
     },
   ];

@@ -244,9 +244,22 @@
       "cli": {
         "title": "CLI Reference",
         "overview": "Overview",
+        "installation": "Installation",
         "wallet": "Wallet Commands",
+        "alkanes": "Alkanes Commands",
+        "ord": "Ordinals Commands",
+        "esplora": "Esplora Commands",
+        "brc20prog": "BRC20-Prog Commands",
+        "dataapi": "DataAPI Commands",
         "deploy": "Deploy Commands",
         "execute": "Execute Commands"
+      },
+      "jsonrpc": {
+        "title": "JSON-RPC API",
+        "overview": "Overview",
+        "alkanes": "Alkanes Methods",
+        "bitcoind": "Bitcoin Core Methods",
+        "esplora": "Esplora Methods"
       },
       "api": {
         "title": "Subfrost API",

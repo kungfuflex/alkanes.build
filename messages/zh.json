@@ -244,9 +244,22 @@
       "cli": {
         "title": "CLI 命令参考",
         "overview": "概述",
+        "installation": "安装配置",
         "wallet": "钱包命令",
+        "alkanes": "Alkanes 命令",
+        "ord": "Ordinals 命令",
+        "esplora": "Esplora 命令",
+        "brc20prog": "BRC20-Prog 命令",
+        "dataapi": "DataAPI 命令",
         "deploy": "部署命令",
         "execute": "执行命令"
+      },
+      "jsonrpc": {
+        "title": "JSON-RPC API",
+        "overview": "概述",
+        "alkanes": "Alkanes 方法",
+        "bitcoind": "Bitcoin Core 方法",
+        "esplora": "Esplora 方法"
       },
       "api": {
         "title": "Subfrost API",
