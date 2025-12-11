@@ -13,13 +13,13 @@ export default function DocsLayout({
   const t = useTranslations("docs.nav");
 
   // Navigation structure with translation keys
+  // Only include pages that actually exist
   const navigation = [
     {
       titleKey: "gettingStarted.title",
       items: [
         { titleKey: "gettingStarted.introduction", href: "/docs" },
         { titleKey: "gettingStarted.quickStart", href: "/docs/quickstart" },
-        { titleKey: "gettingStarted.installation", href: "/docs/installation" },
       ],
     },
     {
@@ -27,44 +27,18 @@ export default function DocsLayout({
       items: [
         { titleKey: "coreConcepts.alkanes", href: "/docs/concepts/alkanes" },
         { titleKey: "coreConcepts.protorunes", href: "/docs/concepts/protorunes" },
-        { titleKey: "coreConcepts.diesel", href: "/docs/concepts/diesel" },
-        { titleKey: "coreConcepts.metashrew", href: "/docs/concepts/metashrew" },
       ],
     },
     {
       titleKey: "cli.title",
       items: [
         { titleKey: "cli.overview", href: "/docs/cli" },
-        { titleKey: "cli.wallet", href: "/docs/cli/wallet" },
-        { titleKey: "cli.deploy", href: "/docs/cli/deploy" },
-        { titleKey: "cli.execute", href: "/docs/cli/execute" },
       ],
     },
     {
       titleKey: "api.title",
       items: [
         { titleKey: "api.overview", href: "/docs/api" },
-        { titleKey: "api.rest", href: "/docs/api/rest" },
-        { titleKey: "api.jsonrpc", href: "/docs/api/jsonrpc" },
-        { titleKey: "api.alkanes", href: "/docs/api/alkanes" },
-      ],
-    },
-    {
-      titleKey: "contracts.title",
-      items: [
-        { titleKey: "contracts.setup", href: "/docs/contracts/setup" },
-        { titleKey: "contracts.std", href: "/docs/contracts/std" },
-        { titleKey: "contracts.storage", href: "/docs/contracts/storage" },
-        { titleKey: "contracts.testing", href: "/docs/contracts/testing" },
-        { titleKey: "contracts.deployment", href: "/docs/contracts/deployment" },
-      ],
-    },
-    {
-      titleKey: "tutorials.title",
-      items: [
-        { titleKey: "tutorials.wrapBtc", href: "/docs/tutorials/wrap-btc" },
-        { titleKey: "tutorials.token", href: "/docs/tutorials/token" },
-        { titleKey: "tutorials.amm", href: "/docs/tutorials/amm" },
       ],
     },
   ];
