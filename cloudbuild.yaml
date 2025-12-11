@@ -33,16 +33,11 @@ steps:
     args:
       - '-c'
       - |
-        # Get secrets
-        DB_PASSWORD=$(gcloud secrets versions access latest --secret=db-password)
-        SQL_CONNECTION=$(gcloud sql instances describe ${_SQL_INSTANCE} --format='value(connectionName)')
-
-        # Run migration job
+        # Run migration job (DATABASE_URL is configured as a secret in the job)
         gcloud run jobs execute prisma-migrate \
           --region=${_REGION} \
           --wait \
-          --set-env-vars="DATABASE_URL=postgresql://alkanes:$${DB_PASSWORD}@/alkanes_docs?host=/cloudsql/$${SQL_CONNECTION}" \
-        || echo "Migration job not found, skipping..."
+        || echo "Migration job not found or failed, continuing..."
 
   # Deploy to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -51,11 +46,10 @@ steps:
       - '-c'
       - |
         # Get connection info
-        DB_PASSWORD=$(gcloud secrets versions access latest --secret=db-password)
         SQL_CONNECTION=$(gcloud sql instances describe ${_SQL_INSTANCE} --format='value(connectionName)')
         REDIS_IP=$(gcloud redis instances describe ${_REDIS_INSTANCE} --region=${_REGION} --format='value(host)')
 
-        # Deploy
+        # Deploy (DATABASE_URL is already configured as a secret reference)
         gcloud run deploy ${_SERVICE_NAME} \
           --image ${_REGION}-docker.pkg.dev/${PROJECT_ID}/alkanes-docker/${_SERVICE_NAME}:${COMMIT_SHA} \
           --platform managed \
@@ -72,8 +66,8 @@ steps:
           --add-cloudsql-instances "$${SQL_CONNECTION}" \
           --set-env-vars "NODE_ENV=production" \
           --set-env-vars "NEXT_PUBLIC_NETWORK=mainnet" \
-          --set-env-vars "DATABASE_URL=postgresql://alkanes:$${DB_PASSWORD}@/alkanes_docs?host=/cloudsql/$${SQL_CONNECTION}" \
-          --set-env-vars "REDIS_URL=redis://$${REDIS_IP}:6379"
+          --set-env-vars "REDIS_URL=redis://$${REDIS_IP}:6379" \
+          --set-secrets "DATABASE_URL=db-connection-string:latest"
 
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/alkanes-docker/${_SERVICE_NAME}:${COMMIT_SHA}'
