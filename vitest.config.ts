@@ -48,6 +48,8 @@ export default defineConfig({
         "app/forum/[slug]/page.tsx",
         "app/forum/new/page.tsx",
         "app/governance/page.tsx",
+        // Exclude locale pages (require full app context)
+        "app/[locale]/**/page.tsx",
       ],
       thresholds: {
         global: {
