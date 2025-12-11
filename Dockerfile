@@ -45,6 +45,9 @@ RUN pnpm build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Install OpenSSL 1.1 compatibility for Prisma
+RUN apk add --no-cache openssl1.1-compat
+
 # Install pnpm for running commands
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
