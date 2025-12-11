@@ -10,9 +10,11 @@ node_modules/
 out/
 build/
 dist/
-ts-sdk/
 
-# External build
+# ts-sdk artifacts are committed (built from .external-build/alkanes-rs)
+# ts-sdk/
+
+# External build (source, not committed)
 .external-build/
 
 # Environment
