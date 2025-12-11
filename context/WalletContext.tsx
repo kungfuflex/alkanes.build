@@ -1,47 +1,56 @@
-"use client";
+'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  type ReactNode,
-} from "react";
+import type { ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
-// Import from our wallet integration layer (not directly from ts-sdk)
+// Import directly from @alkanes/ts-sdk
 import {
-  type Network,
-  type AlkanesWalletInstance,
-  checkSdkAvailable,
-  initAlkanesWasm,
-  setupAlkanesWallet,
-  restoreAlkanesWallet,
-  restoreFromMnemonic,
-  saveKeystoreToStorage,
-  loadKeystoreFromStorage,
-  clearKeystoreFromStorage,
-  hasStoredKeystore as checkHasStoredKeystore,
-  isSdkAvailable,
-} from "@/lib/oyl/alkanes";
+  AlkanesWallet,
+  AddressType,
+  createWalletFromMnemonic,
+  KeystoreManager,
+  createKeystore,
+  unlockKeystore,
+  KeystoreStorage,
+  WalletConnector,
+  ConnectedWallet,
+  type BrowserWalletInfo,
+} from '@alkanes/ts-sdk';
 
-export type { Network };
+export type Network = 'mainnet' | 'testnet' | 'signet' | 'regtest';
 
-export interface WalletAccount {
-  taproot?: {
-    address: string;
-    pubkey: string;
-    pubKeyXOnly: string;
-    hdPath: string;
-  };
-  nativeSegwit?: {
-    address: string;
-    pubkey: string;
-    hdPath: string;
-  };
+// Storage keys
+const STORAGE_KEYS = {
+  ENCRYPTED_KEYSTORE: 'alkanes_encrypted_keystore',
+  WALLET_NETWORK: 'alkanes_wallet_network',
+  SESSION_MNEMONIC: 'alkanes_session_mnemonic',
+  BROWSER_WALLET: 'alkanes_browser_wallet',
+} as const;
+
+// Map app network names to SDK network names
+function toSdkNetwork(network: Network): 'mainnet' | 'testnet' | 'regtest' {
+  switch (network) {
+    case 'mainnet':
+      return 'mainnet';
+    case 'testnet':
+    case 'signet':
+      return 'testnet';
+    case 'regtest':
+      return 'regtest';
+    default:
+      return 'mainnet';
+  }
 }
 
-export interface FormattedUtxo {
+type Account = {
+  taproot?: { address: string; pubkey: string; pubKeyXOnly: string; hdPath: string };
+  nativeSegwit?: { address: string; pubkey: string; hdPath: string };
+  spendStrategy: { addressOrder: string[]; utxoSortGreatestToLeast: boolean; changeAddress: string };
+  network: Network;
+};
+
+type FormattedUtxo = {
   txId: string;
   outputIndex: number;
   satoshis: number;
@@ -52,44 +61,41 @@ export interface FormattedUtxo {
   alkanes: Record<string, { value: string; name: string; symbol: string }>;
   indexed: boolean;
   confirmations: number;
-}
+};
 
-export interface WalletContextType {
+type WalletContextType = {
   // Connection state
-  isConnected: boolean;
-  isConnecting: boolean;
   isConnectModalOpen: boolean;
   onConnectModalOpenChange: (isOpen: boolean) => void;
+  isConnected: boolean;
+  isInitializing: boolean;
 
   // Wallet data
   address: string;
-  taprootAddress: string;
+  paymentAddress: string;
   publicKey: string;
-  account: WalletAccount | null;
+  account: Account;
   network: Network;
+  wallet: AlkanesWallet | null;
+  browserWallet: ConnectedWallet | null;
 
   // Actions
-  connect: (password: string) => Promise<void>;
   createWallet: (password: string) => Promise<{ mnemonic: string }>;
+  unlockWallet: (password: string) => Promise<void>;
   restoreWallet: (mnemonic: string, password: string) => Promise<void>;
+  connectBrowserWallet: (walletInfo: BrowserWalletInfo) => Promise<void>;
   disconnect: () => void;
-
-  // Signing
-  signMessage: (message: string) => Promise<string>;
   signPsbt: (psbtBase64: string) => Promise<string>;
+  signMessage: (message: string) => Promise<string>;
 
-  // Queries
+  // UTXO methods (placeholder - needs provider integration)
   getUtxos: () => Promise<FormattedUtxo[]>;
-  getBalance: () => Promise<number>;
-  getDieselBalance: () => Promise<bigint>;
+  getSpendableUtxos: () => Promise<FormattedUtxo[]>;
+  getSpendableTotalBalance: () => Promise<number>;
 
-  // Error state
-  error: string | null;
-
-  // SDK availability
-  sdkAvailable: boolean;
-  hasStoredWallet: boolean;
-}
+  // For compatibility
+  hasStoredKeystore: boolean;
+};
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
@@ -99,242 +105,305 @@ interface WalletProviderProps {
 }
 
 export function WalletProvider({ children, network }: WalletProviderProps) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
-  const [address, setAddress] = useState("");
-  const [taprootAddress, setTaprootAddress] = useState("");
-  const [publicKey, setPublicKey] = useState("");
-  const [account, setAccount] = useState<WalletAccount | null>(null);
-  const [wallet, setWallet] = useState<AlkanesWalletInstance | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [sdkAvailable, setSdkAvailable] = useState(false);
-  const [hasStoredWallet, setHasStoredWallet] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [wallet, setWallet] = useState<AlkanesWallet | null>(null);
+  const [browserWallet, setBrowserWallet] = useState<ConnectedWallet | null>(null);
+  const [hasStoredKeystore, setHasStoredKeystore] = useState(false);
 
-  // Initialize SDK and check for stored wallet on mount
+  // Check for stored keystore and restore session on mount
   useEffect(() => {
-    async function init() {
-      await initAlkanesWasm();
-      setSdkAvailable(isSdkAvailable());
-      setHasStoredWallet(checkHasStoredKeystore());
+    const initializeWallet = async () => {
+      if (typeof window === 'undefined') return;
+
+      const stored = localStorage.getItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE);
+      setHasStoredKeystore(!!stored);
+
+      // Check for active session (survives page navigation but not tab close)
+      const sessionMnemonic = sessionStorage.getItem(STORAGE_KEYS.SESSION_MNEMONIC);
+      if (sessionMnemonic && stored) {
+        try {
+          const restoredWallet = createWalletFromMnemonic(sessionMnemonic, toSdkNetwork(network));
+          setWallet(restoredWallet);
+        } catch (error) {
+          console.error('Failed to restore session wallet:', error);
+          sessionStorage.removeItem(STORAGE_KEYS.SESSION_MNEMONIC);
+        }
+      }
+
+      setIsInitializing(false);
+    };
+
+    initializeWallet();
+  }, [network]);
+
+  // Derive addresses from wallet
+  const addresses = useMemo(() => {
+    if (browserWallet) {
+      // Browser wallet - use the connected address
+      return {
+        nativeSegwit: {
+          address: browserWallet.address,
+          pubkey: browserWallet.publicKey || '',
+          hdPath: '',
+        },
+        taproot: {
+          address: '',
+          pubkey: '',
+          pubKeyXOnly: '',
+          hdPath: '',
+        },
+      };
     }
-    init();
-  }, []);
 
-  // Update account state helper
-  function updateAccountState(
-    walletInstance: AlkanesWalletInstance,
-    segwitAddr: string,
-    tapAddr: string
-  ) {
-    const segwitInfo = walletInstance.deriveAddress("p2wpkh", 0, 0);
-    const taprootInfo = walletInstance.deriveAddress("p2tr", 0, 0);
+    if (!wallet) {
+      return {
+        nativeSegwit: { address: '', pubkey: '', hdPath: '' },
+        taproot: { address: '', pubkey: '', pubKeyXOnly: '', hdPath: '' },
+      };
+    }
 
-    setWallet(walletInstance);
-    setAddress(segwitAddr);
-    setTaprootAddress(tapAddr);
-    setPublicKey(segwitInfo.publicKey);
-    setAccount({
+    const segwitInfo = wallet.deriveAddress(AddressType.P2WPKH, 0, 0);
+    const taprootInfo = wallet.deriveAddress(AddressType.P2TR, 0, 0);
+
+    return {
       nativeSegwit: {
-        address: segwitAddr,
+        address: segwitInfo.address,
         pubkey: segwitInfo.publicKey,
-        hdPath: segwitInfo.path || "m/84'/0'/0'/0/0",
+        hdPath: segwitInfo.path,
       },
       taproot: {
-        address: tapAddr,
+        address: taprootInfo.address,
         pubkey: taprootInfo.publicKey,
         pubKeyXOnly: taprootInfo.publicKey.slice(2),
-        hdPath: "m/86'/0'/0'/0/0",
+        hdPath: taprootInfo.path,
       },
-    });
-    setIsConnected(true);
-    setIsConnectModalOpen(false);
-  }
+    };
+  }, [wallet, browserWallet]);
+
+  // Build account structure
+  const account: Account = useMemo(() => {
+    return {
+      nativeSegwit: addresses.nativeSegwit.address ? addresses.nativeSegwit : undefined,
+      taproot: addresses.taproot.address ? addresses.taproot : undefined,
+      spendStrategy: {
+        addressOrder: ['nativeSegwit', 'taproot'],
+        utxoSortGreatestToLeast: true,
+        changeAddress: 'nativeSegwit',
+      },
+      network,
+    };
+  }, [addresses, network]);
 
   // Create new wallet
-  const createWallet = useCallback(
-    async (password: string): Promise<{ mnemonic: string }> => {
-      setIsConnecting(true);
-      setError(null);
+  const createNewWallet = useCallback(async (password: string): Promise<{ mnemonic: string }> => {
+    const sdkNetwork = toSdkNetwork(network);
+    const { keystore: encrypted, mnemonic } = await createKeystore(password, { network: sdkNetwork });
 
-      try {
-        const result = await setupAlkanesWallet(password, network);
+    const newWallet = createWalletFromMnemonic(mnemonic, sdkNetwork);
 
-        // Save to storage
-        saveKeystoreToStorage(result.keystore, network);
-        setHasStoredWallet(true);
+    // Store encrypted keystore
+    localStorage.setItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE, encrypted);
+    localStorage.setItem(STORAGE_KEYS.WALLET_NETWORK, network);
 
-        // Update state
-        updateAccountState(result.wallet, result.address, result.taprootAddress);
+    // Store mnemonic in session for page navigation persistence
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_MNEMONIC, mnemonic);
 
-        return { mnemonic: result.mnemonic };
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to create wallet";
-        setError(message);
-        throw err;
-      } finally {
-        setIsConnecting(false);
-      }
-    },
-    [network]
-  );
+    setWallet(newWallet);
+    setBrowserWallet(null);
+    setHasStoredKeystore(true);
+
+    return { mnemonic };
+  }, [network]);
+
+  // Unlock existing wallet
+  const unlockWalletFn = useCallback(async (password: string): Promise<void> => {
+    const encrypted = localStorage.getItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE);
+    if (!encrypted) {
+      throw new Error('No wallet found. Please create or restore a wallet first.');
+    }
+
+    const keystore = await unlockKeystore(encrypted, password);
+    const unlockedWallet = createWalletFromMnemonic(keystore.mnemonic, toSdkNetwork(network));
+
+    // Store mnemonic in session for page navigation persistence
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_MNEMONIC, keystore.mnemonic);
+
+    setWallet(unlockedWallet);
+    setBrowserWallet(null);
+  }, [network]);
 
   // Restore wallet from mnemonic
-  const restoreWallet = useCallback(
-    async (mnemonic: string, password: string): Promise<void> => {
-      setIsConnecting(true);
-      setError(null);
+  const restoreWalletFn = useCallback(async (mnemonic: string, password: string): Promise<void> => {
+    const manager = new KeystoreManager();
+    const trimmedMnemonic = mnemonic.trim();
 
-      try {
-        const result = await restoreFromMnemonic(mnemonic, password, network);
+    if (!manager.validateMnemonic(trimmedMnemonic)) {
+      throw new Error('Invalid mnemonic phrase');
+    }
 
-        // Save to storage
-        saveKeystoreToStorage(result.keystore, network);
-        setHasStoredWallet(true);
+    const sdkNetwork = toSdkNetwork(network);
+    const restoredWallet = createWalletFromMnemonic(trimmedMnemonic, sdkNetwork);
 
-        // Update state
-        updateAccountState(result.wallet, result.address, result.taprootAddress);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to restore wallet";
-        setError(message);
-        throw err;
-      } finally {
-        setIsConnecting(false);
-      }
-    },
-    [network]
-  );
+    // Create keystore and encrypt
+    const keystore = manager.createKeystore(trimmedMnemonic, { network: sdkNetwork });
+    const encrypted = await manager.exportKeystore(keystore, password, { pretty: true });
+    const encryptedStr = typeof encrypted === 'string' ? encrypted : JSON.stringify(encrypted, null, 2);
 
-  // Connect with existing keystore
-  const connect = useCallback(
-    async (password: string): Promise<void> => {
-      setIsConnecting(true);
-      setError(null);
+    localStorage.setItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE, encryptedStr);
+    localStorage.setItem(STORAGE_KEYS.WALLET_NETWORK, network);
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_MNEMONIC, trimmedMnemonic);
 
-      try {
-        const stored = loadKeystoreFromStorage();
-        if (!stored) {
-          throw new Error("No wallet found. Please create or restore a wallet.");
-        }
+    setWallet(restoredWallet);
+    setBrowserWallet(null);
+    setHasStoredKeystore(true);
+  }, [network]);
 
-        const result = await restoreAlkanesWallet(stored.keystore, password, stored.network);
+  // Connect browser wallet
+  const connectBrowserWalletFn = useCallback(async (walletInfo: BrowserWalletInfo): Promise<void> => {
+    const connector = new WalletConnector();
+    const connected = await connector.connect(walletInfo);
 
-        // Update state
-        updateAccountState(result.wallet, result.address, result.taprootAddress);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to connect wallet";
-        setError(message);
-        throw err;
-      } finally {
-        setIsConnecting(false);
-      }
-    },
-    []
-  );
-
-  // Disconnect
-  const disconnect = useCallback(() => {
+    setBrowserWallet(connected);
     setWallet(null);
-    setAddress("");
-    setTaprootAddress("");
-    setPublicKey("");
-    setAccount(null);
-    setIsConnected(false);
-    // Don't clear storage - user can reconnect with password
+
+    // Store that we're using a browser wallet
+    sessionStorage.setItem(STORAGE_KEYS.BROWSER_WALLET, walletInfo.id);
   }, []);
 
-  // Sign message using BIP-322 (via wallet integration)
-  const signMessage = useCallback(
-    async (message: string): Promise<string> => {
-      if (!wallet || !address) {
-        throw new Error("Wallet not connected");
-      }
+  // Disconnect wallet
+  const disconnect = useCallback(() => {
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION_MNEMONIC);
+    sessionStorage.removeItem(STORAGE_KEYS.BROWSER_WALLET);
 
-      try {
-        return await wallet.signMessage(message, 0);
-      } catch (err) {
-        console.error("Sign message error:", err);
-        throw err;
-      }
-    },
-    [wallet, address]
-  );
+    if (browserWallet) {
+      browserWallet.disconnect().catch(console.error);
+    }
+
+    setWallet(null);
+    setBrowserWallet(null);
+    setIsConnectModalOpen(false);
+  }, [browserWallet]);
 
   // Sign PSBT
-  const signPsbt = useCallback(
-    async (psbtBase64: string): Promise<string> => {
-      if (!wallet) {
-        throw new Error("Wallet not connected");
-      }
+  const signPsbt = useCallback(async (psbtBase64: string): Promise<string> => {
+    if (browserWallet) {
+      // Convert base64 to hex for browser wallet signing
+      const psbtBytes = Uint8Array.from(atob(psbtBase64), c => c.charCodeAt(0));
+      const psbtHex = Array.from(psbtBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      return browserWallet.signPsbt(psbtHex);
+    }
 
-      return wallet.signPsbt(psbtBase64);
-    },
-    [wallet]
+    if (!wallet) {
+      throw new Error('Wallet not connected');
+    }
+    return wallet.signPsbt(psbtBase64);
+  }, [wallet, browserWallet]);
+
+  // Sign message
+  const signMessage = useCallback(async (message: string): Promise<string> => {
+    if (browserWallet) {
+      return browserWallet.signMessage(message);
+    }
+
+    if (!wallet) {
+      throw new Error('Wallet not connected');
+    }
+    return wallet.signMessage(message, 0);
+  }, [wallet, browserWallet]);
+
+  // Placeholder UTXO methods - need provider integration
+  const getUtxos = useCallback(async (): Promise<FormattedUtxo[]> => {
+    // TODO: Implement with provider
+    return [];
+  }, []);
+
+  const getSpendableUtxos = useCallback(async (): Promise<FormattedUtxo[]> => {
+    // TODO: Implement with provider
+    return [];
+  }, []);
+
+  const getSpendableTotalBalance = useCallback(async (): Promise<number> => {
+    // TODO: Implement with provider
+    return 0;
+  }, []);
+
+  const onConnectModalOpenChange = useCallback((isOpen: boolean) => {
+    setIsConnectModalOpen(isOpen);
+  }, []);
+
+  // Build context value
+  const contextValue = useMemo<WalletContextType>(
+    () => ({
+      isConnectModalOpen,
+      onConnectModalOpenChange,
+      isConnected: !!(wallet || browserWallet),
+      isInitializing,
+
+      address: addresses.taproot.address || addresses.nativeSegwit.address,
+      paymentAddress: addresses.nativeSegwit.address,
+      publicKey: addresses.nativeSegwit.pubkey,
+      account,
+      network,
+      wallet,
+      browserWallet,
+
+      createWallet: createNewWallet,
+      unlockWallet: unlockWalletFn,
+      restoreWallet: restoreWalletFn,
+      connectBrowserWallet: connectBrowserWalletFn,
+      disconnect,
+      signPsbt,
+      signMessage,
+
+      getUtxos,
+      getSpendableUtxos,
+      getSpendableTotalBalance,
+
+      hasStoredKeystore,
+    }),
+    [
+      isConnectModalOpen,
+      onConnectModalOpenChange,
+      wallet,
+      browserWallet,
+      isInitializing,
+      addresses,
+      account,
+      network,
+      createNewWallet,
+      unlockWalletFn,
+      restoreWalletFn,
+      connectBrowserWalletFn,
+      disconnect,
+      signPsbt,
+      signMessage,
+      getUtxos,
+      getSpendableUtxos,
+      getSpendableTotalBalance,
+      hasStoredKeystore,
+    ]
   );
 
-  // Get UTXOs (placeholder - needs provider integration)
-  const getUtxos = useCallback(async (): Promise<FormattedUtxo[]> => {
-    if (!address) {
-      return [];
-    }
-    // TODO: Implement UTXO fetching via provider
-    console.log("getUtxos: needs provider integration");
-    return [];
-  }, [address]);
-
-  // Get balance
-  const getBalance = useCallback(async (): Promise<number> => {
-    const utxos = await getUtxos();
-    return utxos.reduce((sum, utxo) => sum + utxo.satoshis, 0);
-  }, [getUtxos]);
-
-  // Get DIESEL balance (placeholder - needs provider integration)
-  const getDieselBalance = useCallback(async (): Promise<bigint> => {
-    if (!address) {
-      return BigInt(0);
-    }
-    // TODO: Implement DIESEL balance fetching via provider
-    // DIESEL is at alkane ID [2, 0]
-    console.log("getDieselBalance: needs provider integration");
-    return BigInt(0);
-  }, [address]);
-
-  const value: WalletContextType = {
-    isConnected,
-    isConnecting,
-    isConnectModalOpen,
-    onConnectModalOpenChange: setIsConnectModalOpen,
-    address,
-    taprootAddress,
-    publicKey,
-    account,
-    network,
-    connect,
-    createWallet,
-    restoreWallet,
-    disconnect,
-    signMessage,
-    signPsbt,
-    getUtxos,
-    getBalance,
-    getDieselBalance,
-    error,
-    sdkAvailable,
-    hasStoredWallet,
-  };
+  if (isInitializing) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 size={32} className="animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+    <WalletContext.Provider value={contextValue}>
+      {children}
+    </WalletContext.Provider>
   );
 }
 
 export function useWallet() {
   const context = useContext(WalletContext);
   if (!context) {
-    throw new Error("useWallet must be used within a WalletProvider");
+    throw new Error('useWallet must be used within a WalletProvider');
   }
   return context;
 }
-
-// Re-export for convenience
-export { checkHasStoredKeystore as hasStoredKeystore };

@@ -309,6 +309,9 @@ export default async function LocaleLayout({
     <html lang={locale} data-theme="dark" suppressHydrationWarning>
       <head>
         <JsonLd locale={locale} />
+        {/* Google API for Drive backup functionality */}
+        <script src="https://apis.google.com/js/api.js" async defer />
+        <script src="https://accounts.google.com/gsi/client" async defer />
       </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}

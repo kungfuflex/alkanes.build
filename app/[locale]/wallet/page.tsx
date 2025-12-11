@@ -1,0 +1,447 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { Copy, Check, Download, Cloud, AlertTriangle, Key, Shield, ExternalLink } from "lucide-react";
+
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { useWallet } from "@/context/WalletContext";
+import AddressAvatar from "@/components/AddressAvatar";
+import { GoogleDriveBackup, type WalletBackupInfo } from "@alkanes/ts-sdk";
+
+export default function WalletDashboardPage() {
+  const t = useTranslations();
+  const router = useRouter();
+  const {
+    isConnected,
+    address,
+    paymentAddress,
+    publicKey,
+    network,
+    wallet,
+    browserWallet,
+    disconnect,
+    onConnectModalOpenChange,
+    hasStoredKeystore,
+  } = useWallet();
+
+  const [copied, setCopied] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [backupSuccess, setBackupSuccess] = useState(false);
+  const [existingBackups, setExistingBackups] = useState<WalletBackupInfo[]>([]);
+  const [loadingBackups, setLoadingBackups] = useState(false);
+  const [driveBackup] = useState(() => new GoogleDriveBackup());
+  const [driveConfigured, setDriveConfigured] = useState(false);
+
+  // Check if Google Drive is configured
+  useEffect(() => {
+    setDriveConfigured(driveBackup.isConfigured());
+  }, [driveBackup]);
+
+  // Redirect if not connected
+  useEffect(() => {
+    if (!isConnected) {
+      onConnectModalOpenChange(true);
+    }
+  }, [isConnected, onConnectModalOpenChange]);
+
+  const copyToClipboard = async (text: string, key: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleExportKeystore = () => {
+    if (typeof window === "undefined") return;
+
+    const keystore = localStorage.getItem("alkanes_encrypted_keystore");
+    if (!keystore) {
+      alert("No keystore found to export");
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const blob = new Blob([keystore], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `alkanes-wallet-${address?.slice(0, 8) || "backup"}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleBackupToDrive = async () => {
+    if (!driveConfigured) {
+      setBackupError("Google Drive is not configured");
+      return;
+    }
+
+    const keystore = localStorage.getItem("alkanes_encrypted_keystore");
+    if (!keystore) {
+      setBackupError("No keystore found to backup");
+      return;
+    }
+
+    setIsBackingUp(true);
+    setBackupError(null);
+    setBackupSuccess(false);
+
+    try {
+      await driveBackup.initialize();
+      await driveBackup.backupWallet(
+        keystore,
+        `Wallet ${address?.slice(0, 8) || "backup"}`,
+        undefined
+      );
+      setBackupSuccess(true);
+      setTimeout(() => setBackupSuccess(false), 3000);
+    } catch (err) {
+      console.error("Backup error:", err);
+      setBackupError(err instanceof Error ? err.message : "Failed to backup to Google Drive");
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleLoadBackups = async () => {
+    if (!driveConfigured) return;
+
+    setLoadingBackups(true);
+    try {
+      await driveBackup.initialize();
+      const backups = await driveBackup.listWallets();
+      setExistingBackups(backups);
+    } catch (err) {
+      console.error("Failed to load backups:", err);
+    } finally {
+      setLoadingBackups(false);
+    }
+  };
+
+  const handleDeleteBackup = async (folderId: string) => {
+    if (!confirm("Are you sure you want to delete this backup?")) return;
+
+    try {
+      await driveBackup.deleteWallet(folderId);
+      setExistingBackups((prev) => prev.filter((b) => b.folderId !== folderId));
+    } catch (err) {
+      console.error("Failed to delete backup:", err);
+    }
+  };
+
+  const handleDisconnect = () => {
+    disconnect();
+    router.push("/");
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-[color:var(--sf-muted)] mb-4">Please connect your wallet to continue</p>
+            <button
+              onClick={() => onConnectModalOpenChange(true)}
+              className="btn-primary"
+            >
+              Connect Wallet
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const isKeystoreWallet = !!wallet && !browserWallet;
+  const isBrowserWallet = !!browserWallet;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+
+      <main className="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 text-[color:var(--sf-text)]">Wallet Dashboard</h1>
+          <p className="text-[color:var(--sf-muted)]">
+            Manage your wallet, addresses, and backups
+          </p>
+        </div>
+
+        {/* Wallet Overview Card */}
+        <div className="glass-card p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <AddressAvatar address={address} size={64} />
+              <div>
+                <div className="text-lg font-semibold text-[color:var(--sf-text)]">
+                  {isBrowserWallet ? browserWallet.info.name : "Keystore Wallet"}
+                </div>
+                <div className="text-sm text-[color:var(--sf-muted)]">
+                  Network: <span className="capitalize">{network}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {isBrowserWallet && browserWallet.info.icon && (
+                <img
+                  src={browserWallet.info.icon}
+                  alt={browserWallet.info.name}
+                  className="w-8 h-8"
+                />
+              )}
+              {isKeystoreWallet && (
+                <div className="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-medium flex items-center gap-1">
+                  <Shield size={12} />
+                  Local Keystore
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Addresses Section */}
+          <div className="space-y-4">
+            {/* Primary Address */}
+            <div className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[color:var(--sf-muted)]">
+                  {isKeystoreWallet ? "Taproot Address (Ordinals)" : "Connected Address"}
+                </span>
+                <button
+                  onClick={() => copyToClipboard(address, "address")}
+                  className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors"
+                >
+                  {copied === "address" ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                </button>
+              </div>
+              <div className="font-mono text-sm text-[color:var(--sf-text)] break-all">
+                {address}
+              </div>
+            </div>
+
+            {/* Payment Address (for keystore wallets) */}
+            {isKeystoreWallet && paymentAddress && paymentAddress !== address && (
+              <div className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-[color:var(--sf-muted)]">Payment Address (Native SegWit)</span>
+                  <button
+                    onClick={() => copyToClipboard(paymentAddress, "payment")}
+                    className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors"
+                  >
+                    {copied === "payment" ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  </button>
+                </div>
+                <div className="font-mono text-sm text-[color:var(--sf-text)] break-all">
+                  {paymentAddress}
+                </div>
+              </div>
+            )}
+
+            {/* Public Key */}
+            {publicKey && (
+              <div className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-[color:var(--sf-muted)]">Public Key</span>
+                  <button
+                    onClick={() => copyToClipboard(publicKey, "pubkey")}
+                    className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors"
+                  >
+                    {copied === "pubkey" ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  </button>
+                </div>
+                <div className="font-mono text-xs text-[color:var(--sf-text)] break-all">
+                  {publicKey}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Backup & Security Section (for keystore wallets only) */}
+        {isKeystoreWallet && hasStoredKeystore && (
+          <div className="glass-card p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4 text-[color:var(--sf-text)] flex items-center gap-2">
+              <Key size={20} />
+              Backup & Security
+            </h2>
+
+            <div className="space-y-4">
+              {/* Warning */}
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                <AlertTriangle size={20} className="text-yellow-500 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-yellow-600 dark:text-yellow-400">
+                  <p className="font-medium mb-1">Keep your wallet secure</p>
+                  <p className="text-yellow-600/80 dark:text-yellow-400/80">
+                    Always maintain a backup of your recovery phrase or encrypted keystore.
+                    Never share your recovery phrase with anyone.
+                  </p>
+                </div>
+              </div>
+
+              {/* Backup Options */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                {/* Export Keystore */}
+                <button
+                  onClick={handleExportKeystore}
+                  disabled={isExporting}
+                  className="flex items-center gap-3 p-4 rounded-xl border border-[color:var(--sf-outline)] bg-[color:var(--sf-surface)] hover:border-[color:var(--sf-primary)] transition-colors disabled:opacity-50"
+                >
+                  <Download size={24} className="text-[color:var(--sf-primary)]" />
+                  <div className="text-left">
+                    <div className="font-medium text-[color:var(--sf-text)]">
+                      {isExporting ? "Exporting..." : "Export Keystore"}
+                    </div>
+                    <div className="text-xs text-[color:var(--sf-muted)]">
+                      Download encrypted JSON file
+                    </div>
+                  </div>
+                </button>
+
+                {/* Google Drive Backup */}
+                {driveConfigured && (
+                  <button
+                    onClick={handleBackupToDrive}
+                    disabled={isBackingUp}
+                    className="flex items-center gap-3 p-4 rounded-xl border border-[color:var(--sf-outline)] bg-[color:var(--sf-surface)] hover:border-[color:var(--sf-primary)] transition-colors disabled:opacity-50"
+                  >
+                    <Cloud size={24} className="text-blue-500" />
+                    <div className="text-left">
+                      <div className="font-medium text-[color:var(--sf-text)]">
+                        {isBackingUp ? "Backing up..." : "Backup to Drive"}
+                      </div>
+                      <div className="text-xs text-[color:var(--sf-muted)]">
+                        Secure cloud backup
+                      </div>
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              {backupError && (
+                <div className="text-sm text-red-500 p-3 rounded-lg bg-red-500/10">
+                  {backupError}
+                </div>
+              )}
+
+              {backupSuccess && (
+                <div className="text-sm text-green-500 p-3 rounded-lg bg-green-500/10">
+                  Wallet backed up successfully to Google Drive!
+                </div>
+              )}
+
+              {/* Existing Backups */}
+              {driveConfigured && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium text-[color:var(--sf-text)]">Google Drive Backups</span>
+                    <button
+                      onClick={handleLoadBackups}
+                      disabled={loadingBackups}
+                      className="text-xs text-[color:var(--sf-primary)] hover:underline disabled:opacity-50"
+                    >
+                      {loadingBackups ? "Loading..." : "Refresh"}
+                    </button>
+                  </div>
+
+                  {existingBackups.length > 0 ? (
+                    <div className="space-y-2">
+                      {existingBackups.map((backup) => (
+                        <div
+                          key={backup.folderId}
+                          className="flex items-center justify-between p-3 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Cloud size={18} className="text-blue-500" />
+                            <div>
+                              <div className="text-sm font-medium text-[color:var(--sf-text)]">
+                                {backup.walletLabel}
+                              </div>
+                              <div className="text-xs text-[color:var(--sf-muted)]">
+                                {new Date(backup.timestamp).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={backup.folderUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)]"
+                            >
+                              <ExternalLink size={14} />
+                            </a>
+                            <button
+                              onClick={() => handleDeleteBackup(backup.folderId)}
+                              className="p-1 text-red-500 hover:text-red-400"
+                            >
+                              <span className="text-xs">Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-sm text-[color:var(--sf-muted)]">
+                      Click refresh to load existing backups
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Browser Wallet Info */}
+        {isBrowserWallet && (
+          <div className="glass-card p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4 text-[color:var(--sf-text)] flex items-center gap-2">
+              <Shield size={20} />
+              Wallet Information
+            </h2>
+            <div className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]">
+              <p className="text-sm text-[color:var(--sf-muted)]">
+                Connected via <strong>{browserWallet.info.name}</strong> browser extension.
+                Your keys are managed by the extension wallet.
+              </p>
+              {browserWallet.info.website && (
+                <a
+                  href={browserWallet.info.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-2 text-sm text-[color:var(--sf-primary)] hover:underline"
+                >
+                  Visit {browserWallet.info.name} <ExternalLink size={14} />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Disconnect Button */}
+        <div className="flex justify-center">
+          <button
+            onClick={handleDisconnect}
+            className="px-6 py-3 rounded-xl border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors"
+          >
+            Disconnect Wallet
+          </button>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
