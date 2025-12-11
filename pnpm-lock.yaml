@@ -18,7 +18,7 @@ importers:
         specifier: ^3.0.0
         version: 3.1.1(@types/react@18.3.27)(react@18.3.1)
       '@next/mdx':
-        specifier: ^15.0.0
+        specifier: ^15.0.5
         version: 15.5.7(@mdx-js/loader@3.1.1)(@mdx-js/react@3.1.1(@types/react@18.3.27)(react@18.3.1))
       '@noble/hashes':
         specifier: ^2.0.1
@@ -90,7 +90,7 @@ importers:
         specifier: ^14.0.0
         version: 14.1.4
       next:
-        specifier: ^15.0.0
+        specifier: ^15.0.5
         version: 15.5.7(@babel/core@7.28.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       next-intl:
         specifier: ^4.5.8
@@ -167,7 +167,7 @@ importers:
         specifier: ^8
         version: 8.57.1
       eslint-config-next:
-        specifier: ^15.0.0
+        specifier: ^15.0.5
         version: 15.5.7(eslint@8.57.1)(typescript@5.9.3)
       happy-dom:
         specifier: ^20.0.11
