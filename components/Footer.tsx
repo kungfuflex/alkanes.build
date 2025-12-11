@@ -12,9 +12,11 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           {/* Logo & Copyright */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--sf-primary)] to-[var(--sf-primary-pressed)] flex items-center justify-center">
-              <span className="text-black font-bold">D</span>
-            </div>
+            <img
+              src="/logo.png"
+              alt="DIESEL"
+              className="w-8 h-8 rounded-lg"
+            />
             <div>
               <span className="font-semibold text-[color:var(--sf-text)]">DIESEL</span>
               <p className="text-xs text-[color:var(--sf-muted)]">{t("footer.tagline")}</p>

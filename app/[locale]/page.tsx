@@ -21,9 +21,11 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto text-center">
             {/* DIESEL Logo */}
             <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--sf-primary)] to-[var(--sf-primary-pressed)] flex items-center justify-center shadow-lg animate-pulse-glow">
-                <span className="text-black font-bold text-4xl">D</span>
-              </div>
+              <img
+                src="/logo.png"
+                alt="DIESEL"
+                className="w-20 h-20 shadow-lg animate-pulse-glow"
+              />
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[color:var(--sf-text)]">

@@ -23,9 +23,11 @@ export function DieselPriceCard() {
       {/* Header with rainbow accent */}
       <div className="card-header flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--sf-primary)] to-[var(--sf-primary-pressed)] flex items-center justify-center">
-            <span className="text-black font-bold text-lg">D</span>
-          </div>
+          <img
+            src="/logo.png"
+            alt="DIESEL"
+            className="w-10 h-10 rounded-xl"
+          />
           <div>
             <h3 className="font-bold text-lg text-[color:var(--sf-text)]">{t("title")}</h3>
             <p className="text-xs text-[color:var(--sf-muted)]">{t("subtitle")}</p>
