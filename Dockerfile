@@ -42,15 +42,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN pnpm build
 
-# Prepare prisma packages for production (resolve symlinks and create proper structure)
-RUN mkdir -p /app/prisma-pkg/node_modules/@prisma && \
-    cp -rL node_modules/prisma /app/prisma-pkg/node_modules/prisma && \
-    cp -rL node_modules/.pnpm/@prisma+engines@*/node_modules/@prisma/engines /app/prisma-pkg/node_modules/@prisma/engines && \
-    cp -rL node_modules/.pnpm/@prisma+debug@*/node_modules/@prisma/debug /app/prisma-pkg/node_modules/@prisma/debug && \
-    cp -rL node_modules/.pnpm/@prisma+engines-version@*/node_modules/@prisma/engines-version /app/prisma-pkg/node_modules/@prisma/engines-version && \
-    cp -rL node_modules/.pnpm/@prisma+fetch-engine@*/node_modules/@prisma/fetch-engine /app/prisma-pkg/node_modules/@prisma/fetch-engine && \
-    cp -rL node_modules/.pnpm/@prisma+get-platform@*/node_modules/@prisma/get-platform /app/prisma-pkg/node_modules/@prisma/get-platform && \
-    cp -rL node_modules/@prisma/client /app/prisma-pkg/node_modules/@prisma/client || true
 
 # ============================================
 # Stage 3: Runner
@@ -61,8 +52,8 @@ WORKDIR /app
 # Alpine 3.18 has OpenSSL 1.1 which Prisma needs
 RUN apk add --no-cache openssl
 
-# Install pnpm for running commands
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+# Install Prisma CLI globally for migrations
+RUN npm install -g prisma@5.22.0
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -76,10 +67,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy Prisma for migrations (from prepared directory with resolved symlinks)
+# Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma-pkg/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/prisma-pkg/node_modules/prisma ./node_modules/prisma
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app
