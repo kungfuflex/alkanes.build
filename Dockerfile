@@ -15,6 +15,9 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 COPY package.json pnpm-lock.yaml* ./
 COPY prisma ./prisma/
 
+# Copy ts-sdk (local dependency)
+COPY ts-sdk ./ts-sdk/
+
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
