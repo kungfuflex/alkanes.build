@@ -2,48 +2,84 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { usePoolPrices, useBtcPrice, formatUsd, formatCompact } from "@/hooks/usePriceData";
 
 interface Vault {
   id: string;
   name: string;
   symbol: string;
-  apy: string;
+  priceNative: string;
+  priceUsd: string | null;
   tvl: string;
-  yourBalance?: string;
-  change24h: string;
+  tvlUsd: string | null;
+  token1Symbol: string;
+}
+
+function formatReserve(reserve: string, decimals: number): number {
+  return Number(reserve) / Math.pow(10, decimals);
 }
 
 export function VaultPerformance() {
   const t = useTranslations("dashboard.vaults");
   const tCommon = useTranslations("common");
 
-  // Mock data - in production, fetch from API
-  const vaults: Vault[] = [
-    {
-      id: "diesel-btc",
-      name: "DIESEL-BTC",
-      symbol: "D-BTC",
-      apy: "12.4%",
-      tvl: "245.8 BTC",
-      change24h: "+2.1%",
-    },
-    {
-      id: "diesel-usdt",
-      name: "DIESEL-USDT",
-      symbol: "D-USDT",
-      apy: "8.7%",
-      tvl: "$2.1M",
-      change24h: "+0.8%",
-    },
-    {
-      id: "diesel-eth",
-      name: "DIESEL-ETH",
-      symbol: "D-ETH",
-      apy: "15.2%",
-      tvl: "892 ETH",
-      change24h: "+3.4%",
-    },
-  ];
+  const { data: pools, isLoading: poolsLoading, error: poolsError } = usePoolPrices();
+  const { data: btcPrice, isLoading: btcLoading } = useBtcPrice();
+
+  const loading = poolsLoading;
+  const error = poolsError?.message || null;
+
+  // Build vault list from live pool data
+  const vaults: Vault[] = pools
+    ? [
+        {
+          id: "diesel-frbtc",
+          name: "DIESEL/frBTC",
+          symbol: "D-frBTC",
+          priceNative: pools.pools.DIESEL_FRBTC.price.toFixed(8),
+          priceUsd: btcPrice
+            ? formatUsd(pools.pools.DIESEL_FRBTC.price * btcPrice.usd)
+            : null,
+          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6))} DIESEL`,
+          tvlUsd: btcPrice
+            ? formatUsd(
+                formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) *
+                  pools.pools.DIESEL_FRBTC.price *
+                  btcPrice.usd
+              )
+            : null,
+          token1Symbol: "frBTC",
+        },
+        {
+          id: "diesel-busd",
+          name: "DIESEL/bUSD",
+          symbol: "D-bUSD",
+          priceNative: pools.pools.DIESEL_BUSD.price.toFixed(4),
+          priceUsd: formatUsd(pools.pools.DIESEL_BUSD.price), // bUSD is already USD
+          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6))} DIESEL`,
+          tvlUsd: formatUsd(
+            formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6) *
+              pools.pools.DIESEL_BUSD.price
+          ),
+          token1Symbol: "bUSD",
+        },
+      ]
+    : [];
+
+  // Calculate total DIESEL in pools and USD value
+  const totalDieselAmount = pools
+    ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) +
+      formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6)
+    : 0;
+
+  const totalTvlUsd =
+    pools && btcPrice
+      ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) *
+          pools.pools.DIESEL_FRBTC.price *
+          btcPrice.usd +
+        formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6) *
+          pools.pools.DIESEL_BUSD.price
+      : null;
 
   return (
     <div className="glass-card overflow-hidden">
@@ -58,25 +94,51 @@ export function VaultPerformance() {
         </Link>
       </div>
 
-      {/* Vault List */}
+      {/* Pool List */}
       <div className="p-4">
-        <div className="space-y-3">
-          {vaults.map((vault) => (
-            <VaultRow key={vault.id} vault={vault} tvlLabel={t("tvl")} apyLabel={t("apy")} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-16 rounded-xl bg-[color:var(--sf-surface)]/50 animate-pulse" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-4 text-[color:var(--sf-muted)]">
+            <p className="text-sm">{error}</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {vaults.map((vault) => (
+              <VaultRow key={vault.id} vault={vault} tvlLabel={t("tvl")} />
+            ))}
+          </div>
+        )}
 
         {/* Total TVL */}
         <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-[var(--sf-boost-bg-from)] to-[var(--sf-boost-bg-to)] border border-[color:var(--sf-primary)]/20">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-[color:var(--sf-boost-label)] uppercase tracking-wider font-bold">{t("totalTvl")}</p>
-              <p className="text-2xl font-bold text-[color:var(--sf-boost-value)]">$12.4M</p>
+              <p className="text-2xl font-bold text-[color:var(--sf-boost-value)]">
+                {totalTvlUsd ? formatUsd(totalTvlUsd) : `${formatCompact(totalDieselAmount)} DIESEL`}
+              </p>
+              {totalTvlUsd && (
+                <p className="text-xs text-[color:var(--sf-muted)]">
+                  {formatCompact(totalDieselAmount)} DIESEL
+                </p>
+              )}
             </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--sf-boost-icon-from)] to-[var(--sf-boost-icon-to)] flex items-center justify-center">
-              <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
+            <div className="text-right">
+              {pools && (
+                <p className="text-xs text-[color:var(--sf-muted)]">
+                  Block #{pools.currentHeight.toLocaleString()}
+                </p>
+              )}
+              {btcPrice && (
+                <p className="text-xs text-[color:var(--sf-muted)]">
+                  BTC: {formatUsd(btcPrice.usd)}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -85,9 +147,7 @@ export function VaultPerformance() {
   );
 }
 
-function VaultRow({ vault, tvlLabel, apyLabel }: { vault: Vault; tvlLabel: string; apyLabel: string }) {
-  const isPositive = vault.change24h.startsWith("+");
-
+function VaultRow({ vault, tvlLabel }: { vault: Vault; tvlLabel: string }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-xl bg-[color:var(--sf-surface)]/50 border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)]/40 transition-colors cursor-pointer">
       <div className="flex items-center gap-3">
@@ -96,13 +156,17 @@ function VaultRow({ vault, tvlLabel, apyLabel }: { vault: Vault; tvlLabel: strin
         </div>
         <div>
           <p className="font-semibold text-[color:var(--sf-text)]">{vault.name}</p>
-          <p className="text-xs text-[color:var(--sf-muted)]">{tvlLabel}: {vault.tvl}</p>
+          <p className="text-xs text-[color:var(--sf-muted)]">
+            {tvlLabel}: {vault.tvlUsd || vault.tvl}
+          </p>
         </div>
       </div>
       <div className="text-right">
-        <p className="font-bold text-[color:var(--sf-primary)]">{vault.apy} {apyLabel}</p>
-        <p className={`text-xs ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-          {vault.change24h}
+        <p className="font-bold text-[color:var(--sf-primary)]">
+          {vault.priceUsd || `${vault.priceNative} ${vault.token1Symbol}`}
+        </p>
+        <p className="text-xs text-[color:var(--sf-muted)]">
+          {vault.priceNative} {vault.token1Symbol}
         </p>
       </div>
     </div>
