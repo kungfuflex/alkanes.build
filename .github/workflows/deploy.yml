@@ -128,20 +128,30 @@ jobs:
           DOMAIN="${{ vars.CLOUDFLARE_DOMAIN }}"
           TARGET="${{ steps.service.outputs.hostname }}"
 
-          # Extract root domain for zone lookup (handles both apex and subdomains)
-          ROOT_DOMAIN=$(echo "$DOMAIN" | awk -F. '{print $(NF-1)"."$NF}')
+          # Use provided Zone ID or look it up dynamically
+          if [ -n "${{ vars.CLOUDFLARE_ZONE_ID }}" ]; then
+            CF_ZONE_ID="${{ vars.CLOUDFLARE_ZONE_ID }}"
+            echo "Using provided Zone ID: ${CF_ZONE_ID}"
+          else
+            # Extract root domain for zone lookup (handles both apex and subdomains)
+            ROOT_DOMAIN=$(echo "$DOMAIN" | awk -F. '{print $(NF-1)"."$NF}')
 
-          # Get Zone ID dynamically
-          CF_ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=${ROOT_DOMAIN}" \
-            -H "Authorization: Bearer ${CF_API_TOKEN}" \
-            -H "Content-Type: application/json" | jq -r '.result[0].id')
+            # Get Zone ID dynamically
+            CF_ZONE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones?name=${ROOT_DOMAIN}" \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              -H "Content-Type: application/json" | jq -r '.result[0].id')
 
-          if [ "$CF_ZONE_ID" = "null" ] || [ -z "$CF_ZONE_ID" ]; then
-            echo "Error: Could not find zone for ${ROOT_DOMAIN}"
-            exit 1
+            if [ "$CF_ZONE_ID" = "null" ] || [ -z "$CF_ZONE_ID" ]; then
+              echo "Error: Could not find zone for ${ROOT_DOMAIN}"
+              echo "Add CLOUDFLARE_ZONE_ID variable or grant Zone:Read permission to API token"
+              exit 1
+            fi
           fi
 
-          echo "Found Zone ID: ${CF_ZONE_ID} for ${ROOT_DOMAIN}"
+          echo "Using Zone ID: ${CF_ZONE_ID}"
+
+          # Extract root domain for comparison
+          ROOT_DOMAIN=$(echo "$DOMAIN" | awk -F. '{print $(NF-1)"."$NF}')
 
           # For apex domain, use @ as name; Cloudflare will CNAME flatten
           if [ "$DOMAIN" = "$ROOT_DOMAIN" ]; then
