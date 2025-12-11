@@ -4,7 +4,7 @@ import "@testing-library/jest-dom/vitest";
 // Mock environment variables
 process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
 process.env.REDIS_URL = "redis://localhost:6379";
-process.env.NODE_ENV = "test";
+// NODE_ENV is set by vitest automatically
 
 // Mock Next.js modules
 vi.mock("next/navigation", () => ({

@@ -18,21 +18,22 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Alkanes - Bitcoin Smart Contracts",
+  title: "DIESEL - Alkanes Governance & Vaults",
   description:
-    "Documentation and governance for the Alkanes metaprotocol on Bitcoin",
+    "DIESEL governance, vault performance, and documentation for the Alkanes metaprotocol on Bitcoin",
   keywords: [
+    "diesel",
     "alkanes",
     "bitcoin",
     "smart contracts",
-    "protorunes",
-    "diesel",
     "governance",
+    "vaults",
+    "defi",
   ],
   openGraph: {
-    title: "Alkanes - Bitcoin Smart Contracts",
+    title: "DIESEL - Alkanes Governance & Vaults",
     description:
-      "Documentation and governance for the Alkanes metaprotocol on Bitcoin",
+      "DIESEL governance, vault performance, and documentation for the Alkanes metaprotocol on Bitcoin",
     type: "website",
   },
 };
@@ -43,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
