@@ -118,6 +118,55 @@ export function formatUsd(value: number): string {
   return `$${value.toFixed(6)}`;
 }
 
+interface Candle {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+interface CandlesApiResponse {
+  success: boolean;
+  data?: {
+    pool: string;
+    poolId: string;
+    interval: string;
+    currentHeight: number;
+    candles: Candle[];
+  };
+  error?: string;
+}
+
+/**
+ * Hook to fetch candle data for a pool
+ * @param pool Pool key (e.g., "DIESEL_FRBTC")
+ * @param interval "hourly" | "daily" | "weekly"
+ * @param limit Number of candles to fetch
+ */
+export function usePoolCandles(pool: string, interval: string = "daily", limit: number = 30) {
+  return useQuery({
+    queryKey: ["pool-candles", pool, interval, limit],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        pool,
+        interval,
+        limit: limit.toString(),
+      });
+      const res = await fetch(`/api/pools/candles?${params}`);
+      const data: CandlesApiResponse = await res.json();
+
+      if (!data.success || !data.data) {
+        throw new Error(data.error || "Failed to fetch candle data");
+      }
+
+      return data.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes - candles don't change frequently
+    refetchInterval: 5 * 60 * 1000,
+  });
+}
+
 /**
  * Format large numbers with K/M/B suffixes
  */
