@@ -88,7 +88,7 @@ describe('Pool Service', () => {
         status: 500,
       });
 
-      await expect(getCurrentBlockHeight()).rejects.toThrow('RPC request failed: 500');
+      await expect(getCurrentBlockHeight()).rejects.toThrow('metashrew_height failed: 500');
     });
   });
 

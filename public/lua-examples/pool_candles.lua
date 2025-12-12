@@ -1,136 +1,143 @@
--- Batch pool candle data fetching for AMM pools
--- This script fetches pool reserves at multiple block heights in a single evalscript call
--- to efficiently build OHLC candle data for price charts
+-- Pool candles: Fetch pool reserves at multiple block heights for OHLC data
+-- This script uses metashrew_view with prebuilt protobuf payloads
+-- and fetches actual block timestamps from Bitcoin block headers
 --
--- Args:
---   [1] pool_id: string - Pool contract ID in "block:tx" format (e.g., "2:77087")
---   [2] start_height: number - Starting block height
---   [3] end_height: number - Ending block height
---   [4] interval: number - Block interval between samples (e.g., 144 for daily)
+-- Args: pool_payload (hex), start_height, end_height, interval
 --
--- Returns: Array of {height, reserve_a, reserve_b, total_supply} objects
+-- The pool_payload is the exact protobuf hex used by alkanes-cli pool-details
+-- Example payloads (from mainnet-cli.sh alkanes pool-details):
+--   DIESEL/frBTC (2:77087): "0x208bce382a06029fda04e7073001"
+--   DIESEL/bUSD (2:68441): "0x208bce382a0602d99604e7073001"
 
-local pool_id = args[1]
-local start_height = tonumber(args[2])
-local end_height = tonumber(args[3])
-local interval = tonumber(args[4]) or 144
+-- args is passed as a table where args[1] is the array of parameters
+local params = args[1] or {}
+local pool_payload = params[1]
+local start_height = tonumber(params[2])
+local end_height = tonumber(params[3])
+local interval = tonumber(params[4]) or 144
 
 -- Validate inputs
-if not pool_id or not start_height or not end_height then
-    return { error = "Missing required arguments: pool_id, start_height, end_height" }
+if not pool_payload or not start_height or not end_height then
+    return { error = "Missing required arguments: pool_payload, start_height, end_height" }
 end
 
 if start_height > end_height then
     return { error = "start_height must be <= end_height" }
 end
 
--- Parse pool_id into block and tx
-local pool_block, pool_tx = pool_id:match("(%d+):(%d+)")
-if not pool_block or not pool_tx then
-    return { error = "Invalid pool_id format. Expected 'block:tx'" }
+-- Helper to parse little-endian u128 from hex string at given offset
+-- offset is in bytes (not hex chars)
+local function parse_u128_le(hex_str, byte_offset)
+    -- Convert byte offset to hex char offset
+    local hex_offset = byte_offset * 2
+    local hex_len = 32 -- 16 bytes = 32 hex chars
+
+    if #hex_str < hex_offset + hex_len then
+        return nil
+    end
+
+    local hex_slice = hex_str:sub(hex_offset + 1, hex_offset + hex_len)
+
+    -- Reverse bytes for little-endian
+    local reversed = ""
+    for i = #hex_slice - 1, 1, -2 do
+        reversed = reversed .. hex_slice:sub(i, i + 1)
+    end
+
+    -- Convert to number (Lua 5.1 doesn't have native 64-bit, but we can handle smaller values)
+    -- For reserves that fit in 53 bits, this will work
+    return tonumber(reversed, 16) or 0
 end
 
-pool_block = tonumber(pool_block)
-pool_tx = tonumber(pool_tx)
+-- Get block timestamp from Bitcoin block header
+local function get_block_timestamp(height)
+    local success, block_hash = pcall(function()
+        return _RPC.btc_getblockhash(height)
+    end)
+    if not success or not block_hash then return nil end
 
--- Build calldata for opcode 999 (POOL_DETAILS)
--- Format: LEB128(target_block) + LEB128(target_tx) + LEB128(opcode)
-local function leb128_encode(value)
-    local result = {}
-    repeat
-        local byte = value % 128
-        value = math.floor(value / 128)
-        if value > 0 then
-            byte = byte + 128
-        end
-        table.insert(result, byte)
-    until value == 0
-    return result
+    local success2, block = pcall(function()
+        return _RPC.btc_getblock(block_hash, 1)  -- verbosity 1 for header info
+    end)
+    if not success2 or not block then return nil end
+
+    return block.time or block.mediantime
 end
-
-local function build_calldata()
-    local calldata = {}
-    -- Target alkane block
-    for _, b in ipairs(leb128_encode(pool_block)) do
-        table.insert(calldata, b)
-    end
-    -- Target alkane tx
-    for _, b in ipairs(leb128_encode(pool_tx)) do
-        table.insert(calldata, b)
-    end
-    -- Opcode 999 (POOL_DETAILS)
-    for _, b in ipairs(leb128_encode(999)) do
-        table.insert(calldata, b)
-    end
-    return calldata
-end
-
-local calldata = build_calldata()
 
 -- Result array
 local results = {
-    pool_id = pool_id,
     start_height = start_height,
     end_height = end_height,
     interval = interval,
     data_points = {}
 }
 
--- Query pool state at each interval
+-- Query pool state at each interval using metashrew_view
 for height = start_height, end_height, interval do
     local block_tag = tostring(height)
 
-    -- Call alkanes_simulate with block_tag for historical query
+    -- Call metashrew_view with the pool details payload
     local success, response = pcall(function()
-        return _RPC.alkanes_simulate({
-            alkaneId = pool_id,
-            inputs = {},
-            calldata = calldata,
-            vout = 0,
-            pointer = 0,
-            refundPointer = 0,
-            target = pool_id,
-            blockTag = block_tag
-        })
+        return _RPC.metashrew_view("simulate", pool_payload, block_tag)
     end)
 
-    if success and response and response.execution and response.execution.data then
-        -- Parse the response data (hex string)
-        -- Format: token_a(32) + token_b(32) + reserve_a(16) + reserve_b(16) + total_supply(16) + name_len(4) + name
-        local data_hex = response.execution.data
-        if data_hex and #data_hex > 2 then
+    if success and response then
+        -- Response is a hex string like "0x0a88011a8501..."
+        local data_hex = response
+        if type(data_hex) == "string" then
             -- Remove 0x prefix if present
             if data_hex:sub(1, 2) == "0x" then
                 data_hex = data_hex:sub(3)
             end
 
-            -- Parse reserves (at bytes 64-80 and 80-96 in the response)
-            -- Each u128 is 16 bytes = 32 hex chars
-            if #data_hex >= 192 then -- Need at least 96 bytes = 192 hex chars
-                -- reserve_a is at offset 64 (128 hex chars from start)
-                local reserve_a_hex = data_hex:sub(129, 160) -- bytes 64-80
-                -- reserve_b is at offset 80 (160 hex chars from start)
-                local reserve_b_hex = data_hex:sub(161, 192) -- bytes 80-96
-                -- total_supply is at offset 96 (192 hex chars from start)
-                local total_supply_hex = data_hex:sub(193, 224) -- bytes 96-112
+            -- The response format from pool_details opcode (999):
+            -- Wrapped in protobuf: 0a XX 1a YY <inner_data>
+            -- We need to skip the protobuf wrapper to get to the inner data
+            -- Inner format: token_a(32) + token_b(32) + reserve_a(16) + reserve_b(16) + total_supply(16) + name
 
-                -- Convert little-endian hex to numbers (simplified - may overflow for large values)
-                local function hex_le_to_number(hex_str)
-                    if not hex_str or #hex_str == 0 then return 0 end
-                    -- Reverse bytes for little-endian
-                    local reversed = ""
-                    for i = #hex_str - 1, 1, -2 do
-                        reversed = reversed .. hex_str:sub(i, i + 1)
+            -- Find the inner data by looking for the pattern
+            -- The inner data starts after "1a XX" where XX is the length
+            local inner_start = nil
+            if #data_hex >= 8 then
+                -- Look for "1a" marker (protobuf field 3, type bytes)
+                local marker_pos = data_hex:find("1a")
+                if marker_pos then
+                    -- Skip "1a" and length byte(s)
+                    local len_byte = tonumber(data_hex:sub(marker_pos + 2, marker_pos + 3), 16) or 0
+                    if len_byte < 128 then
+                        inner_start = marker_pos + 4 -- 2 for "1a" + 2 for 1-byte length
+                    else
+                        inner_start = marker_pos + 6 -- 2 for "1a" + 4 for 2-byte varint length
                     end
-                    return tonumber(reversed, 16) or 0
                 end
+            end
 
-                table.insert(results.data_points, {
-                    height = height,
-                    reserve_a = hex_le_to_number(reserve_a_hex),
-                    reserve_b = hex_le_to_number(reserve_b_hex),
-                    total_supply = hex_le_to_number(total_supply_hex)
-                })
+            if inner_start and #data_hex >= inner_start + 223 then -- Need at least 112 bytes (224 hex chars) for reserves
+                local inner_hex = data_hex:sub(inner_start)
+
+                -- Parse reserves from inner data
+                -- token_a: bytes 0-31 (32 bytes)
+                -- token_b: bytes 32-63 (32 bytes)
+                -- reserve_a: bytes 64-79 (16 bytes, u128 LE)
+                -- reserve_b: bytes 80-95 (16 bytes, u128 LE)
+                -- total_supply: bytes 96-111 (16 bytes, u128 LE)
+
+                local reserve_a = parse_u128_le(inner_hex, 64)
+                local reserve_b = parse_u128_le(inner_hex, 80)
+                local total_supply = parse_u128_le(inner_hex, 96)
+
+                if reserve_a and reserve_b and total_supply then
+                    -- Get actual block timestamp from Bitcoin block header
+                    local timestamp = get_block_timestamp(height)
+
+                    table.insert(results.data_points, {
+                        height = height,
+                        timestamp = timestamp,  -- Unix timestamp from block header
+                        reserve_a = reserve_a,
+                        reserve_b = reserve_b,
+                        total_supply = total_supply
+                    })
+                end
             end
         end
     end

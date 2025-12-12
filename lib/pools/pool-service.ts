@@ -1,27 +1,45 @@
 /**
  * Pool Data Service for fetching AMM pool reserves and prices
  *
- * Uses the Subfrost Data API for pool data with Redis caching
+ * Uses the Subfrost Data API for pool data with Redis caching.
+ * For candle/historical data, uses the shared candle-fetcher module.
+ * For BTC price data, uses the shared price-fetcher module.
  */
 import { cacheGet, cacheSet } from '../redis';
+import {
+  POOL_CONFIGS,
+  fetchPoolDataPoints,
+  calculatePrice as calculatePriceFromFetcher,
+  buildCandlesFromDataPoints,
+  getCurrentHeight,
+  type PoolKey as CandleFetcherPoolKey,
+  type CandleFetcherConfig,
+} from './candle-fetcher';
+import {
+  fetchBitcoinPrice as fetchBtcPriceFromApi,
+  type PriceFetcherConfig,
+} from './price-fetcher';
 
-// Pool configuration
+// Re-export pool configs as POOLS for backwards compatibility
+// Uses the same config from candle-fetcher module
 export const POOLS = {
   DIESEL_FRBTC: {
-    id: '2:77087',
+    id: POOL_CONFIGS.DIESEL_FRBTC.id,
     block: 2,
     tx: 77087,
-    name: 'DIESEL/frBTC',
-    token0: { block: 2, tx: 0, symbol: 'DIESEL', decimals: 6 },
-    token1: { block: 32, tx: 0, symbol: 'frBTC', decimals: 8 },
+    name: POOL_CONFIGS.DIESEL_FRBTC.name,
+    token0: { block: 2, tx: 0, symbol: 'DIESEL', decimals: POOL_CONFIGS.DIESEL_FRBTC.token0Decimals },
+    token1: { block: 32, tx: 0, symbol: 'frBTC', decimals: POOL_CONFIGS.DIESEL_FRBTC.token1Decimals },
+    protobufPayload: POOL_CONFIGS.DIESEL_FRBTC.protobufPayload,
   },
   DIESEL_BUSD: {
-    id: '2:68441',
+    id: POOL_CONFIGS.DIESEL_BUSD.id,
     block: 2,
     tx: 68441,
-    name: 'DIESEL/bUSD',
-    token0: { block: 2, tx: 0, symbol: 'DIESEL', decimals: 6 },
-    token1: { block: 2, tx: 56801, symbol: 'bUSD', decimals: 6 },
+    name: POOL_CONFIGS.DIESEL_BUSD.name,
+    token0: { block: 2, tx: 0, symbol: 'DIESEL', decimals: POOL_CONFIGS.DIESEL_BUSD.token0Decimals },
+    token1: { block: 2, tx: 56801, symbol: 'bUSD', decimals: POOL_CONFIGS.DIESEL_BUSD.token1Decimals },
+    protobufPayload: POOL_CONFIGS.DIESEL_BUSD.protobufPayload,
   },
 } as const;
 
@@ -113,7 +131,7 @@ async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
 }
 
 /**
- * Get the current block height
+ * Get the current block height (with caching)
  */
 export async function getCurrentBlockHeight(): Promise<number> {
   const cacheKey = 'pool:blockHeight';
@@ -122,8 +140,9 @@ export async function getCurrentBlockHeight(): Promise<number> {
   const cached = await cacheGet<number>(cacheKey);
   if (cached !== null) return cached;
 
-  const result = await rpcCall('metashrew_height', []);
-  const height = parseInt(result as string, 10);
+  // Use shared module's getCurrentHeight
+  const config: CandleFetcherConfig = { rpcUrl: RPC_URL };
+  const height = await getCurrentHeight(config);
 
   // Cache for 10 seconds
   await cacheSet(cacheKey, height, 10);
@@ -468,128 +487,142 @@ function parsePoolDetailsHex(dataHex: string): { reserve0: bigint; reserve1: big
 }
 
 /**
- * Fetch pool reserves at a specific block height using alkanes_simulate
+ * Fetch pool reserves using metashrew_view with prebuilt protobuf payload
+ * This is the recommended approach - uses the same method as alkanes-cli
  */
-async function fetchPoolReservesAtHeight(
-  poolId: string,
-  blockHeight: number
+async function fetchPoolReservesViaMetashrewView(
+  poolKey: PoolKey,
+  blockTag: string = 'latest'
 ): Promise<{ reserve0: bigint; reserve1: bigint; totalSupply: bigint } | null> {
-  try {
-    const [poolBlock, poolTx] = poolId.split(':').map(Number);
-    const blockTag = blockHeight.toString();
-    const calldata = buildPoolDetailsCalldata(poolBlock, poolTx);
+  const pool = POOLS[poolKey];
 
-    // Use JSON-RPC to call alkanes_simulate with the pool contract
+  try {
     const response = await fetch(RPC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
-        method: 'alkanes_simulate',
-        params: [{
-          target: poolId,
-          calldata,
-          height: blockHeight,
-          txindex: 0,
-          vout: 0,
-          pointer: 0,
-          refund_pointer: 0,
-          alkanes: [],
-          transaction: [],
-          block: [],
-        }, blockTag],
+        method: 'metashrew_view',
+        params: ['simulate', pool.protobufPayload, blockTag],
       }),
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch reserves at height ${blockHeight}: ${response.status}`);
+      console.error(`metashrew_view failed: ${response.status}`);
       return null;
     }
 
     const json = await response.json() as {
-      result?: {
-        execution?: {
-          data?: string;
-        };
-        data?: string;
-      };
+      result?: string;
       error?: { message: string };
     };
 
     if (json.error) {
-      console.error(`RPC error fetching reserves at height ${blockHeight}:`, json.error);
+      console.error(`RPC error:`, json.error);
       return null;
     }
 
-    // Parse the result - data can be in execution.data or result.data
-    const dataHex = json.result?.execution?.data || json.result?.data;
-    if (dataHex) {
-      return parsePoolDetailsHex(dataHex);
+    if (json.result) {
+      return parseMetashrewViewResponse(json.result);
     }
 
     return null;
   } catch (error) {
-    console.error(`Error fetching reserves at height ${blockHeight}:`, error);
+    console.error(`Error fetching reserves via metashrew_view:`, error);
     return null;
   }
 }
 
 /**
- * Fetch historical pool data using batched lua_evalscript
- * This is more efficient than individual RPC calls for many data points
+ * Parse metashrew_view response for pool details
+ * Response format: protobuf wrapper (0a XX 1a YY) + inner data
+ * Inner data: token_a(32) + token_b(32) + reserve_a(16) + reserve_b(16) + total_supply(16) + name
+ */
+function parseMetashrewViewResponse(resultHex: string): { reserve0: bigint; reserve1: bigint; totalSupply: bigint } | null {
+  try {
+    let hex = resultHex.startsWith('0x') ? resultHex.slice(2) : resultHex;
+
+    // Find inner data after protobuf wrapper (look for "1a" marker which is field 3)
+    const markerPos = hex.indexOf('1a');
+    if (markerPos === -1 || hex.length < markerPos + 8) {
+      return null;
+    }
+
+    // Skip "1a" and length byte(s)
+    const lenByte = parseInt(hex.slice(markerPos + 2, markerPos + 4), 16);
+    const innerStart = markerPos + (lenByte < 128 ? 4 : 6);
+
+    if (hex.length < innerStart + 224) { // Need at least 112 bytes for reserves
+      return null;
+    }
+
+    const innerHex = hex.slice(innerStart);
+
+    // Helper to parse little-endian u128 from hex
+    const parseU128LE = (hexStr: string, byteOffset: number): bigint => {
+      const hexOffset = byteOffset * 2;
+      const slice = hexStr.slice(hexOffset, hexOffset + 32);
+      // Reverse byte pairs for little-endian
+      let reversed = '';
+      for (let i = slice.length - 2; i >= 0; i -= 2) {
+        reversed += slice.slice(i, i + 2);
+      }
+      return BigInt('0x' + (reversed || '0'));
+    };
+
+    // Parse reserves from inner data
+    // token_a: bytes 0-31, token_b: bytes 32-63
+    // reserve_a: bytes 64-79 (16 bytes, u128 LE)
+    // reserve_b: bytes 80-95 (16 bytes, u128 LE)
+    // total_supply: bytes 96-111 (16 bytes, u128 LE)
+    return {
+      reserve0: parseU128LE(innerHex, 64),
+      reserve1: parseU128LE(innerHex, 80),
+      totalSupply: parseU128LE(innerHex, 96),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch pool reserves at a specific block height using metashrew_view
+ */
+async function fetchPoolReservesAtHeight(
+  poolKey: PoolKey,
+  blockHeight: number
+): Promise<{ reserve0: bigint; reserve1: bigint; totalSupply: bigint } | null> {
+  return fetchPoolReservesViaMetashrewView(poolKey, blockHeight.toString());
+}
+
+/**
+ * Fetch historical pool data using the shared candle-fetcher module
+ * Uses lua_evalscript with metashrew_view for efficient batch queries
  */
 async function fetchHistoricalPoolDataBatched(
-  poolId: string,
+  poolKey: PoolKey,
   startHeight: number,
   endHeight: number,
   interval: number
-): Promise<Array<{ height: number; reserve0: bigint; reserve1: bigint; totalSupply: bigint }>> {
+): Promise<Array<{ height: number; timestamp?: number; reserve0: bigint; reserve1: bigint; totalSupply: bigint }>> {
   try {
-    // Use lua_evalscript with the pool_candles.lua script
-    const response = await fetch(RPC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'lua_evalscript',
-        params: [
-          'pool_candles', // Script name (loaded from public/lua-examples/)
-          [poolId, startHeight.toString(), endHeight.toString(), interval.toString()],
-        ],
-      }),
-    });
+    // Use shared module's fetchPoolDataPoints
+    const config: CandleFetcherConfig = { rpcUrl: RPC_URL };
+    const dataPoints = await fetchPoolDataPoints(
+      poolKey as CandleFetcherPoolKey,
+      startHeight,
+      endHeight,
+      interval,
+      config
+    );
 
-    if (!response.ok) {
-      console.error(`Lua evalscript failed: ${response.status}`);
-      return [];
-    }
-
-    const json = await response.json() as {
-      result?: {
-        data_points?: Array<{
-          height: number;
-          reserve_a: number;
-          reserve_b: number;
-          total_supply: number;
-        }>;
-        error?: string;
-      };
-      error?: { message: string };
-    };
-
-    if (json.error || json.result?.error) {
-      console.error('Lua script error:', json.error || json.result?.error);
-      return [];
-    }
-
-    const dataPoints = json.result?.data_points || [];
     return dataPoints.map(dp => ({
       height: dp.height,
-      reserve0: BigInt(Math.floor(dp.reserve_a)),
-      reserve1: BigInt(Math.floor(dp.reserve_b)),
-      totalSupply: BigInt(Math.floor(dp.total_supply)),
+      timestamp: dp.timestamp,  // Actual block timestamp (Unix seconds)
+      reserve0: dp.reserve0,
+      reserve1: dp.reserve1,
+      totalSupply: dp.totalSupply,
     }));
   } catch (error) {
     console.error('Error in batched historical data fetch:', error);
@@ -622,8 +655,8 @@ export async function getHistoricalPrices(
 
   const prices: PoolPrice[] = [];
 
-  // Try batched Lua script first for efficiency
-  const batchedData = await fetchHistoricalPoolDataBatched(pool.id, startHeight, endHeight, interval);
+  // Try batched Lua script first for efficiency (uses metashrew_view with prebuilt protobuf)
+  const batchedData = await fetchHistoricalPoolDataBatched(poolKey, startHeight, endHeight, interval);
 
   if (batchedData.length > 0) {
     // Use batched results
@@ -644,7 +677,8 @@ export async function getHistoricalPrices(
           reserve0: dp.reserve0,
           reserve1: dp.reserve1,
           blockHeight: dp.height,
-          timestamp: Date.now(),
+          // Use actual block timestamp from Lua (Unix seconds -> milliseconds), fallback to Date.now()
+          timestamp: dp.timestamp ? dp.timestamp * 1000 : Date.now(),
         });
       }
     }
@@ -668,8 +702,8 @@ export async function getHistoricalPrices(
           totalSupply: BigInt(cachedReserves.totalSupply),
         };
       } else {
-        // Fetch from RPC
-        reserves = await fetchPoolReservesAtHeight(pool.id, height);
+        // Fetch from RPC using metashrew_view
+        reserves = await fetchPoolReservesAtHeight(poolKey, height);
 
         // Cache individual height data (long TTL since historical data doesn't change)
         if (reserves) {
@@ -722,6 +756,7 @@ export async function getHistoricalPrices(
 
 /**
  * Build candles from historical prices
+ * Uses actual Unix timestamps from block headers when available
  */
 export function buildCandles(
   prices: PoolPrice[],
@@ -732,14 +767,16 @@ export function buildCandles(
   const sorted = [...prices].sort((a, b) => a.blockHeight - b.blockHeight);
 
   const candles: Candle[] = [];
-  let candleStart = sorted[0].blockHeight;
+  let candleStartBlock = sorted[0].blockHeight;
+  let candleStartTimestamp = sorted[0].timestamp || Date.now();
   let candlePrices: number[] = [];
 
   for (const price of sorted) {
-    if (price.blockHeight >= candleStart + candleBlocks) {
+    if (price.blockHeight >= candleStartBlock + candleBlocks) {
       if (candlePrices.length > 0) {
         candles.push({
-          timestamp: candleStart,
+          // Use actual Unix timestamp (milliseconds) from first price in candle
+          timestamp: candleStartTimestamp,
           open: candlePrices[0],
           high: Math.max(...candlePrices),
           low: Math.min(...candlePrices),
@@ -747,7 +784,8 @@ export function buildCandles(
         });
       }
 
-      candleStart = Math.floor(price.blockHeight / candleBlocks) * candleBlocks;
+      candleStartBlock = Math.floor(price.blockHeight / candleBlocks) * candleBlocks;
+      candleStartTimestamp = price.timestamp || Date.now();
       candlePrices = [price.price];
     } else {
       candlePrices.push(price.price);
@@ -756,7 +794,7 @@ export function buildCandles(
 
   if (candlePrices.length > 0) {
     candles.push({
-      timestamp: candleStart,
+      timestamp: candleStartTimestamp,
       open: candlePrices[0],
       high: Math.max(...candlePrices),
       low: Math.min(...candlePrices),
@@ -768,7 +806,8 @@ export function buildCandles(
 }
 
 /**
- * Get current Bitcoin price in USD
+ * Get current Bitcoin price in USD (with caching)
+ * Uses the shared price-fetcher module
  */
 export async function getBitcoinPrice(): Promise<BitcoinPrice> {
   const cacheKey = 'btc:price:usd';
@@ -779,34 +818,9 @@ export async function getBitcoinPrice(): Promise<BitcoinPrice> {
     return cached;
   }
 
-  // Fetch from Data API
-  const response = await fetch(`${DATA_API_URL}/get-bitcoin-price`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch BTC price: ${response.status}`);
-  }
-
-  const json = await response.json() as {
-    data?: { bitcoin?: { usd?: number } };
-    bitcoin?: { usd?: number };
-  };
-
-  // Handle wrapped response (with data envelope) or direct response
-  const btcData = json.data?.bitcoin || json.bitcoin;
-  const usd = btcData?.usd;
-
-  if (typeof usd !== 'number') {
-    throw new Error('Invalid BTC price response');
-  }
-
-  const result: BitcoinPrice = {
-    usd,
-    timestamp: Date.now(),
-  };
+  // Use shared price-fetcher module
+  const config: PriceFetcherConfig = { dataApiUrl: DATA_API_URL };
+  const result = await fetchBtcPriceFromApi(config);
 
   // Cache the result
   await cacheSet(cacheKey, result, CACHE_TTL_BTC_PRICE);
