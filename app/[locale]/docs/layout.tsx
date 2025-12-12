@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Header } from "@/components/Header";
@@ -11,6 +12,7 @@ export default function DocsLayout({
   children: React.ReactNode;
 }) {
   const t = useTranslations("docs.nav");
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Navigation structure with translation keys
   const navigation = [
@@ -65,34 +67,81 @@ export default function DocsLayout({
     },
   ];
 
+  const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => (
+    <>
+      {navigation.map((section) => (
+        <div key={section.titleKey}>
+          <h3 className="font-semibold text-[color:var(--sf-text)] mb-2">
+            {t(section.titleKey)}
+          </h3>
+          <ul className="space-y-1">
+            {section.items.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={onLinkClick}
+                  className="block py-1.5 px-3 rounded-lg text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] hover:bg-[color:var(--sf-surface)] transition-colors"
+                >
+                  {t(item.titleKey)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </>
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
       <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {/* Mobile Navigation Toggle */}
+        <button
+          onClick={() => setIsMobileNavOpen(true)}
+          className="lg:hidden flex items-center gap-2 mb-4 px-4 py-2 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)] transition-colors"
+        >
+          <svg className="w-5 h-5 text-[color:var(--sf-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <span className="text-[color:var(--sf-text)] font-medium">{t("menu") || "Menu"}</span>
+        </button>
+
+        {/* Mobile Navigation Overlay */}
+        {isMobileNavOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setIsMobileNavOpen(false)}
+            />
+
+            {/* Sidebar Panel */}
+            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-[color:var(--sf-background)] border-r border-[color:var(--sf-outline)] shadow-xl overflow-y-auto">
+              <div className="p-4 border-b border-[color:var(--sf-outline)] flex items-center justify-between">
+                <span className="font-semibold text-[color:var(--sf-text)]">{t("title") || "Documentation"}</span>
+                <button
+                  onClick={() => setIsMobileNavOpen(false)}
+                  className="p-2 rounded-lg hover:bg-[color:var(--sf-surface)] transition-colors"
+                >
+                  <svg className="w-5 h-5 text-[color:var(--sf-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <nav className="p-4 space-y-6">
+                <NavContent onLinkClick={() => setIsMobileNavOpen(false)} />
+              </nav>
+            </aside>
+          </div>
+        )}
+
         <div className="flex gap-8">
-          {/* Sidebar */}
+          {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
-            <nav className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-8 pb-8">
-              {navigation.map((section) => (
-                <div key={section.titleKey}>
-                  <h3 className="font-semibold text-[color:var(--sf-text)] mb-2">
-                    {t(section.titleKey)}
-                  </h3>
-                  <ul className="space-y-1">
-                    {section.items.map((item) => (
-                      <li key={item.href}>
-                        <Link
-                          href={item.href}
-                          className="block py-1.5 px-3 rounded-lg text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] hover:bg-[color:var(--sf-surface)] transition-colors"
-                        >
-                          {t(item.titleKey)}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+            <nav className="top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-8 pb-8">
+              <NavContent />
             </nav>
           </aside>
 
