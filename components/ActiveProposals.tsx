@@ -2,15 +2,25 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { useQuery } from "@tanstack/react-query";
+import {
+  formatAddress,
+  formatTimeRemaining,
+  formatRelativeTime,
+} from "@/lib/utils";
 
 interface Proposal {
   id: string;
   title: string;
-  state: "ACTIVE" | "PENDING" | "CLOSED" | "EXECUTED";
-  votesFor: number;
-  votesAgainst: number;
-  endTime: string;
   author: string;
+  start: string;
+  end: string;
+  state: "PENDING" | "ACTIVE" | "CLOSED" | "EXECUTED" | "CANCELLED";
+  scores: string[];
+  totalVotes: string;
+  _count: {
+    votes: number;
+  };
 }
 
 export function ActiveProposals() {
@@ -18,36 +28,37 @@ export function ActiveProposals() {
   const tGov = useTranslations("governance");
   const tCommon = useTranslations("common");
 
-  // Mock data - in production, fetch from API
-  const proposals: Proposal[] = [
-    {
-      id: "1",
-      title: "Increase DIESEL staking rewards by 15%",
-      state: "ACTIVE",
-      votesFor: 72,
-      votesAgainst: 28,
-      endTime: "2 days",
-      author: "bc1q...x7k4",
+  // Fetch active and pending proposals from API
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["activeProposals"],
+    queryFn: async () => {
+      // Fetch both active and pending proposals
+      const [activeRes, pendingRes] = await Promise.all([
+        fetch("/api/governance/proposals?state=active&limit=3"),
+        fetch("/api/governance/proposals?state=pending&limit=3"),
+      ]);
+
+      if (!activeRes.ok || !pendingRes.ok) {
+        throw new Error("Failed to fetch proposals");
+      }
+
+      const [activeData, pendingData] = await Promise.all([
+        activeRes.json(),
+        pendingRes.json(),
+      ]);
+
+      // Combine and sort: active first, then pending, limit to 3 total
+      const combined = [
+        ...activeData.proposals,
+        ...pendingData.proposals,
+      ].slice(0, 3);
+
+      return combined as Proposal[];
     },
-    {
-      id: "2",
-      title: "Add new BTC-USDT vault with boosted APY",
-      state: "ACTIVE",
-      votesFor: 85,
-      votesAgainst: 15,
-      endTime: "5 days",
-      author: "bc1q...m3n2",
-    },
-    {
-      id: "3",
-      title: "Treasury allocation for development fund",
-      state: "PENDING",
-      votesFor: 0,
-      votesAgainst: 0,
-      endTime: "1 day",
-      author: "bc1q...p9r8",
-    },
-  ];
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+  const proposals = data || [];
 
   return (
     <div className="glass-card overflow-hidden">
@@ -71,18 +82,42 @@ export function ActiveProposals() {
 
       {/* Proposals List */}
       <div className="p-4 space-y-3">
-        {proposals.map((proposal) => (
-          <ProposalCard
-            key={proposal.id}
-            proposal={proposal}
-            forLabel={tGov("proposal.for")}
-            againstLabel={tGov("proposal.against")}
-            byLabel={t("by", { author: proposal.author })}
-            endsLabel={t("ends", { time: proposal.endTime })}
-            startsLabel={t("starts", { time: proposal.endTime })}
-            stateLabel={tGov(`states.${proposal.state}`)}
-          />
-        ))}
+        {isLoading ? (
+          // Loading skeleton
+          <>
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-4 rounded-xl bg-[color:var(--sf-surface)]/50 border border-[color:var(--sf-outline)] animate-pulse"
+              >
+                <div className="h-5 bg-[color:var(--sf-surface)] rounded w-3/4 mb-3" />
+                <div className="h-2 bg-[color:var(--sf-surface)] rounded w-full mb-3" />
+                <div className="h-4 bg-[color:var(--sf-surface)] rounded w-1/2" />
+              </div>
+            ))}
+          </>
+        ) : error ? (
+          <div className="p-4 text-center text-[color:var(--sf-muted)]">
+            {tGov("error")}
+          </div>
+        ) : proposals.length === 0 ? (
+          <div className="p-4 text-center text-[color:var(--sf-muted)]">
+            {tGov("noProposals")}
+          </div>
+        ) : (
+          proposals.map((proposal) => (
+            <ProposalCard
+              key={proposal.id}
+              proposal={proposal}
+              forLabel={tGov("proposal.for")}
+              againstLabel={tGov("proposal.against")}
+              byLabel={t("by", { author: formatAddress(proposal.author) })}
+              endsLabel={t("ends", { time: formatTimeRemaining(proposal.end) })}
+              startsLabel={t("starts", { time: formatRelativeTime(proposal.start) })}
+              stateLabel={tGov(`states.${proposal.state}`)}
+            />
+          ))
+        )}
       </div>
 
       {/* CTA Banner */}
@@ -118,14 +153,24 @@ function ProposalCard({
   startsLabel: string;
   stateLabel: string;
 }) {
-  const totalVotes = proposal.votesFor + proposal.votesAgainst;
-  const forPercentage = totalVotes > 0 ? (proposal.votesFor / totalVotes) * 100 : 50;
+  // Calculate vote percentages from scores (assumes first choice is "For", second is "Against")
+  const scores = proposal.scores.map((s) => BigInt(s || "0"));
+  const totalVotes = BigInt(proposal.totalVotes || "0");
+
+  let forPercentage = 50;
+  let againstPercentage = 50;
+
+  if (totalVotes > BigInt(0) && scores.length >= 2) {
+    forPercentage = Number((scores[0] * BigInt(100)) / totalVotes);
+    againstPercentage = Number((scores[1] * BigInt(100)) / totalVotes);
+  }
 
   const stateClass = {
     ACTIVE: "badge-active",
     PENDING: "badge-pending",
     CLOSED: "badge-closed",
     EXECUTED: "badge-executed",
+    CANCELLED: "badge-closed",
   }[proposal.state];
 
   return (
@@ -143,11 +188,11 @@ function ProposalCard({
       </div>
 
       {/* Vote Progress Bar */}
-      {proposal.state === "ACTIVE" && (
+      {proposal.state === "ACTIVE" && totalVotes > BigInt(0) && (
         <div className="mb-3">
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-green-500">{forLabel}: {proposal.votesFor}%</span>
-            <span className="text-red-500">{againstLabel}: {proposal.votesAgainst}%</span>
+            <span className="text-green-500">{forLabel}: {forPercentage}%</span>
+            <span className="text-red-500">{againstLabel}: {againstPercentage}%</span>
           </div>
           <div className="h-2 rounded-full bg-[color:var(--sf-outline)] overflow-hidden">
             <div
