@@ -66,7 +66,7 @@ const content = {
     resources: [
       { text: "alkanes-rs GitHub", href: "https://github.com/kungfuflex/alkanes-rs", desc: "Alkanes protocol and SDK source" },
       { text: "Live Integration Tests", href: "https://github.com/alkanes-rs/alkanes-rs/tree/develop/ts-sdk", desc: "TS SDK test examples" },
-      { text: "Subfrost RPC", href: "https://mainnet.subfrost.io", desc: "Hosted RPC endpoint" }
+      { text: "Subfrost API", href: "https://api.subfrost.io", desc: "Get API keys for production use" }
     ]
   },
   zh: {
@@ -132,7 +132,7 @@ const content = {
     resources: [
       { text: "alkanes-rs GitHub", href: "https://github.com/kungfuflex/alkanes-rs", desc: "Alkanes 协议和 SDK 源代码" },
       { text: "实时集成测试", href: "https://github.com/alkanes-rs/alkanes-rs/tree/develop/ts-sdk", desc: "TS SDK 测试示例" },
-      { text: "Subfrost RPC", href: "https://mainnet.subfrost.io", desc: "托管 RPC 端点" }
+      { text: "Subfrost API", href: "https://api.subfrost.io", desc: "获取生产环境 API 密钥" }
     ]
   }
 };
@@ -211,7 +211,7 @@ provider.bitcoin      // BitcoinRpcClient - bitcoind RPC calls`}</CodeBlock>
 const provider = new AlkanesProvider({
   network: 'mainnet',
   // Optional: Override RPC URL
-  rpcUrl: process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes',
+  rpcUrl: process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/jsonrpc',
 });
 
 // IMPORTANT: Must call initialize() before using the provider
@@ -228,7 +228,7 @@ await provider.initialize();`}</CodeBlock>
   private rpcUrl: string;
 
   constructor() {
-    this.rpcUrl = process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
+    this.rpcUrl = process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/jsonrpc';
   }
 
   // Lazy, singleton initialization
@@ -511,7 +511,7 @@ describe("Live SDK Integration", () => {
   it("should fetch wallet balances", async () => {
     const provider = new AlkanesProvider({
       network: "mainnet",
-      rpcUrl: "https://mainnet.subfrost.io/v4/buildalkanes"
+      rpcUrl: "https://mainnet.subfrost.io/v4/jsonrpc"
     });
     await provider.initialize();
 
