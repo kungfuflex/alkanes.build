@@ -151,87 +151,81 @@ export async function getCurrentBlockHeight(): Promise<number> {
 }
 
 /**
- * Fetch pool data from the Data API
+ * Fetch pool data using lua_evalscript with metashrew_view
+ * This uses the Lua script approach via the candle-fetcher module
  */
-async function fetchPoolFromDataApi(poolId: string): Promise<{
+async function fetchPoolViaLuaScript(poolKey: PoolKey): Promise<{
   reserve0: bigint;
   reserve1: bigint;
   totalSupply: bigint;
-  name: string;
+  timestamp?: number;
 } | null> {
   try {
-    // Use the pools endpoint
-    const response = await fetch(`${DATA_API_URL}/pools/${poolId}`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-    });
+    // Get current height first
+    const config: CandleFetcherConfig = { rpcUrl: RPC_URL };
+    const currentHeight = await getCurrentHeight(config);
 
-    if (!response.ok) {
-      console.error(`Data API error: ${response.status}`);
+    // Fetch single data point at current height using the Lua script
+    // Use interval=1 and same start/end to get just one point
+    const dataPoints = await fetchPoolDataPoints(
+      poolKey as CandleFetcherPoolKey,
+      currentHeight,
+      currentHeight,
+      1,
+      config
+    );
+
+    if (dataPoints.length === 0) {
+      console.error(`No data returned from Lua script for pool ${poolKey}`);
       return null;
     }
 
-    const data = await response.json() as {
-      reserve_a?: string;
-      reserve_b?: string;
-      total_supply?: string;
-      pool_name?: string;
-    };
-
+    const dp = dataPoints[0];
     return {
-      reserve0: BigInt(data.reserve_a || '0'),
-      reserve1: BigInt(data.reserve_b || '0'),
-      totalSupply: BigInt(data.total_supply || '0'),
-      name: data.pool_name || '',
+      reserve0: dp.reserve0,
+      reserve1: dp.reserve1,
+      totalSupply: dp.totalSupply,
+      timestamp: dp.timestamp,
     };
   } catch (error) {
-    console.error('Failed to fetch pool from Data API:', error);
+    console.error('Failed to fetch pool via Lua script:', error);
     return null;
   }
 }
 
 /**
- * Fetch all pools data
+ * Fetch all pools data via Lua scripts
  */
-async function fetchAllPoolsFromDataApi(): Promise<Map<string, {
+async function fetchAllPoolsViaLuaScript(): Promise<Map<string, {
   reserve0: bigint;
   reserve1: bigint;
   totalSupply: bigint;
   name: string;
+  timestamp?: number;
 }>> {
   const pools = new Map();
 
-  try {
-    const response = await fetch(`${DATA_API_URL}/pools`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-    });
+  // Fetch each pool in parallel
+  const poolKeys = Object.keys(POOLS) as PoolKey[];
+  const results = await Promise.allSettled(
+    poolKeys.map(async (key) => {
+      const data = await fetchPoolViaLuaScript(key);
+      return { key, data };
+    })
+  );
 
-    if (!response.ok) {
-      console.error(`Data API error: ${response.status}`);
-      return pools;
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value.data) {
+      const { key, data } = result.value;
+      const pool = POOLS[key];
+      pools.set(pool.id, {
+        reserve0: data.reserve0,
+        reserve1: data.reserve1,
+        totalSupply: data.totalSupply,
+        name: pool.name,
+        timestamp: data.timestamp,
+      });
     }
-
-    const data = await response.json() as Array<{
-      pool_id?: string;
-      reserve_a?: string;
-      reserve_b?: string;
-      total_supply?: string;
-      pool_name?: string;
-    }>;
-
-    for (const pool of data) {
-      if (pool.pool_id) {
-        pools.set(pool.pool_id, {
-          reserve0: BigInt(pool.reserve_a || '0'),
-          reserve1: BigInt(pool.reserve_b || '0'),
-          totalSupply: BigInt(pool.total_supply || '0'),
-          name: pool.pool_name || '',
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Failed to fetch pools from Data API:', error);
   }
 
   return pools;
@@ -268,8 +262,8 @@ export async function getPoolReserves(
     };
   }
 
-  // Fetch from Data API
-  const data = await fetchPoolFromDataApi(pool.id);
+  // Fetch via Lua script (metashrew_view)
+  const data = await fetchPoolViaLuaScript(poolKey);
 
   if (!data) {
     throw new Error(`Failed to fetch pool reserves for ${pool.id}`);
@@ -294,6 +288,7 @@ export async function getPoolReserves(
     reserve1: data.reserve1,
     totalSupply: data.totalSupply,
     blockHeight: height,
+    timestamp: data.timestamp,
   };
 }
 

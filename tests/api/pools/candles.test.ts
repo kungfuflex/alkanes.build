@@ -58,9 +58,33 @@ function setupCandleMocks(reserve0 = "273556314005", reserve1 = "11708493", tota
     }
 
     if (body?.method === 'lua_evalscript') {
+      // Generate multiple data points for candle building
+      const startHeight = 925000;
+      const dataPoints = [];
+      for (let i = 0; i < 10; i++) {
+        dataPoints.push({
+          height: startHeight + i * 144,
+          timestamp: 1702000000 + i * 86400,
+          reserve_a: parseInt(reserve0) + i * 1000000,
+          reserve_b: parseInt(reserve1) + i * 1000,
+          total_supply: parseInt(totalSupply),
+        });
+      }
+
       return {
         ok: true,
-        json: async () => ({ jsonrpc: "2.0", result: { error: "Script not found" }, id: 1 }),
+        json: async () => ({
+          jsonrpc: "2.0",
+          result: {
+            calls: dataPoints.length * 2,
+            returns: {
+              data_points: dataPoints,
+              count: dataPoints.length,
+            },
+            runtime: 100,
+          },
+          id: 1,
+        }),
       };
     }
 

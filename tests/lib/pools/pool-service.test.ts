@@ -126,19 +126,37 @@ describe('Pool Service', () => {
   });
 
   describe('getPoolReserves', () => {
-    it('should fetch pool data from Data API', async () => {
-      // Mock Data API response
+    it('should fetch pool data via Lua script', async () => {
+      // Mock metashrew_height for getCurrentHeight (called by fetchPoolViaLuaScript)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ jsonrpc: '2.0', result: '927483', id: 1 }),
+      });
+
+      // Mock lua_evalscript response
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          reserve_a: '381720542218',
-          reserve_b: '1618497433262',
-          total_supply: '690109549844',
-          pool_name: 'DIESEL / bUSD LP',
+          jsonrpc: '2.0',
+          result: {
+            calls: 3,
+            returns: {
+              data_points: [{
+                height: 927483,
+                timestamp: 1702000000,
+                reserve_a: 381720542218,
+                reserve_b: 1618497433262,
+                total_supply: 690109549844,
+              }],
+              count: 1,
+            },
+            runtime: 50,
+          },
+          id: 1,
         }),
       });
 
-      // Mock metashrew_height for block height
+      // Mock metashrew_height for getCurrentBlockHeight
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ jsonrpc: '2.0', result: '927483', id: 1 }),
@@ -152,10 +170,28 @@ describe('Pool Service', () => {
       expect(reserves.reserve1).toBe(BigInt('1618497433262'));
     });
 
-    it('should throw when Data API fails', async () => {
+    it('should throw when Lua script returns no data', async () => {
+      // Mock metashrew_height
       mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
+        ok: true,
+        json: async () => ({ jsonrpc: '2.0', result: '927483', id: 1 }),
+      });
+
+      // Mock lua_evalscript response with empty data
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          jsonrpc: '2.0',
+          result: {
+            calls: 1,
+            returns: {
+              data_points: [],
+              count: 0,
+            },
+            runtime: 10,
+          },
+          id: 1,
+        }),
       });
 
       await expect(getPoolReserves('DIESEL_BUSD')).rejects.toThrow('Failed to fetch pool reserves');
