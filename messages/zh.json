@@ -283,6 +283,12 @@
         "wrapBtc": "BTC 封装/解封",
         "token": "代币开发",
         "amm": "AMM 开发"
+      },
+      "integration": {
+        "title": "集成示例",
+        "alkanesWebSys": "获取 Alkane 数据",
+        "luaScripts": "Lua 脚本优化",
+        "marketData": "市值与 TVL"
       }
     }
   },

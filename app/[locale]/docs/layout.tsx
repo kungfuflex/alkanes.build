@@ -57,6 +57,12 @@ export default function DocsLayout({
         { titleKey: "api.rest", href: "/docs/rest" },
       ],
     },
+    {
+      titleKey: "integration.title",
+      items: [
+        { titleKey: "integration.alkanesWebSys", href: "/docs/integration/alkanes-web-sys" },
+      ],
+    },
   ];
 
   return (

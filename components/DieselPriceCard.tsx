@@ -57,13 +57,17 @@ export function DieselPriceCard() {
     marketCapStr = formatUsd(marketStats.marketCapUsd);
   }
 
+  // Convert high/low to USD
+  const high24hUsd = btcPrice ? high24h * btcPrice.usd : 0;
+  const low24hUsd = btcPrice ? low24h * btcPrice.usd : 0;
+
   // Format prices
   const priceData = {
     priceBTC: dieselPriceFrbtc.toFixed(8),
     priceUSD: formatUsd(dieselPriceUsd),
     change24h: change24hStr,
-    high24h: high24h.toFixed(8),
-    low24h: low24h.toFixed(8),
+    high24h: formatUsd(high24hUsd),
+    low24h: formatUsd(low24hUsd),
     volume24h: volume24hStr,
     marketCap: marketCapStr,
   };

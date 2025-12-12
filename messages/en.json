@@ -283,6 +283,12 @@
         "wrapBtc": "Wrap/Unwrap BTC",
         "token": "Build a Token",
         "amm": "Build an AMM"
+      },
+      "integration": {
+        "title": "Integration Examples",
+        "alkanesWebSys": "Fetching Alkane Data",
+        "luaScripts": "Lua Script Optimization",
+        "marketData": "Market Cap & TVL"
       }
     }
   },
