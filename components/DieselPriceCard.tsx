@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { usePoolPrices, useBtcPrice, usePoolCandles, usePoolVolume, useMarketStats, formatUsd, formatCompact } from "@/hooks/usePriceData";
 import { AreaPriceChart, type CandleDataPoint } from "@/components/charts";
@@ -77,9 +78,13 @@ export function DieselPriceCard() {
       {/* Header with rainbow accent */}
       <div className="card-header flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--sf-primary)] to-[var(--sf-primary-pressed)] flex items-center justify-center">
-            <span className="text-black font-bold text-lg">D</span>
-          </div>
+          <Image
+            src="/images/diesel-logo.png"
+            alt="DIESEL"
+            width={40}
+            height={40}
+            className="rounded-xl"
+          />
           <div>
             <h3 className="font-bold text-lg text-[color:var(--sf-text)]">{t("title")}</h3>
             <p className="text-xs text-[color:var(--sf-muted)]">{t("subtitle")}</p>
