@@ -67,6 +67,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# Copy server WASM files (not included in standalone by default)
+# Next.js asyncWebAssembly puts WASM in chunks/static/wasm but loads from server/static/wasm
+COPY --from=builder /app/.next/server/chunks/static/wasm ./.next/server/static/wasm
+
 # Copy Prisma schema for migrations
 COPY --from=builder /app/prisma ./prisma
 
