@@ -961,3 +961,219 @@ describe.skipIf(!runIntegration)("Live DIESEL Stats Integration Tests", () => {
     }, TEST_TIMEOUT);
   });
 });
+
+/**
+ * Wallet Balance Integration Tests
+ *
+ * Tests the alkanes-web-sys bindings for:
+ * - esploraGetAddressUtxo (BTC balance)
+ * - alkanesByAddress (protorunes token balances)
+ */
+describe.skipIf(!runIntegration)("Live Wallet Balance Integration Tests", () => {
+  // Test address with known balances
+  const TEST_ADDRESS = "bc1puvfmy5whzdq35nd2trckkm09em9u7ps6lal564jz92c9feswwrpsr7ach5";
+
+  describe("esplora_address::utxo", () => {
+    it("should fetch UTXOs for address and calculate BTC balance", async () => {
+      const rpcUrl = rpcConfig.rpcUrl || "https://mainnet.subfrost.io/v4/buildalkanes";
+
+      const response = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "esplora_address::utxo",
+          params: [TEST_ADDRESS],
+        }),
+      });
+
+      expect(response.ok).toBe(true);
+      const json = await response.json();
+
+      console.log("\n=== esplora_address::utxo Response ===");
+      console.log(`Address: ${TEST_ADDRESS}`);
+
+      expect(json.result).toBeDefined();
+      expect(Array.isArray(json.result)).toBe(true);
+
+      // Calculate total BTC balance
+      let totalSats = 0;
+      console.log(`\nUTXOs:`);
+      for (const utxo of json.result) {
+        console.log(`  ${utxo.txid}:${utxo.vout} - ${utxo.value} sats`);
+        totalSats += utxo.value;
+      }
+
+      const btcBalance = totalSats / 100000000;
+      console.log(`\nTotal: ${totalSats} sats (${btcBalance.toFixed(8)} BTC)`);
+
+      expect(totalSats).toBeGreaterThan(0);
+      expect(json.result.length).toBeGreaterThan(0);
+
+      // Verify UTXO structure
+      for (const utxo of json.result) {
+        expect(utxo.txid).toBeDefined();
+        expect(typeof utxo.txid).toBe("string");
+        expect(utxo.vout).toBeDefined();
+        expect(typeof utxo.vout).toBe("number");
+        expect(utxo.value).toBeDefined();
+        expect(typeof utxo.value).toBe("number");
+      }
+    }, TEST_TIMEOUT);
+  });
+
+  describe("protorunesbyaddress (via metashrew_view)", () => {
+    it("should fetch alkane token balances for address", async () => {
+      const rpcUrl = rpcConfig.rpcUrl || "https://mainnet.subfrost.io/v4/buildalkanes";
+
+      // Build the protobuf payload (same format as alkanes-cli)
+      // Structure: field 1 (0a) = address string, field 2 (12) = protocol tag (u128 = 1)
+      const addressHex = Buffer.from(TEST_ADDRESS, "utf8").toString("hex");
+      const addressLen = (addressHex.length / 2).toString(16).padStart(2, "0");
+      // Direct format without extra wrapping: 0a + len + address + 12020801
+      const payload = `0x0a${addressLen}${addressHex}12020801`;
+
+      console.log("\n=== protorunesbyaddress Request ===");
+      console.log(`Address: ${TEST_ADDRESS}`);
+      console.log(`Payload: ${payload}`);
+
+      const response = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "metashrew_view",
+          params: ["protorunesbyaddress", payload, "latest"],
+        }),
+      });
+
+      expect(response.ok).toBe(true);
+      const json = await response.json();
+
+      console.log("\n=== protorunesbyaddress Response ===");
+      expect(json.result).toBeDefined();
+      expect(typeof json.result).toBe("string");
+
+      // The response should not be empty for this address
+      expect(json.result).not.toBe("0x");
+      expect(json.result.length).toBeGreaterThan(4);
+
+      console.log(`Response length: ${json.result.length} chars`);
+      console.log(`Response (first 200 chars): ${json.result.slice(0, 200)}...`);
+
+      // The CLI shows this address has:
+      // - DIESEL (2:0): 444121520576 (~4441.21 DIESEL)
+      // - bUSD (2:56801): 2
+      // - DIESEL/bUSD LP (2:68441): 21794010852
+      // - DIESEL/frBTC LP (2:77087): 487503109
+      // - alkanes-Domains-3 (2:25474): 1
+
+      // Verify the response contains expected rune ID markers
+      // Block 2 encoded as varint: 0802
+      expect(json.result).toContain("0802");
+    }, TEST_TIMEOUT);
+  });
+
+  describe("AlkanesProvider SDK", () => {
+    it("should use SDK to get UTXOs and alkane balances", async () => {
+      // Dynamic import to avoid WASM issues in test environment
+      const { AlkanesProvider } = await import("@alkanes/ts-sdk");
+
+      const provider = new AlkanesProvider({
+        network: "mainnet",
+        rpcUrl: "https://mainnet.subfrost.io/v4/buildalkanes"
+      });
+
+      console.log("\n=== Provider config ===");
+      console.log(`rpcUrl: ${provider.rpcUrl}`);
+
+      await provider.initialize();
+
+      console.log("\n=== AlkanesProvider.esplora.getAddressUtxos ===");
+      const utxos = await provider.esplora.getAddressUtxos(TEST_ADDRESS);
+
+      console.log("UTXOs response:", JSON.stringify(utxos, null, 2).slice(0, 500));
+
+      expect(Array.isArray(utxos)).toBe(true);
+      expect(utxos.length).toBeGreaterThan(0);
+
+      let totalSats = 0;
+      for (const utxo of utxos) {
+        totalSats += utxo.value || 0;
+      }
+      console.log(`BTC Balance: ${totalSats} sats (${(totalSats / 1e8).toFixed(8)} BTC)`);
+
+      console.log("\n=== AlkanesProvider.alkanes.getByAddress ===");
+      const alkanesData = await provider.alkanes.getByAddress(TEST_ADDRESS, undefined, 1);
+
+      console.log("Alkanes response:", JSON.stringify(alkanesData, null, 2).slice(0, 2000));
+
+      expect(alkanesData).toBeDefined();
+
+      // The SDK should decode the protobuf and give us structured data
+      if (alkanesData && Array.isArray(alkanesData)) {
+        console.log(`\nFound ${alkanesData.length} balance entries`);
+        for (const entry of alkanesData) {
+          console.log("Entry:", JSON.stringify(entry, null, 2));
+        }
+      } else if (alkanesData && alkanesData.outpoints) {
+        console.log(`\nFound ${alkanesData.outpoints.length} outpoints with alkane balances`);
+
+        for (const outpoint of alkanesData.outpoints) {
+          console.log(`\nOutpoint: ${outpoint.outpoint?.txid || "unknown"}:${outpoint.outpoint?.vout || 0}`);
+          if (outpoint.balance_sheet && outpoint.balance_sheet.balances) {
+            for (const [runeId, balance] of Object.entries(outpoint.balance_sheet.balances)) {
+              const formattedBalance = Number(balance) / 1e8;
+              console.log(`  ${runeId}: ${balance} (${formattedBalance.toFixed(8)})`);
+            }
+          }
+        }
+      }
+    }, TEST_TIMEOUT);
+
+    it("should get alkane token balance using getBalance", async () => {
+      const { AlkanesProvider } = await import("@alkanes/ts-sdk");
+
+      const provider = new AlkanesProvider({
+        network: "mainnet",
+        rpcUrl: "https://mainnet.subfrost.io/v4/buildalkanes"
+      });
+      await provider.initialize();
+
+      console.log("\n=== AlkanesProvider.alkanes.getBalance ===");
+
+      // Get all alkane balances using the alkanes.getBalance method
+      const balances = await provider.alkanes.getBalance(TEST_ADDRESS);
+
+      console.log("All balances:", JSON.stringify(balances, null, 2));
+
+      expect(balances).toBeDefined();
+
+      // Check if it's an array or object and log accordingly
+      if (Array.isArray(balances)) {
+        console.log(`\nFound ${balances.length} token balances`);
+
+        // Look for DIESEL (2:0)
+        const dieselBalance = balances.find(
+          (b: { id?: { block: number; tx: number } }) => b.id?.block === 2 && b.id?.tx === 0
+        );
+
+        if (dieselBalance) {
+          console.log(`\nDIESEL balance found:`, dieselBalance);
+        }
+
+        // Look for LP tokens
+        const lpBalances = balances.filter(
+          (b: { id?: { block: number; tx: number } }) =>
+            b.id?.block === 2 && (b.id?.tx === 68441 || b.id?.tx === 77087)
+        );
+
+        if (lpBalances.length > 0) {
+          console.log(`\nLP token balances:`, lpBalances);
+        }
+      }
+    }, TEST_TIMEOUT);
+  });
+});

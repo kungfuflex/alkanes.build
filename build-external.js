@@ -331,7 +331,183 @@ function buildAlkanesWebSysInDir(dir) {
     env: buildEnv
   });
 
+  // Remove .gitignore from wasm output (wasm-pack creates one that ignores everything)
+  // This breaks pnpm package installation since it uses gitignore to filter files
+  const wasmGitignore = path.join(TS_SDK_SOURCE, 'build', 'wasm', '.gitignore');
+  if (fs.existsSync(wasmGitignore)) {
+    fs.unlinkSync(wasmGitignore);
+    console.log('Removed .gitignore from wasm output directory');
+  }
+
+  // Create cross-platform WASM loader for Node.js and browser compatibility
+  createCrossPlatformWasmLoader();
+
   console.log('alkanes-web-sys WASM built successfully');
+}
+
+// Create cross-platform WASM loader files
+function createCrossPlatformWasmLoader() {
+  console.log('Creating cross-platform WASM loader...');
+
+  const wasmDir = path.join(TS_SDK_SOURCE, 'build', 'wasm');
+
+  // ES Module loader (index.js)
+  const esmLoader = `/**
+ * Cross-platform WASM loader for alkanes-web-sys
+ *
+ * This module provides automatic environment detection and loads the WASM
+ * module appropriately for Node.js (CommonJS/ESM) or browser environments.
+ */
+
+let wasmModule = null;
+let initPromise = null;
+
+/**
+ * Detect if we're running in Node.js
+ */
+function isNode() {
+  return typeof process !== 'undefined' &&
+         process.versions != null &&
+         process.versions.node != null;
+}
+
+/**
+ * Initialize the WASM module for Node.js
+ */
+async function initNode() {
+  const path = await import('path');
+  const { fileURLToPath } = await import('url');
+  const fs = await import('fs');
+
+  // Get the directory of this file
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
+  // Read the WASM file
+  const wasmPath = path.join(__dirname, 'alkanes_web_sys_bg.wasm');
+  const wasmBuffer = fs.readFileSync(wasmPath);
+
+  // Import the JS bindings
+  const wasm = await import('./alkanes_web_sys_bg.js');
+
+  // Compile and instantiate the WASM module
+  const wasmInstance = await WebAssembly.instantiate(wasmBuffer, {
+    './alkanes_web_sys_bg.js': wasm,
+  });
+
+  // Set the WASM instance
+  wasm.__wbg_set_wasm(wasmInstance.instance.exports);
+
+  // Initialize
+  wasmInstance.instance.exports.__wbindgen_start();
+
+  return wasm;
+}
+
+/**
+ * Initialize the WASM module for browser
+ */
+async function initBrowser() {
+  // In browser, we can use the standard web loader
+  const wasm = await import('./alkanes_web_sys.js');
+  return wasm;
+}
+
+/**
+ * Initialize and return the WASM module
+ * This is idempotent - subsequent calls return the cached module
+ */
+export async function init() {
+  if (wasmModule) return wasmModule;
+
+  if (!initPromise) {
+    initPromise = (async () => {
+      if (isNode()) {
+        wasmModule = await initNode();
+      } else {
+        wasmModule = await initBrowser();
+      }
+      return wasmModule;
+    })();
+  }
+
+  return initPromise;
+}
+
+// Re-export everything from the bindings after initialization
+export * from './alkanes_web_sys_bg.js';
+
+// Default export is the init function
+export default init;
+`;
+
+  // CommonJS loader (index.cjs)
+  const cjsLoader = `/**
+ * Cross-platform WASM loader for alkanes-web-sys (CommonJS version)
+ *
+ * This module provides automatic environment detection and loads the WASM
+ * module appropriately for Node.js CommonJS environments.
+ */
+
+const path = require('path');
+const fs = require('fs');
+
+let wasmModule = null;
+let initPromise = null;
+
+/**
+ * Initialize the WASM module for Node.js CommonJS
+ */
+async function initNode() {
+  // Read the WASM file
+  const wasmPath = path.join(__dirname, 'alkanes_web_sys_bg.wasm');
+  const wasmBuffer = fs.readFileSync(wasmPath);
+
+  // Import the JS bindings (they use ES module syntax internally)
+  // We need to use dynamic import for ES modules from CommonJS
+  const wasm = await import('./alkanes_web_sys_bg.js');
+
+  // Compile and instantiate the WASM module
+  const wasmInstance = await WebAssembly.instantiate(wasmBuffer, {
+    './alkanes_web_sys_bg.js': wasm,
+  });
+
+  // Set the WASM instance
+  wasm.__wbg_set_wasm(wasmInstance.instance.exports);
+
+  // Initialize
+  wasmInstance.instance.exports.__wbindgen_start();
+
+  return wasm;
+}
+
+/**
+ * Initialize and return the WASM module
+ * This is idempotent - subsequent calls return the cached module
+ */
+async function init() {
+  if (wasmModule) return wasmModule;
+
+  if (!initPromise) {
+    initPromise = (async () => {
+      wasmModule = await initNode();
+      return wasmModule;
+    })();
+  }
+
+  return initPromise;
+}
+
+module.exports = { init, default: init };
+
+// Re-export init as the main export
+module.exports.init = init;
+`;
+
+  fs.writeFileSync(path.join(wasmDir, 'index.js'), esmLoader);
+  fs.writeFileSync(path.join(wasmDir, 'index.cjs'), cjsLoader);
+
+  console.log('Cross-platform WASM loader created');
 }
 
 // Build ts-sdk

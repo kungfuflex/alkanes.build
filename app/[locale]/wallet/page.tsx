@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Copy, Check, Download, Cloud, AlertTriangle, Key, Shield, ExternalLink } from "lucide-react";
+import { Copy, Check, Download, Cloud, AlertTriangle, Key, Shield, ExternalLink, Wallet, RefreshCw } from "lucide-react";
 
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useWallet } from "@/context/WalletContext";
 import AddressAvatar from "@/components/AddressAvatar";
 import { GoogleDriveBackup, type WalletBackupInfo } from "@alkanes/ts-sdk";
+import { useWalletBalances, formatBalance, formatBtcBalance } from "@/hooks/useWalletBalances";
 
 export default function WalletDashboardPage() {
   const t = useTranslations();
@@ -168,6 +170,9 @@ export default function WalletDashboardPage() {
   const isKeystoreWallet = !!wallet && !browserWallet;
   const isBrowserWallet = !!browserWallet;
 
+  // Fetch wallet balances for the connected address
+  const { data: balances, isLoading: balancesLoading, refetch: refetchBalances } = useWalletBalances(address);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -268,6 +273,126 @@ export default function WalletDashboardPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Balances Section */}
+        <div className="glass-card p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-[color:var(--sf-text)] flex items-center gap-2">
+              <Wallet size={20} />
+              Balances
+            </h2>
+            <button
+              onClick={() => refetchBalances()}
+              disabled={balancesLoading}
+              className="p-2 rounded-lg text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] hover:bg-[color:var(--sf-surface)] transition-colors disabled:opacity-50"
+              title="Refresh balances"
+            >
+              <RefreshCw size={16} className={balancesLoading ? "animate-spin" : ""} />
+            </button>
+          </div>
+
+          {balancesLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] animate-pulse"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)]" />
+                      <div>
+                        <div className="h-4 w-20 bg-[color:var(--sf-outline)] rounded mb-1" />
+                        <div className="h-3 w-16 bg-[color:var(--sf-outline)] rounded" />
+                      </div>
+                    </div>
+                    <div className="h-5 w-24 bg-[color:var(--sf-outline)] rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : balances ? (
+            <div className="space-y-3">
+              {/* BTC Balance */}
+              <div className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">₿</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-[color:var(--sf-text)]">Bitcoin</div>
+                      <div className="text-xs text-[color:var(--sf-muted)]">BTC</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-[color:var(--sf-text)]">
+                      {formatBtcBalance(balances.btcBalance)}
+                    </div>
+                    <div className="text-xs text-[color:var(--sf-muted)]">
+                      {balances.btcBalance.toLocaleString()} sats
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Token Balances */}
+              {balances.tokens.map((token) => (
+                <div
+                  key={token.runeId}
+                  className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {token.runeId === '2:0' ? (
+                        <Image
+                          src="/images/diesel-logo.png"
+                          alt="DIESEL"
+                          width={40}
+                          height={40}
+                          className="rounded-full"
+                        />
+                      ) : (
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          token.runeId === '32:0' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                          token.runeId === '2:56801' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                          token.runeId.includes('LP') || token.symbol.includes('LP') ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                          'bg-gradient-to-br from-gray-500 to-gray-600'
+                        }`}>
+                          <span className="text-white font-bold text-sm">
+                            {token.symbol.slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-[color:var(--sf-text)]">{token.name}</div>
+                        <div className="text-xs text-[color:var(--sf-muted)]">{token.symbol}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-[color:var(--sf-text)]">
+                        {formatBalance(token.balanceFormatted)}
+                      </div>
+                      <div className="text-xs text-[color:var(--sf-muted)]">
+                        {token.runeId}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {balances.tokens.length === 0 && (
+                <div className="text-center py-6 text-[color:var(--sf-muted)]">
+                  No alkane tokens found
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-[color:var(--sf-muted)]">
+              Unable to load balances
+            </div>
+          )}
         </div>
 
         {/* Backup & Security Section (for keystore wallets only) */}

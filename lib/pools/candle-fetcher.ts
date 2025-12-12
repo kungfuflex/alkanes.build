@@ -10,6 +10,8 @@
  * - Live integration tests
  */
 
+import { alkanesClient } from '@/lib/alkanes-client';
+
 // Pool configuration with prebuilt protobuf payloads
 // These are the exact payloads used by alkanes-cli pool-details
 export const POOL_CONFIGS = {
@@ -167,50 +169,23 @@ interface LuaScriptResult {
 /**
  * Fetch pool data points using lua_evalscript RPC
  * This is the core function that calls the Lua script with metashrew_view
+ *
+ * Uses alkanes-client which provides automatic scripthash caching for better performance
  */
 export async function fetchPoolDataPoints(
   poolKey: PoolKey,
   startHeight: number,
   endHeight: number,
   interval: number,
-  config?: CandleFetcherConfig
+  _config?: CandleFetcherConfig
 ): Promise<PoolDataPoint[]> {
   const pool = POOL_CONFIGS[poolKey];
-  const rpcUrl = config?.rpcUrl || process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
 
-  const response = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'lua_evalscript',
-      params: [
-        POOL_CANDLES_LUA_SCRIPT,
-        [pool.protobufPayload, startHeight.toString(), endHeight.toString(), interval.toString()],
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`lua_evalscript failed: ${response.status}`);
-  }
-
-  // lua_evalscript returns { calls, returns, runtime } where returns contains the Lua result
-  const json = await response.json() as {
-    result?: {
-      calls?: number;
-      returns?: LuaScriptResult;
-      runtime?: number;
-    };
-    error?: { message: string };
-  };
-
-  if (json.error) {
-    throw new Error(`RPC error: ${json.error.message}`);
-  }
-
-  const luaResult = json.result?.returns;
+  // Use alkanes-client with scripthash caching
+  const luaResult = await alkanesClient.executeLuaScript<LuaScriptResult>(
+    POOL_CANDLES_LUA_SCRIPT,
+    [[pool.protobufPayload, startHeight.toString(), endHeight.toString(), interval.toString()]]
+  );
 
   if (luaResult?.error) {
     throw new Error(`Lua script error: ${luaResult.error}`);
@@ -325,31 +300,8 @@ export async function fetchPoolCandles(
 /**
  * Get current block height from RPC
  */
-export async function getCurrentHeight(config?: CandleFetcherConfig): Promise<number> {
-  const rpcUrl = config?.rpcUrl || process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
-
-  const response = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'metashrew_height',
-      params: [],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`metashrew_height failed: ${response.status}`);
-  }
-
-  const json = await response.json() as { result?: string; error?: { message: string } };
-
-  if (json.error) {
-    throw new Error(`RPC error: ${json.error.message}`);
-  }
-
-  return parseInt(json.result || '0', 10);
+export async function getCurrentHeight(_config?: CandleFetcherConfig): Promise<number> {
+  return alkanesClient.getCurrentHeight();
 }
 
 /**
@@ -545,36 +497,12 @@ function parseTotalSupplyResponse(resultHex: string): bigint | null {
  * Fetch DIESEL token total supply via metashrew_view
  */
 export async function getDieselTotalSupply(
-  config?: CandleFetcherConfig
+  _config?: CandleFetcherConfig
 ): Promise<bigint> {
-  const rpcUrl = config?.rpcUrl || process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
-
-  const response = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'metashrew_view',
-      params: ['simulate', DIESEL_TOKEN.totalSupplyPayload, 'latest'],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`metashrew_view failed: ${response.status}`);
-  }
-
-  const json = await response.json() as { result?: string; error?: { message: string } };
-
-  if (json.error) {
-    throw new Error(`RPC error: ${json.error.message}`);
-  }
-
-  const totalSupply = parseTotalSupplyResponse(json.result || '');
+  const totalSupply = await alkanesClient.getDieselTotalSupply();
   if (totalSupply === null) {
-    throw new Error('Failed to parse total supply response');
+    throw new Error('Failed to fetch DIESEL total supply');
   }
-
   return totalSupply;
 }
 
@@ -777,9 +705,11 @@ interface StatsLuaResult {
 /**
  * Fetch all DIESEL stats in a single RPC call
  * Returns DIESEL total supply, both pool reserves, and current height
+ *
+ * Uses alkanes-client with scripthash caching for better performance
  */
 export async function fetchDieselStats(
-  config?: CandleFetcherConfig
+  _config?: CandleFetcherConfig
 ): Promise<{
   dieselTotalSupply: bigint;
   pools: {
@@ -788,37 +718,10 @@ export async function fetchDieselStats(
   };
   height: number;
 }> {
-  const rpcUrl = config?.rpcUrl || process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
-
-  const response = await fetch(rpcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'lua_evalscript',
-      params: [STATS_LUA_SCRIPT, []],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`lua_evalscript failed: ${response.status}`);
-  }
-
-  const json = await response.json() as {
-    result?: {
-      calls?: number;
-      returns?: StatsLuaResult;
-      runtime?: number;
-    };
-    error?: { message: string };
-  };
-
-  if (json.error) {
-    throw new Error(`RPC error: ${json.error.message}`);
-  }
-
-  const luaResult = json.result?.returns;
+  const luaResult = await alkanesClient.executeLuaScript<StatsLuaResult>(
+    STATS_LUA_SCRIPT,
+    [[]]
+  );
 
   return {
     dieselTotalSupply: BigInt(Math.floor(luaResult?.diesel?.total_supply || 0)),

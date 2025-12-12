@@ -1,6 +1,25 @@
 import { vi, beforeAll, afterAll, afterEach, beforeEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
 
+// Note: We do NOT polyfill window/self - the alkanes-web-sys SDK properly detects
+// Node.js environment and uses global fetch. Polyfilling window would make is_browser()
+// return true incorrectly.
+
+// Polyfill crypto for Node.js (needed for cryptographic operations)
+if (typeof globalThis.crypto === "undefined") {
+  // @ts-expect-error - polyfill crypto for Node.js
+  globalThis.crypto = require("crypto").webcrypto;
+}
+
+// Polyfill TextEncoder/TextDecoder for older Node.js versions
+if (typeof globalThis.TextEncoder === "undefined") {
+  const { TextEncoder, TextDecoder } = require("util");
+  // @ts-expect-error - polyfill
+  globalThis.TextEncoder = TextEncoder;
+  // @ts-expect-error - polyfill
+  globalThis.TextDecoder = TextDecoder;
+}
+
 // Mock environment variables
 process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
 process.env.REDIS_URL = "redis://localhost:6379";

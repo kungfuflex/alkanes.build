@@ -286,6 +286,7 @@
       },
       "integration": {
         "title": "Integration Examples",
+        "tsSdk": "TS SDK Guide",
         "alkanesWebSys": "Fetching Alkane Data",
         "luaScripts": "Lua Script Optimization",
         "marketData": "Market Cap & TVL"

@@ -60,6 +60,7 @@ export default function DocsLayout({
     {
       titleKey: "integration.title",
       items: [
+        { titleKey: "integration.tsSdk", href: "/docs/guides/ts-sdk" },
         { titleKey: "integration.alkanesWebSys", href: "/docs/integration/alkanes-web-sys" },
       ],
     },

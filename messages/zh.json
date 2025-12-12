@@ -286,6 +286,7 @@
       },
       "integration": {
         "title": "集成示例",
+        "tsSdk": "TS SDK 指南",
         "alkanesWebSys": "获取 Alkane 数据",
         "luaScripts": "Lua 脚本优化",
         "marketData": "市值与 TVL"

@@ -26,6 +26,7 @@ import {
   fetchBitcoinPrice as fetchBtcPriceFromApi,
   type PriceFetcherConfig,
 } from './price-fetcher';
+import { alkanesClient } from '../alkanes-client';
 
 // Re-export pool configs as POOLS for backwards compatibility
 // Uses the same config from candle-fetcher module
@@ -107,34 +108,6 @@ export interface Candle {
 export interface BitcoinPrice {
   usd: number;
   timestamp: number;
-}
-
-/**
- * Make an RPC call to the Subfrost endpoint
- */
-async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
-  const response = await fetch(RPC_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method,
-      params,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`RPC request failed: ${response.status}`);
-  }
-
-  const json = await response.json() as { result?: unknown; error?: { message: string } };
-
-  if (json.error) {
-    throw new Error(`RPC error: ${json.error.message}`);
-  }
-
-  return json.result;
 }
 
 /**
@@ -491,6 +464,7 @@ function parsePoolDetailsHex(dataHex: string): { reserve0: bigint; reserve1: big
 /**
  * Fetch pool reserves using metashrew_view with prebuilt protobuf payload
  * This is the recommended approach - uses the same method as alkanes-cli
+ * Uses alkanes-client (which uses the SDK) instead of direct fetch
  */
 async function fetchPoolReservesViaMetashrewView(
   poolKey: PoolKey,
@@ -499,34 +473,10 @@ async function fetchPoolReservesViaMetashrewView(
   const pool = POOLS[poolKey];
 
   try {
-    const response = await fetch(RPC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'metashrew_view',
-        params: ['simulate', pool.protobufPayload, blockTag],
-      }),
-    });
+    const result = await alkanesClient.metashrewView('simulate', pool.protobufPayload, blockTag);
 
-    if (!response.ok) {
-      console.error(`metashrew_view failed: ${response.status}`);
-      return null;
-    }
-
-    const json = await response.json() as {
-      result?: string;
-      error?: { message: string };
-    };
-
-    if (json.error) {
-      console.error(`RPC error:`, json.error);
-      return null;
-    }
-
-    if (json.result) {
-      return parseMetashrewViewResponse(json.result);
+    if (result) {
+      return parseMetashrewViewResponse(result);
     }
 
     return null;

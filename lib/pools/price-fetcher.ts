@@ -1,13 +1,14 @@
 /**
  * Price Fetcher Module
  *
- * Provides functions for fetching Bitcoin and token prices from the Alkanes Data API.
+ * Provides functions for fetching Bitcoin and token prices from the Alkanes SDK.
  * This is a shared module used by both server-side routes and live integration tests.
  *
  * Used by:
  * - Server-side API routes (app/api/btc-price, app/api/pools)
  * - Live integration tests
  */
+import { alkanesClient } from '../alkanes-client';
 
 export interface BitcoinPrice {
   usd: number;
@@ -18,38 +19,17 @@ export interface PriceFetcherConfig {
   dataApiUrl?: string;
 }
 
-const DEFAULT_DATA_API_URL = 'https://mainnet.subfrost.io/v4/buildalkanes';
-
 /**
- * Fetch current Bitcoin price in USD from the Data API
+ * Fetch current Bitcoin price in USD via the SDK's Data API
+ * Uses alkanes-client which internally uses alkanes-web-sys
  */
 export async function fetchBitcoinPrice(
-  config?: PriceFetcherConfig
+  _config?: PriceFetcherConfig
 ): Promise<BitcoinPrice> {
-  const dataApiUrl = config?.dataApiUrl || process.env.ALKANES_DATA_API_URL || DEFAULT_DATA_API_URL;
+  const usd = await alkanesClient.getBitcoinPrice();
 
-  const response = await fetch(`${dataApiUrl}/get-bitcoin-price`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch BTC price: ${response.status}`);
-  }
-
-  const json = await response.json() as {
-    statusCode?: number;
-    data?: { bitcoin?: { usd?: number } };
-    bitcoin?: { usd?: number };
-  };
-
-  // Handle wrapped response (with data envelope) or direct response
-  const btcData = json.data?.bitcoin || json.bitcoin;
-  const usd = btcData?.usd;
-
-  if (typeof usd !== 'number') {
-    throw new Error('Invalid BTC price response');
+  if (typeof usd !== 'number' || usd <= 0) {
+    throw new Error('Invalid BTC price response from SDK');
   }
 
   return {

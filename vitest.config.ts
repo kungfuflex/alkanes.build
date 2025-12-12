@@ -1,11 +1,21 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 import path from "path";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), wasm(), topLevelAwait()],
+  optimizeDeps: {
+    exclude: ['@alkanes/ts-sdk'],
+  },
   test: {
     environment: "happy-dom",
+    server: {
+      deps: {
+        inline: ['@alkanes/ts-sdk'],
+      },
+    },
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     include: ["**/*.{test,spec}.{ts,tsx}"],
@@ -66,6 +76,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./"),
+      "@alkanes/ts-sdk/wasm": path.resolve(__dirname, "./ts-sdk/build/wasm/index.js"),
+      "@alkanes/ts-sdk": path.resolve(__dirname, "./ts-sdk/dist/index.mjs"),
     },
   },
 });

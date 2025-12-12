@@ -241,6 +241,21 @@ function passArrayJsValueToWasm0(array, malloc) {
     return ptr;
 }
 /**
+ * Asynchronously encrypts data using the Web Crypto API.
+ * @param {string} mnemonic
+ * @param {string} passphrase
+ * @returns {Promise<any>}
+ */
+export function encryptMnemonic(mnemonic, passphrase) {
+    const ptr0 = passStringToWasm0(mnemonic, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(passphrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.encryptMnemonic(ptr0, len0, ptr1, len1);
+    return ret;
+}
+
+/**
  * @param {string} psbt_base64
  * @returns {string}
  */
@@ -298,21 +313,6 @@ export function get_alkane_bytecode(network, block, tx, block_tag) {
     return ret;
 }
 
-/**
- * Asynchronously encrypts data using the Web Crypto API.
- * @param {string} mnemonic
- * @param {string} passphrase
- * @returns {Promise<any>}
- */
-export function encryptMnemonic(mnemonic, passphrase) {
-    const ptr0 = passStringToWasm0(mnemonic, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passStringToWasm0(passphrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.encryptMnemonic(ptr0, len0, ptr1, len1);
-    return ret;
-}
-
 function wasm_bindgen__convert__closures_____invoke__h5943629905d90057(arg0, arg1, arg2) {
     wasm.wasm_bindgen__convert__closures_____invoke__h5943629905d90057(arg0, arg1, arg2);
 }
@@ -320,8 +320,6 @@ function wasm_bindgen__convert__closures_____invoke__h5943629905d90057(arg0, arg
 function wasm_bindgen__convert__closures_____invoke__h95fdbac5e4c1bfb6(arg0, arg1, arg2, arg3) {
     wasm.wasm_bindgen__convert__closures_____invoke__h95fdbac5e4c1bfb6(arg0, arg1, arg2, arg3);
 }
-
-const __wbindgen_enum_RequestMode = ["same-origin", "no-cors", "cors", "navigate"];
 
 const KeystoreFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
@@ -1329,6 +1327,34 @@ export class WebProvider {
         return ret;
     }
     /**
+     * Generic metashrew_view call
+     *
+     * Calls the metashrew_view RPC method with the given view function, payload, and block tag.
+     * This is the low-level method for calling any metashrew view function.
+     *
+     * # Arguments
+     * * `view_fn` - The view function name (e.g., "simulate", "protorunesbyaddress")
+     * * `payload` - The hex-encoded payload (with or without 0x prefix)
+     * * `block_tag` - The block tag ("latest" or a block height as string)
+     *
+     * # Returns
+     * The hex-encoded response string from the view function
+     * @param {string} view_fn
+     * @param {string} payload
+     * @param {string} block_tag
+     * @returns {Promise<any>}
+     */
+    metashrewView(view_fn, payload, block_tag) {
+        const ptr0 = passStringToWasm0(view_fn, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(payload, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(block_tag, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_metashrewView(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2);
+        return ret;
+    }
+    /**
      * @param {string} script
      * @returns {Promise<any>}
      */
@@ -1336,6 +1362,26 @@ export class WebProvider {
         const ptr0 = passStringToWasm0(script, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.webprovider_luaEvalScript(this.__wbg_ptr, ptr0, len0);
+        return ret;
+    }
+    /**
+     * Execute a Lua script with arguments, using scripthash caching
+     *
+     * This method first tries to use the cached scripthash version (lua_evalsaved),
+     * and falls back to the full script (lua_evalscript) if the hash isn't cached.
+     * This is the recommended way to execute Lua scripts for better performance.
+     *
+     * # Arguments
+     * * `script` - The Lua script content
+     * * `args` - JSON-serialized array of arguments to pass to the script
+     * @param {string} script
+     * @param {any} args
+     * @returns {Promise<any>}
+     */
+    luaEval(script, args) {
+        const ptr0 = passStringToWasm0(script, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_luaEval(this.__wbg_ptr, ptr0, len0, args);
         return ret;
     }
     /**
@@ -1854,11 +1900,6 @@ export function __wbg__wbg_cb_unref_2454a539ea5790d9(arg0) {
     arg0._wbg_cb_unref();
 };
 
-export function __wbg_arrayBuffer_b375eccb84b4ddf3() { return handleError(function (arg0) {
-    const ret = arg0.arrayBuffer();
-    return ret;
-}, arguments) };
-
 export function __wbg_call_525440f72fbfc0ea() { return handleError(function (arg0, arg1, arg2) {
     const ret = arg0.call(arg1, arg2);
     return ret;
@@ -1878,11 +1919,6 @@ export function __wbg_crypto_574e78ad8b13b65f(arg0) {
     const ret = arg0.crypto;
     return ret;
 };
-
-export function __wbg_crypto_f5dce82c355d159f() { return handleError(function (arg0) {
-    const ret = arg0.crypto;
-    return ret;
-}, arguments) };
 
 export function __wbg_decrypt_0452782895e3c2f1() { return handleError(function (arg0, arg1, arg2, arg3, arg4) {
     const ret = arg0.decrypt(arg1, arg2, getArrayU8FromWasm0(arg3, arg4));
@@ -1906,11 +1942,6 @@ export function __wbg_encrypt_36464dd547f58e9c() { return handleError(function (
 
 export function __wbg_entries_e171b586f8f6bdbf(arg0) {
     const ret = Object.entries(arg0);
-    return ret;
-};
-
-export function __wbg_fetch_0c645bcbfc592368(arg0, arg1) {
-    const ret = arg0.fetch(arg1);
     return ret;
 };
 
@@ -1961,11 +1992,6 @@ export function __wbg_has_787fafc980c3ccdb() { return handleError(function (arg0
     return ret;
 }, arguments) };
 
-export function __wbg_headers_7ae6dbb1272f8fc6(arg0) {
-    const ret = arg0.headers;
-    return ret;
-};
-
 export function __wbg_importKey_2be19189a1451235() { return handleError(function (arg0, arg1, arg2, arg3, arg4, arg5, arg6) {
     const ret = arg0.importKey(getStringFromWasm0(arg1, arg2), arg3, arg4, arg5 !== 0, arg6);
     return ret;
@@ -1993,10 +2019,10 @@ export function __wbg_instanceof_CryptoKey_9fbbefded7590b8c(arg0) {
     return ret;
 };
 
-export function __wbg_instanceof_Map_8579b5e2ab5437c7(arg0) {
+export function __wbg_instanceof_Crypto_2574e69763b89701(arg0) {
     let result;
     try {
-        result = arg0 instanceof Map;
+        result = arg0 instanceof Crypto;
     } catch (_) {
         result = false;
     }
@@ -2004,10 +2030,10 @@ export function __wbg_instanceof_Map_8579b5e2ab5437c7(arg0) {
     return ret;
 };
 
-export function __wbg_instanceof_Response_f4f3e87e07f3135c(arg0) {
+export function __wbg_instanceof_Map_8579b5e2ab5437c7(arg0) {
     let result;
     try {
-        result = arg0 instanceof Response;
+        result = arg0 instanceof Map;
     } catch (_) {
         result = false;
     }
@@ -2124,11 +2150,6 @@ export function __wbg_new_68651c719dcda04e() {
     return ret;
 };
 
-export function __wbg_new_9edf9838a2def39c() { return handleError(function () {
-    const ret = new Headers();
-    return ret;
-}, arguments) };
-
 export function __wbg_new_e17d9f43105b08be() {
     const ret = new Array();
     return ret;
@@ -2143,11 +2164,6 @@ export function __wbg_new_with_length_01aa0dc35aa13543(arg0) {
     const ret = new Uint8Array(arg0 >>> 0);
     return ret;
 };
-
-export function __wbg_new_with_str_and_init_0ae7728b6ec367b1() { return handleError(function (arg0, arg1, arg2) {
-    const ret = new Request(getStringFromWasm0(arg0, arg1), arg2);
-    return ret;
-}, arguments) };
 
 export function __wbg_next_020810e0ae8ebcb0() { return handleError(function (arg0) {
     const ret = arg0.next();
@@ -2171,11 +2187,6 @@ export function __wbg_now_793306c526e2e3b6() {
 
 export function __wbg_of_035271b9e67a3bd9(arg0) {
     const ret = Array.of(arg0);
-    return ret;
-};
-
-export function __wbg_ok_5749966cb2b8535e(arg0) {
-    const ret = arg0.ok;
     return ret;
 };
 
@@ -2228,10 +2239,6 @@ export function __wbg_set_3f1d0b984ed272ed(arg0, arg1, arg2) {
     arg0[arg1] = arg2;
 };
 
-export function __wbg_set_8b342d8cd9d2a02c() { return handleError(function (arg0, arg1, arg2, arg3, arg4) {
-    arg0.set(getStringFromWasm0(arg1, arg2), getStringFromWasm0(arg3, arg4));
-}, arguments) };
-
 export function __wbg_set_907fb406c34a251d(arg0, arg1, arg2) {
     const ret = arg0.set(arg1, arg2);
     return ret;
@@ -2239,10 +2246,6 @@ export function __wbg_set_907fb406c34a251d(arg0, arg1, arg2) {
 
 export function __wbg_set_9e6516df7b7d0f19(arg0, arg1, arg2) {
     arg0.set(getArrayU8FromWasm0(arg1, arg2));
-};
-
-export function __wbg_set_body_3c365989753d61f4(arg0, arg1) {
-    arg0.body = arg1;
 };
 
 export function __wbg_set_c213c871859d6500(arg0, arg1, arg2) {
@@ -2253,18 +2256,6 @@ export function __wbg_set_c2abbebe8b9ebee1() { return handleError(function (arg0
     const ret = Reflect.set(arg0, arg1, arg2);
     return ret;
 }, arguments) };
-
-export function __wbg_set_headers_6926da238cd32ee4(arg0, arg1) {
-    arg0.headers = arg1;
-};
-
-export function __wbg_set_method_c02d8cbbe204ac2d(arg0, arg1, arg2) {
-    arg0.method = getStringFromWasm0(arg1, arg2);
-};
-
-export function __wbg_set_mode_52ef73cfa79639cb(arg0, arg1) {
-    arg0.mode = __wbindgen_enum_RequestMode[arg1];
-};
 
 export function __wbg_static_accessor_GLOBAL_89e1d9ac6a1b250e() {
     const ret = typeof global === 'undefined' ? null : global;
@@ -2286,19 +2277,6 @@ export function __wbg_static_accessor_WINDOW_b45bfc5a37f6cfa2() {
     return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
 };
 
-export function __wbg_statusText_f84c3ce029ec4040(arg0, arg1) {
-    const ret = arg1.statusText;
-    const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len1 = WASM_VECTOR_LEN;
-    getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
-    getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
-};
-
-export function __wbg_status_de7eed5a7a5bfd5d(arg0) {
-    const ret = arg0.status;
-    return ret;
-};
-
 export function __wbg_subarray_480600f3d6a9f26c(arg0, arg1, arg2) {
     const ret = arg0.subarray(arg1 >>> 0, arg2 >>> 0);
     return ret;
@@ -2308,11 +2286,6 @@ export function __wbg_subtle_a158c8cba320b8ed(arg0) {
     const ret = arg0.subtle;
     return ret;
 };
-
-export function __wbg_text_dc33c15c17bdfb52() { return handleError(function (arg0) {
-    const ret = arg0.text();
-    return ret;
-}, arguments) };
 
 export function __wbg_then_4f46f6544e6b4a28(arg0, arg1) {
     const ret = arg0.then(arg1);
@@ -2343,6 +2316,12 @@ export function __wbg_warn_1d74dddbe2fd1dbb(arg0) {
     console.warn(arg0);
 };
 
+export function __wbindgen_cast_2182915d9a340f90(arg0, arg1) {
+    // Cast intrinsic for `Closure(Closure { dtor_idx: 2959, function: Function { arguments: [Externref], shim_idx: 2960, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+    const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3ba04b4139aaae95, wasm_bindgen__convert__closures_____invoke__h5943629905d90057);
+    return ret;
+};
+
 export function __wbindgen_cast_2241b6af4c4b2941(arg0, arg1) {
     // Cast intrinsic for `Ref(String) -> Externref`.
     const ret = getStringFromWasm0(arg0, arg1);
@@ -2352,12 +2331,6 @@ export function __wbindgen_cast_2241b6af4c4b2941(arg0, arg1) {
 export function __wbindgen_cast_4625c577ab2ec9ee(arg0) {
     // Cast intrinsic for `U64 -> Externref`.
     const ret = BigInt.asUintN(64, arg0);
-    return ret;
-};
-
-export function __wbindgen_cast_659339c469ad5fed(arg0, arg1) {
-    // Cast intrinsic for `Closure(Closure { dtor_idx: 2951, function: Function { arguments: [Externref], shim_idx: 2952, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-    const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3ba04b4139aaae95, wasm_bindgen__convert__closures_____invoke__h5943629905d90057);
     return ret;
 };
 

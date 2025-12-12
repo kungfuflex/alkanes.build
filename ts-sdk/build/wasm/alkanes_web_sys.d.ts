@@ -1,12 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
-export function analyze_psbt(psbt_base64: string): string;
-export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
-export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
 /**
  * Asynchronously encrypts data using the Web Crypto API.
  */
 export function encryptMnemonic(mnemonic: string, passphrase: string): Promise<any>;
+export function analyze_psbt(psbt_base64: string): string;
+export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
+export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
 export interface PoolWithDetails {
     pool_id_block: number;
     pool_id_tx: number;
@@ -231,7 +231,34 @@ export class WebProvider {
   metashrewHeight(): Promise<any>;
   metashrewStateRoot(height?: number | null): Promise<any>;
   metashrewGetBlockHash(height: number): Promise<any>;
+  /**
+   * Generic metashrew_view call
+   *
+   * Calls the metashrew_view RPC method with the given view function, payload, and block tag.
+   * This is the low-level method for calling any metashrew view function.
+   *
+   * # Arguments
+   * * `view_fn` - The view function name (e.g., "simulate", "protorunesbyaddress")
+   * * `payload` - The hex-encoded payload (with or without 0x prefix)
+   * * `block_tag` - The block tag ("latest" or a block height as string)
+   *
+   * # Returns
+   * The hex-encoded response string from the view function
+   */
+  metashrewView(view_fn: string, payload: string, block_tag: string): Promise<any>;
   luaEvalScript(script: string): Promise<any>;
+  /**
+   * Execute a Lua script with arguments, using scripthash caching
+   *
+   * This method first tries to use the cached scripthash version (lua_evalsaved),
+   * and falls back to the full script (lua_evalscript) if the hash isn't cached.
+   * This is the recommended way to execute Lua scripts for better performance.
+   *
+   * # Arguments
+   * * `script` - The Lua script content
+   * * `args` - JSON-serialized array of arguments to pass to the script
+   */
+  luaEval(script: string, args: any): Promise<any>;
   ordList(outpoint: string): Promise<any>;
   ordFind(sat: number): Promise<any>;
   runestoneDecodeTx(txid: string): Promise<any>;
