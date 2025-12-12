@@ -162,9 +162,11 @@ function VaultRow({ vault, tvlLabel }: { vault: Vault; tvlLabel: string }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-xl bg-[color:var(--sf-surface)]/50 border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)]/40 transition-colors cursor-pointer">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--sf-primary)] to-[var(--sf-primary-pressed)] flex items-center justify-center">
-          <span className="text-black font-bold text-sm">{vault.symbol.charAt(0)}</span>
-        </div>
+        <img
+          src="/logo.png"
+          alt={vault.name}
+          className="w-10 h-10 rounded-xl"
+        />
         <div>
           <p className="font-semibold text-[color:var(--sf-text)]">{vault.name}</p>
           <p className="text-xs text-[color:var(--sf-muted)]">

@@ -64,9 +64,11 @@ export function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--sf-primary)] to-[var(--sf-primary-pressed)] flex items-center justify-center shadow-lg group-hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-shadow">
-                <span className="text-black font-bold text-lg">D</span>
-              </div>
+              <img
+                src="/logo.png"
+                alt="DIESEL"
+                className="w-10 h-10 rounded-xl shadow-lg group-hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-shadow"
+              />
               <div className="flex flex-col">
                 <span className="font-bold text-xl text-[color:var(--sf-text)]">DIESEL</span>
                 <span className="text-[10px] text-[color:var(--sf-muted)] uppercase tracking-widest">Alkanes</span>
