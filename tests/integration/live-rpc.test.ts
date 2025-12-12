@@ -19,6 +19,9 @@ import {
   getCurrentHeight,
   POOL_CONFIGS,
   calculatePrice,
+  estimate24hVolume,
+  estimateVolumeBetweenPoints,
+  POOL_FEES,
   type PoolKey,
   type CandleFetcherConfig,
 } from "@/lib/pools/candle-fetcher";
@@ -383,6 +386,260 @@ describe.skipIf(!runIntegration)("Live Price Metrics Integration Tests", () => {
       expect(dieselBusdPrice).toBeGreaterThan(0);
       expect(btcPrice.usd).toBeGreaterThan(0);
       expect(dieselUsd).toBeGreaterThan(0);
+    }, TEST_TIMEOUT);
+  });
+});
+
+describe.skipIf(!runIntegration)("Live Volume Estimation Integration Tests", () => {
+  describe("POOL_FEES constants", () => {
+    it("should have correct fee structure", () => {
+      // Verify fee constants match oyl-amm contracts
+      expect(POOL_FEES.TOTAL_FEE_PER_1000).toBe(10);    // 1%
+      expect(POOL_FEES.PROTOCOL_FEE_PER_1000).toBe(2);  // 0.2%
+      expect(POOL_FEES.LP_FEE_PER_1000).toBe(8);        // 0.8%
+
+      // Verify LP + protocol = total
+      expect(POOL_FEES.LP_FEE_PER_1000 + POOL_FEES.PROTOCOL_FEE_PER_1000)
+        .toBe(POOL_FEES.TOTAL_FEE_PER_1000);
+
+      console.log("Fee structure verified:");
+      console.log(`  Total fee:    ${POOL_FEES.TOTAL_FEE_PER_1000 / 10}%`);
+      console.log(`  Protocol fee: ${POOL_FEES.PROTOCOL_FEE_PER_1000 / 10}%`);
+      console.log(`  LP fee:       ${POOL_FEES.LP_FEE_PER_1000 / 10}%`);
+    });
+  });
+
+  describe("estimateVolumeBetweenPoints", () => {
+    it("should estimate volume from pool data changes for DIESEL/frBTC", async () => {
+      const currentHeight = await getCurrentHeight(rpcConfig);
+      const blocksIn24h = 144;
+      const startHeight = currentHeight - blocksIn24h;
+
+      console.log(`\nFetching DIESEL/frBTC pool state at blocks ${startHeight} and ${currentHeight}...`);
+
+      // Fetch data at start and end of 24h period
+      const [startData, endData] = await Promise.all([
+        fetchPoolDataPoints("DIESEL_FRBTC", startHeight, startHeight, 1, rpcConfig),
+        fetchPoolDataPoints("DIESEL_FRBTC", currentHeight, currentHeight, 1, rpcConfig),
+      ]);
+
+      expect(startData.length).toBeGreaterThan(0);
+      expect(endData.length).toBeGreaterThan(0);
+
+      const start = startData[0];
+      const end = endData[0];
+
+      console.log(`\nPool state comparison:`);
+      console.log(`  Start (block ${start.height}):`);
+      console.log(`    reserve0: ${start.reserve0.toString()}`);
+      console.log(`    reserve1: ${start.reserve1.toString()}`);
+      console.log(`    totalSupply: ${start.totalSupply.toString()}`);
+      console.log(`  End (block ${end.height}):`);
+      console.log(`    reserve0: ${end.reserve0.toString()}`);
+      console.log(`    reserve1: ${end.reserve1.toString()}`);
+      console.log(`    totalSupply: ${end.totalSupply.toString()}`);
+
+      // Calculate k values
+      const k0 = Number(start.reserve0) * Number(start.reserve1);
+      const k1 = Number(end.reserve0) * Number(end.reserve1);
+      const sqrtK0 = Math.sqrt(k0);
+      const sqrtK1 = Math.sqrt(k1);
+
+      console.log(`\nConstant product analysis:`);
+      console.log(`  k_start: ${k0.toExponential(4)}`);
+      console.log(`  k_end:   ${k1.toExponential(4)}`);
+      console.log(`  sqrt(k) growth: ${((sqrtK1 - sqrtK0) / sqrtK0 * 100).toFixed(6)}%`);
+
+      // Estimate volume
+      const volume = estimateVolumeBetweenPoints(
+        start,
+        end,
+        POOL_CONFIGS.DIESEL_FRBTC.token0Decimals,
+        POOL_CONFIGS.DIESEL_FRBTC.token1Decimals
+      );
+
+      console.log(`\n24h Volume Estimate (DIESEL/frBTC):`);
+      console.log(`  Volume: ${volume.toFixed(8)} frBTC`);
+
+      // Volume should be non-negative
+      expect(volume).toBeGreaterThanOrEqual(0);
+    }, TEST_TIMEOUT);
+
+    it("should estimate volume from pool data changes for DIESEL/bUSD", async () => {
+      const currentHeight = await getCurrentHeight(rpcConfig);
+      const blocksIn24h = 144;
+      const startHeight = currentHeight - blocksIn24h;
+
+      console.log(`\nFetching DIESEL/bUSD pool state at blocks ${startHeight} and ${currentHeight}...`);
+
+      const [startData, endData] = await Promise.all([
+        fetchPoolDataPoints("DIESEL_BUSD", startHeight, startHeight, 1, rpcConfig),
+        fetchPoolDataPoints("DIESEL_BUSD", currentHeight, currentHeight, 1, rpcConfig),
+      ]);
+
+      expect(startData.length).toBeGreaterThan(0);
+      expect(endData.length).toBeGreaterThan(0);
+
+      const start = startData[0];
+      const end = endData[0];
+
+      console.log(`\nPool state comparison:`);
+      console.log(`  Start (block ${start.height}):`);
+      console.log(`    reserve0: ${start.reserve0.toString()}`);
+      console.log(`    reserve1: ${start.reserve1.toString()}`);
+      console.log(`  End (block ${end.height}):`);
+      console.log(`    reserve0: ${end.reserve0.toString()}`);
+      console.log(`    reserve1: ${end.reserve1.toString()}`);
+
+      const volume = estimateVolumeBetweenPoints(
+        start,
+        end,
+        POOL_CONFIGS.DIESEL_BUSD.token0Decimals,
+        POOL_CONFIGS.DIESEL_BUSD.token1Decimals
+      );
+
+      console.log(`\n24h Volume Estimate (DIESEL/bUSD):`);
+      console.log(`  Volume: ${volume.toFixed(2)} bUSD`);
+
+      expect(volume).toBeGreaterThanOrEqual(0);
+    }, TEST_TIMEOUT);
+  });
+
+  describe("estimate24hVolume", () => {
+    it("should estimate 24h volume for DIESEL/frBTC pool", async () => {
+      console.log("\n=== 24h Volume Estimation: DIESEL/frBTC ===\n");
+
+      const result = await estimate24hVolume("DIESEL_FRBTC", rpcConfig);
+
+      console.log(`Block range: ${result.startHeight} -> ${result.endHeight}`);
+      console.log(`Blocks covered: ${result.endHeight - result.startHeight}`);
+      console.log(`Volume (frBTC): ${result.volumeToken1.toFixed(8)}`);
+
+      // Volume should be non-negative
+      expect(result.volume).toBeGreaterThanOrEqual(0);
+      expect(result.volumeToken1).toBeGreaterThanOrEqual(0);
+      expect(result.startHeight).toBeLessThan(result.endHeight);
+      expect(result.endHeight - result.startHeight).toBe(144); // ~24 hours
+    }, TEST_TIMEOUT);
+
+    it("should estimate 24h volume for DIESEL/bUSD pool", async () => {
+      console.log("\n=== 24h Volume Estimation: DIESEL/bUSD ===\n");
+
+      const result = await estimate24hVolume("DIESEL_BUSD", rpcConfig);
+
+      console.log(`Block range: ${result.startHeight} -> ${result.endHeight}`);
+      console.log(`Blocks covered: ${result.endHeight - result.startHeight}`);
+      console.log(`Volume (bUSD): ${result.volumeToken1.toFixed(2)}`);
+
+      expect(result.volume).toBeGreaterThanOrEqual(0);
+      expect(result.volumeToken1).toBeGreaterThanOrEqual(0);
+      expect(result.startHeight).toBeLessThan(result.endHeight);
+    }, TEST_TIMEOUT);
+  });
+
+  describe("volume with USD conversion", () => {
+    it("should calculate volume in USD terms", async () => {
+      console.log("\n=== 24h Volume in USD ===\n");
+
+      // Fetch volumes and BTC price in parallel
+      const [frbtcVolume, busdVolume, btcPrice] = await Promise.all([
+        estimate24hVolume("DIESEL_FRBTC", rpcConfig),
+        estimate24hVolume("DIESEL_BUSD", rpcConfig),
+        fetchBitcoinPrice(priceConfig),
+      ]);
+
+      // Calculate USD volumes
+      const frbtcVolumeUsd = frbtcVolume.volumeToken1 * btcPrice.usd;
+      const busdVolumeUsd = busdVolume.volumeToken1; // bUSD is already in USD
+
+      const totalVolumeUsd = frbtcVolumeUsd + busdVolumeUsd;
+
+      console.log(`BTC Price: $${btcPrice.usd.toLocaleString()}`);
+      console.log(`\nDIESEL/frBTC Pool:`);
+      console.log(`  Volume: ${frbtcVolume.volumeToken1.toFixed(8)} frBTC`);
+      console.log(`  Volume: $${frbtcVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD`);
+      console.log(`\nDIESEL/bUSD Pool:`);
+      console.log(`  Volume: ${busdVolume.volumeToken1.toFixed(2)} bUSD`);
+      console.log(`  Volume: $${busdVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD`);
+      console.log(`\nTotal 24h Volume: $${totalVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })} USD`);
+
+      // Volumes should be non-negative
+      expect(frbtcVolumeUsd).toBeGreaterThanOrEqual(0);
+      expect(busdVolumeUsd).toBeGreaterThanOrEqual(0);
+    }, TEST_TIMEOUT);
+  });
+
+  describe("end-to-end volume and metrics flow", () => {
+    it("should fetch complete pool metrics including volume", async () => {
+      console.log("\n=== Complete Pool Metrics ===\n");
+
+      // Get current height
+      const currentHeight = await getCurrentHeight(rpcConfig);
+      console.log(`Current block height: ${currentHeight}`);
+
+      // Fetch all data in parallel
+      const [
+        frbtcData,
+        busdData,
+        frbtcVolume,
+        busdVolume,
+        btcPrice,
+      ] = await Promise.all([
+        fetchPoolDataPoints("DIESEL_FRBTC", currentHeight, currentHeight, 1, rpcConfig),
+        fetchPoolDataPoints("DIESEL_BUSD", currentHeight, currentHeight, 1, rpcConfig),
+        estimate24hVolume("DIESEL_FRBTC", rpcConfig),
+        estimate24hVolume("DIESEL_BUSD", rpcConfig),
+        fetchBitcoinPrice(priceConfig),
+      ]);
+
+      // Calculate prices
+      const frbtcPrice = calculatePrice(
+        frbtcData[0].reserve0,
+        frbtcData[0].reserve1,
+        POOL_CONFIGS.DIESEL_FRBTC.token0Decimals,
+        POOL_CONFIGS.DIESEL_FRBTC.token1Decimals
+      );
+
+      const busdPrice = calculatePrice(
+        busdData[0].reserve0,
+        busdData[0].reserve1,
+        POOL_CONFIGS.DIESEL_BUSD.token0Decimals,
+        POOL_CONFIGS.DIESEL_BUSD.token1Decimals
+      );
+
+      const dieselUsd = frbtcPrice * btcPrice.usd;
+
+      // Calculate TVL (all alkane tokens use 8 decimals)
+      const frbtcTvl = (Number(frbtcData[0].reserve1) / 1e8) * btcPrice.usd * 2;
+      const busdTvl = (Number(busdData[0].reserve1) / 1e8) * 2;  // bUSD also 8 decimals
+      const totalTvl = frbtcTvl + busdTvl;
+
+      // Calculate volumes in USD
+      const frbtcVolumeUsd = frbtcVolume.volumeToken1 * btcPrice.usd;
+      const busdVolumeUsd = busdVolume.volumeToken1;
+      const totalVolume = frbtcVolumeUsd + busdVolumeUsd;
+
+      console.log(`\n--- DIESEL Token ---`);
+      console.log(`  Price (frBTC): ${frbtcPrice.toFixed(8)} frBTC`);
+      console.log(`  Price (bUSD):  ${busdPrice.toFixed(4)} bUSD`);
+      console.log(`  Price (USD):   $${dieselUsd.toFixed(4)}`);
+
+      console.log(`\n--- Pool TVL ---`);
+      console.log(`  DIESEL/frBTC: $${frbtcTvl.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
+      console.log(`  DIESEL/bUSD:  $${busdTvl.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
+      console.log(`  Total:        $${totalTvl.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
+
+      console.log(`\n--- 24h Volume ---`);
+      console.log(`  DIESEL/frBTC: $${frbtcVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+      console.log(`  DIESEL/bUSD:  $${busdVolumeUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+      console.log(`  Total:        $${totalVolume.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+
+      // All values should be positive
+      expect(frbtcPrice).toBeGreaterThan(0);
+      expect(busdPrice).toBeGreaterThan(0);
+      expect(dieselUsd).toBeGreaterThan(0);
+      expect(frbtcTvl).toBeGreaterThan(0);
+      expect(busdTvl).toBeGreaterThan(0);
     }, TEST_TIMEOUT);
   });
 });

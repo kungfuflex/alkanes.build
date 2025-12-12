@@ -193,6 +193,8 @@
       "high": "24h High",
       "low": "24h Low",
       "volume": "24h Volume",
+      "volumeDisclaimer": "Estimated via on-chain sampling",
+      "volumeLink": "Full stats at oyl.io/swap",
       "marketCap": "Market Cap"
     },
     "vaults": {

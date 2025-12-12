@@ -201,8 +201,8 @@ describe('Pool Service', () => {
       const pool = POOLS.DIESEL_BUSD;
       expect(pool.block).toBe(2);
       expect(pool.tx).toBe(68441);
-      expect(pool.token0.decimals).toBe(6);
-      expect(pool.token1.decimals).toBe(6);
+      expect(pool.token0.decimals).toBe(8);  // All alkane tokens use 8 decimals
+      expect(pool.token1.decimals).toBe(8);
     });
   });
 
@@ -275,11 +275,11 @@ describe('Pool Service', () => {
     it('should handle DIESEL_FRBTC pool correctly', () => {
       const pool = POOLS.DIESEL_FRBTC;
       expect(pool.id).toBe('2:77087');
-      expect(pool.token0.decimals).toBe(6);
+      expect(pool.token0.decimals).toBe(8);  // All alkane tokens use 8 decimals
       expect(pool.token1.decimals).toBe(8);
 
-      // frBTC has 8 decimals, DIESEL has 6
-      const mockReserve0 = BigInt(273556314005);  // ~273556 DIESEL
+      // Both have 8 decimals (like satoshis)
+      const mockReserve0 = BigInt(273556314005);  // ~2735 DIESEL
       const mockReserve1 = BigInt(11708493);      // ~0.117 frBTC
 
       const price = calculatePrice(

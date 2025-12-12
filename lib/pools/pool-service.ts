@@ -12,6 +12,8 @@ import {
   calculatePrice as calculatePriceFromFetcher,
   buildCandlesFromDataPoints,
   getCurrentHeight,
+  estimate24hVolume,
+  POOL_FEES,
   type PoolKey as CandleFetcherPoolKey,
   type CandleFetcherConfig,
 } from './candle-fetcher';
@@ -819,6 +821,100 @@ export async function getBitcoinPrice(): Promise<BitcoinPrice> {
 
   // Cache the result
   await cacheSet(cacheKey, result, CACHE_TTL_BTC_PRICE);
+
+  return result;
+}
+
+// Cache TTL for volume data
+const CACHE_TTL_VOLUME = 300; // 5 minutes
+
+export interface PoolVolume {
+  poolId: string;
+  poolName: string;
+  volume24h: number;       // Volume in quote token (frBTC or bUSD)
+  volume24hUsd?: number;   // Volume in USD (if BTC price available)
+  startHeight: number;
+  endHeight: number;
+  timestamp: number;
+}
+
+/**
+ * Get 24h trading volume estimate for a pool
+ * Uses the constant product formula: volume ≈ (Δ√k / √k) * TVL / fee_rate
+ *
+ * This estimates volume by measuring the growth in sqrt(k) which indicates
+ * fees collected. In an AMM, k only grows from fees (it stays constant or
+ * grows slightly from LP additions).
+ */
+export async function getPoolVolume(poolKey: PoolKey): Promise<PoolVolume> {
+  const pool = POOLS[poolKey];
+  const cacheKey = `pool:volume:${pool.id}`;
+
+  // Try cache first
+  const cached = await cacheGet<PoolVolume>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Fetch volume using the candle-fetcher module
+  const config: CandleFetcherConfig = { rpcUrl: RPC_URL };
+  const volumeData = await estimate24hVolume(poolKey as CandleFetcherPoolKey, config);
+
+  // Get BTC price for USD conversion if this is frBTC pool
+  let volume24hUsd: number | undefined;
+  if (poolKey === 'DIESEL_FRBTC' && volumeData.volumeToken1 > 0) {
+    try {
+      const btcPrice = await getBitcoinPrice();
+      volume24hUsd = volumeData.volumeToken1 * btcPrice.usd;
+    } catch {
+      // BTC price fetch failed, leave USD undefined
+    }
+  } else if (poolKey === 'DIESEL_BUSD') {
+    // bUSD is already in USD terms
+    volume24hUsd = volumeData.volumeToken1;
+  }
+
+  const result: PoolVolume = {
+    poolId: pool.id,
+    poolName: pool.name,
+    volume24h: volumeData.volumeToken1,
+    volume24hUsd,
+    startHeight: volumeData.startHeight,
+    endHeight: volumeData.endHeight,
+    timestamp: Date.now(),
+  };
+
+  // Cache the result
+  await cacheSet(cacheKey, result, CACHE_TTL_VOLUME);
+
+  return result;
+}
+
+/**
+ * Get 24h volume for all pools
+ */
+export async function getAllPoolVolumes(): Promise<Record<PoolKey, PoolVolume>> {
+  const cacheKey = 'pool:allVolumes';
+
+  // Try cache first
+  const cached = await cacheGet<Record<PoolKey, PoolVolume>>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Fetch both pools in parallel
+  const [frbtcVolume, busdVolume] = await Promise.all([
+    getPoolVolume('DIESEL_FRBTC'),
+    getPoolVolume('DIESEL_BUSD'),
+  ]);
+
+  const result = {
+    DIESEL_FRBTC: frbtcVolume,
+    DIESEL_BUSD: busdVolume,
+  };
+
+  // Cache the combined result
+  await cacheSet(cacheKey, result, CACHE_TTL_VOLUME);
 
   return result;
 }

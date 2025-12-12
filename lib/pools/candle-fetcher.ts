@@ -16,16 +16,16 @@ export const POOL_CONFIGS = {
   DIESEL_FRBTC: {
     id: '2:77087',
     name: 'DIESEL/frBTC',
-    protobufPayload: '0x208bce382a06029fda04e7073001',
-    token0Decimals: 6,
+    protobufPayload: '0x2096ce382a06029fda04e7073001',
+    token0Decimals: 8,  // All alkane tokens use 8 decimals (like satoshis)
     token1Decimals: 8,
   },
   DIESEL_BUSD: {
     id: '2:68441',
     name: 'DIESEL/bUSD',
-    protobufPayload: '0x208bce382a0602d99604e7073001',
-    token0Decimals: 6,
-    token1Decimals: 6,
+    protobufPayload: '0x2096ce382a0602d99604e7073001',
+    token0Decimals: 8,  // All alkane tokens use 8 decimals (like satoshis)
+    token1Decimals: 8,
   },
 } as const;
 
@@ -350,4 +350,138 @@ export async function getCurrentHeight(config?: CandleFetcherConfig): Promise<nu
   }
 
   return parseInt(json.result || '0', 10);
+}
+
+/**
+ * Fee constants from oyl-amm contracts
+ */
+export const POOL_FEES = {
+  TOTAL_FEE_PER_1000: 10,    // 1% total fee
+  PROTOCOL_FEE_PER_1000: 2,  // 0.2% protocol fee
+  LP_FEE_PER_1000: 8,        // 0.8% LP fee
+};
+
+/**
+ * Estimate trading volume between two data points using constant product formula
+ *
+ * Volume estimation approach:
+ * - In a constant product AMM (x * y = k), swaps cause k to grow due to fees
+ * - The growth in sqrt(k) is proportional to the fee collected
+ * - Volume = fee_collected / fee_rate
+ * - fee_collected ≈ TVL * (sqrt(k_new) - sqrt(k_old)) / sqrt(k_old)
+ *
+ * @param startPoint - Pool state at start of period
+ * @param endPoint - Pool state at end of period
+ * @param decimals0 - Decimals for token0
+ * @param decimals1 - Decimals for token1
+ * @returns Estimated volume in token1 terms (e.g., frBTC or bUSD)
+ */
+export function estimateVolumeBetweenPoints(
+  startPoint: PoolDataPoint,
+  endPoint: PoolDataPoint,
+  decimals0: number,
+  decimals1: number
+): number {
+  // Calculate k values
+  const k0 = Number(startPoint.reserve0) * Number(startPoint.reserve1);
+  const k1 = Number(endPoint.reserve0) * Number(endPoint.reserve1);
+
+  if (k0 <= 0 || k1 <= 0) return 0;
+
+  const sqrtK0 = Math.sqrt(k0);
+  const sqrtK1 = Math.sqrt(k1);
+
+  // If k decreased (shouldn't happen in normal operation), return 0
+  if (sqrtK1 <= sqrtK0) return 0;
+
+  // Growth in sqrt(k) indicates fees collected
+  const sqrtKGrowth = (sqrtK1 - sqrtK0) / sqrtK0;
+
+  // TVL in terms of token1 (convert reserve0 to token1 equivalent)
+  const reserve0Adjusted = Number(startPoint.reserve0) / Math.pow(10, decimals0);
+  const reserve1Adjusted = Number(startPoint.reserve1) / Math.pow(10, decimals1);
+  const tvl = reserve1Adjusted * 2; // Both sides contribute equally
+
+  // Fee earned ≈ tvl * sqrtKGrowth (simplified)
+  const feeEarned = tvl * sqrtKGrowth;
+
+  // Volume = fee / fee_rate
+  // Only LP fees (0.8%) grow k - protocol fees (0.2%) are extracted
+  const lpFeeRate = POOL_FEES.LP_FEE_PER_1000 / 1000;
+  const estimatedVolume = feeEarned / lpFeeRate;
+
+  return estimatedVolume;
+}
+
+/**
+ * Calculate 24h volume estimate for a pool
+ *
+ * Samples pool state at regular intervals in the 24h period (~144 blocks) to
+ * capture fee accumulation from trades. Default interval of 6 blocks gives
+ * ~24 samples which balances precision with RPC performance.
+ *
+ * @param poolKey - The pool to estimate volume for
+ * @param config - RPC configuration
+ * @param sampleInterval - Block interval between samples (default: 6 blocks for ~24 samples)
+ */
+export async function estimate24hVolume(
+  poolKey: PoolKey,
+  config?: CandleFetcherConfig,
+  sampleInterval: number = 6
+): Promise<{
+  volume: number;
+  volumeToken1: number;
+  volumeUsd?: number;
+  startHeight: number;
+  endHeight: number;
+  samples: number;
+}> {
+  const pool = POOL_CONFIGS[poolKey];
+  const rpcUrl = config?.rpcUrl || process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
+
+  // Get current height
+  const currentHeight = await getCurrentHeight({ rpcUrl });
+
+  // 24 hours ≈ 144 blocks
+  const blocksIn24h = 144;
+  const startHeight = currentHeight - blocksIn24h;
+
+  // Fetch data points at regular intervals for better precision
+  const dataPoints = await fetchPoolDataPoints(
+    poolKey,
+    startHeight,
+    currentHeight,
+    sampleInterval,
+    { rpcUrl }
+  );
+
+  if (dataPoints.length < 2) {
+    return {
+      volume: 0,
+      volumeToken1: 0,
+      startHeight,
+      endHeight: currentHeight,
+      samples: dataPoints.length,
+    };
+  }
+
+  // Sum volume estimates between consecutive samples
+  let totalVolume = 0;
+  for (let i = 1; i < dataPoints.length; i++) {
+    const segmentVolume = estimateVolumeBetweenPoints(
+      dataPoints[i - 1],
+      dataPoints[i],
+      pool.token0Decimals,
+      pool.token1Decimals
+    );
+    totalVolume += segmentVolume;
+  }
+
+  return {
+    volume: totalVolume,
+    volumeToken1: totalVolume,
+    startHeight,
+    endHeight: currentHeight,
+    samples: dataPoints.length,
+  };
 }

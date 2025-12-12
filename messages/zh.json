@@ -193,6 +193,8 @@
       "high": "24小时最高",
       "low": "24小时最低",
       "volume": "24小时成交量",
+      "volumeDisclaimer": "基于链上采样估算",
+      "volumeLink": "完整数据请访问 oyl.io/swap",
       "marketCap": "总市值"
     },
     "vaults": {

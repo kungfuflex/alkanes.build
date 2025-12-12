@@ -182,3 +182,74 @@ export function formatCompact(value: number): string {
   }
   return value.toFixed(2);
 }
+
+interface PoolVolume {
+  poolId: string;
+  poolName: string;
+  volume24h: number;
+  volume24hUsd?: number;
+  startHeight: number;
+  endHeight: number;
+  timestamp: number;
+}
+
+interface VolumeApiResponse {
+  success: boolean;
+  data?: {
+    pools: {
+      DIESEL_FRBTC: PoolVolume;
+      DIESEL_BUSD: PoolVolume;
+    };
+    timestamp: number;
+  };
+  error?: string;
+}
+
+interface SingleVolumeApiResponse {
+  success: boolean;
+  data?: PoolVolume;
+  error?: string;
+}
+
+/**
+ * Hook to fetch 24h volume for all pools
+ * Volume is estimated using constant product AMM fee mechanics
+ */
+export function usePoolVolumes() {
+  return useQuery({
+    queryKey: ["pool-volumes"],
+    queryFn: async () => {
+      const res = await fetch("/api/pools/volume?pool=all");
+      const data: VolumeApiResponse = await res.json();
+
+      if (!data.success || !data.data) {
+        throw new Error(data.error || "Failed to fetch volume data");
+      }
+
+      return data.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook to fetch 24h volume for a specific pool
+ */
+export function usePoolVolume(pool: string) {
+  return useQuery({
+    queryKey: ["pool-volume", pool],
+    queryFn: async () => {
+      const res = await fetch(`/api/pools/volume?pool=${pool}`);
+      const data: SingleVolumeApiResponse = await res.json();
+
+      if (!data.success || !data.data) {
+        throw new Error(data.error || "Failed to fetch volume data");
+      }
+
+      return data.data;
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+  });
+}

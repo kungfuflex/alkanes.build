@@ -96,18 +96,5 @@
         "href": "/docs/tutorials/token"
       }
     ]
-  },
-  {
-    "title": "Advanced Guides",
-    "items": [
-      {
-        "title": "Pool Pricing with Lua",
-        "href": "/docs/guides/lua-pricing"
-      },
-      {
-        "title": "alkanes-web-sys Integration",
-        "href": "/docs/guides/web-sys"
-      }
-    ]
   }
 ]
