@@ -485,3 +485,355 @@ export async function estimate24hVolume(
     samples: dataPoints.length,
   };
 }
+
+/**
+ * DIESEL Token Configuration
+ * The DIESEL token is at alkane [2, 0]
+ */
+export const DIESEL_TOKEN = {
+  block: 2,
+  tx: 0,
+  id: '2:0',
+  symbol: 'DIESEL',
+  decimals: 8,
+  // Protobuf payload for GetTotalSupply opcode (101)
+  // Format: 0x20 <version> 2a <len> 02 <block> 00 <tx> 65 <opcode 101> 30 01
+  // Obtained via: mainnet-cli.sh alkanes simulate 2:0:101
+  totalSupplyPayload: '0x20e3ce382a030200653001',
+} as const;
+
+/**
+ * Parse total supply from metashrew_view response
+ * Response format: protobuf wrapper with u128 total supply value
+ */
+function parseTotalSupplyResponse(resultHex: string): bigint | null {
+  try {
+    let hex = resultHex.startsWith('0x') ? resultHex.slice(2) : resultHex;
+
+    // Find the inner data (after 0a XX 1a YY prefix)
+    // The response contains: 0a <outer_len> 1a <inner_len> <u128 LE value> 10 <varint>
+    const marker1a = hex.indexOf('1a');
+    if (marker1a === -1) return null;
+
+    // Skip marker and length byte to get to the value
+    const lenByte = parseInt(hex.slice(marker1a + 2, marker1a + 4), 16);
+    const valueStart = marker1a + 4; // Skip "1a" and length byte
+
+    // Extract the u128 little-endian value (16 bytes = 32 hex chars)
+    // But the actual length varies - let's find where "10" marker is (field separator)
+    const valueEnd = hex.indexOf('10', valueStart);
+    if (valueEnd === -1 || valueEnd <= valueStart) return null;
+
+    const valueHex = hex.slice(valueStart, valueEnd);
+
+    // Pad to 32 chars if shorter
+    const paddedHex = valueHex.padEnd(32, '0');
+
+    // Reverse byte pairs for little-endian
+    let reversed = '';
+    for (let i = paddedHex.length - 2; i >= 0; i -= 2) {
+      reversed += paddedHex.slice(i, i + 2);
+    }
+
+    return BigInt('0x' + (reversed || '0'));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch DIESEL token total supply via metashrew_view
+ */
+export async function getDieselTotalSupply(
+  config?: CandleFetcherConfig
+): Promise<bigint> {
+  const rpcUrl = config?.rpcUrl || process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
+
+  const response = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'metashrew_view',
+      params: ['simulate', DIESEL_TOKEN.totalSupplyPayload, 'latest'],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`metashrew_view failed: ${response.status}`);
+  }
+
+  const json = await response.json() as { result?: string; error?: { message: string } };
+
+  if (json.error) {
+    throw new Error(`RPC error: ${json.error.message}`);
+  }
+
+  const totalSupply = parseTotalSupplyResponse(json.result || '');
+  if (totalSupply === null) {
+    throw new Error('Failed to parse total supply response');
+  }
+
+  return totalSupply;
+}
+
+/**
+ * Market stats for DIESEL token
+ */
+export interface DieselMarketStats {
+  totalSupply: bigint;         // Raw total supply (8 decimals)
+  totalSupplyFormatted: number; // Total supply as number (divided by 10^8)
+  priceUsd: number;            // DIESEL price in USD
+  priceBtc: number;            // DIESEL price in BTC (frBTC)
+  marketCapUsd: number;        // totalSupply * priceUsd
+  timestamp: number;
+}
+
+/**
+ * TVL (Total Value Locked) stats for all vaults
+ */
+export interface TvlStats {
+  pools: {
+    [key: string]: {
+      poolId: string;
+      poolName: string;
+      reserve0: bigint;      // DIESEL reserves
+      reserve1: bigint;      // Counterparty reserves
+      tvlToken0: number;     // TVL in DIESEL terms
+      tvlToken1: number;     // TVL in counterparty token terms
+      tvlUsd: number;        // TVL in USD
+      lpTotalSupply: bigint; // LP token total supply
+    };
+  };
+  totalTvlUsd: number;        // Sum of all pool TVLs in USD
+  timestamp: number;
+}
+
+/**
+ * Calculate TVL for a pool
+ * TVL = (reserve0 value in USD) + (reserve1 value in USD)
+ * For AMM pools, both sides have equal value, so TVL = 2 * reserve1_value
+ */
+export function calculatePoolTvl(
+  reserve0: bigint,
+  reserve1: bigint,
+  decimals0: number,
+  decimals1: number,
+  token1PriceUsd: number
+): { tvlToken0: number; tvlToken1: number; tvlUsd: number } {
+  const reserve0Formatted = Number(reserve0) / Math.pow(10, decimals0);
+  const reserve1Formatted = Number(reserve1) / Math.pow(10, decimals1);
+
+  // In a constant product AMM, both sides have equal value
+  // So TVL = 2 * (reserve1 * price_of_token1)
+  const tvlToken1 = reserve1Formatted;
+  const tvlUsd = reserve1Formatted * token1PriceUsd * 2;
+
+  // TVL in token0 terms (DIESEL)
+  const tvlToken0 = reserve0Formatted * 2;
+
+  return { tvlToken0, tvlToken1, tvlUsd };
+}
+
+/**
+ * Lua script to fetch all stats in a single call:
+ * - DIESEL total supply
+ * - Both pool reserves
+ * - Current block height
+ */
+export const STATS_LUA_SCRIPT = `
+-- Fetch DIESEL stats and pool TVL in a single call
+local results = {
+  diesel = {},
+  pools = {},
+  height = 0
+}
+
+-- Helper to parse little-endian u128 from hex string at given byte offset
+local function parse_u128_le(hex_str, byte_offset)
+    local hex_offset = byte_offset * 2
+    local hex_len = 32
+    if #hex_str < hex_offset + hex_len then return nil end
+    local hex_slice = hex_str:sub(hex_offset + 1, hex_offset + hex_len)
+    local reversed = ""
+    for i = #hex_slice - 1, 1, -2 do
+        reversed = reversed .. hex_slice:sub(i, i + 1)
+    end
+    return tonumber(reversed, 16) or 0
+end
+
+-- Parse total supply from response (simpler format)
+local function parse_total_supply(hex_str)
+    if not hex_str then return nil end
+    if hex_str:sub(1, 2) == "0x" then
+        hex_str = hex_str:sub(3)
+    end
+    -- Find "1a" marker and extract value before "10"
+    local marker_pos = hex_str:find("1a")
+    if not marker_pos then return nil end
+    local value_start = marker_pos + 4  -- Skip "1a" and length byte
+    local value_end = hex_str:find("10", value_start)
+    if not value_end then return nil end
+    local value_hex = hex_str:sub(value_start, value_end - 1)
+    -- Pad and reverse for LE
+    while #value_hex < 32 do value_hex = value_hex .. "0" end
+    local reversed = ""
+    for i = #value_hex - 1, 1, -2 do
+        reversed = reversed .. value_hex:sub(i, i + 1)
+    end
+    return tonumber(reversed, 16) or 0
+end
+
+-- Get current height
+local success, height_result = pcall(function()
+    return _RPC.metashrew_height()
+end)
+if success and height_result then
+    results.height = tonumber(height_result) or 0
+end
+
+-- Fetch DIESEL total supply (opcode 101)
+local success, diesel_response = pcall(function()
+    return _RPC.metashrew_view("simulate", "0x20e3ce382a030200653001", "latest")
+end)
+if success and diesel_response then
+    results.diesel.total_supply = parse_total_supply(diesel_response)
+end
+
+-- Fetch DIESEL/frBTC pool
+local success, frbtc_response = pcall(function()
+    return _RPC.metashrew_view("simulate", "0x2096ce382a06029fda04e7073001", "latest")
+end)
+if success and frbtc_response then
+    local data_hex = frbtc_response
+    if data_hex:sub(1, 2) == "0x" then
+        data_hex = data_hex:sub(3)
+    end
+    local marker_pos = data_hex:find("1a")
+    if marker_pos then
+        local len_byte = tonumber(data_hex:sub(marker_pos + 2, marker_pos + 3), 16) or 0
+        local inner_start = marker_pos + (len_byte < 128 and 4 or 6)
+        if #data_hex >= inner_start + 223 then
+            local inner_hex = data_hex:sub(inner_start)
+            results.pools.DIESEL_FRBTC = {
+                reserve_a = parse_u128_le(inner_hex, 64),
+                reserve_b = parse_u128_le(inner_hex, 80),
+                total_supply = parse_u128_le(inner_hex, 96)
+            }
+        end
+    end
+end
+
+-- Fetch DIESEL/bUSD pool
+local success, busd_response = pcall(function()
+    return _RPC.metashrew_view("simulate", "0x2096ce382a0602d99604e7073001", "latest")
+end)
+if success and busd_response then
+    local data_hex = busd_response
+    if data_hex:sub(1, 2) == "0x" then
+        data_hex = data_hex:sub(3)
+    end
+    local marker_pos = data_hex:find("1a")
+    if marker_pos then
+        local len_byte = tonumber(data_hex:sub(marker_pos + 2, marker_pos + 3), 16) or 0
+        local inner_start = marker_pos + (len_byte < 128 and 4 or 6)
+        if #data_hex >= inner_start + 223 then
+            local inner_hex = data_hex:sub(inner_start)
+            results.pools.DIESEL_BUSD = {
+                reserve_a = parse_u128_le(inner_hex, 64),
+                reserve_b = parse_u128_le(inner_hex, 80),
+                total_supply = parse_u128_le(inner_hex, 96)
+            }
+        end
+    end
+end
+
+return results
+`;
+
+/**
+ * Result from the stats Lua script
+ */
+interface StatsLuaResult {
+  diesel?: {
+    total_supply?: number;
+  };
+  pools?: {
+    DIESEL_FRBTC?: {
+      reserve_a: number;
+      reserve_b: number;
+      total_supply: number;
+    };
+    DIESEL_BUSD?: {
+      reserve_a: number;
+      reserve_b: number;
+      total_supply: number;
+    };
+  };
+  height?: number;
+}
+
+/**
+ * Fetch all DIESEL stats in a single RPC call
+ * Returns DIESEL total supply, both pool reserves, and current height
+ */
+export async function fetchDieselStats(
+  config?: CandleFetcherConfig
+): Promise<{
+  dieselTotalSupply: bigint;
+  pools: {
+    DIESEL_FRBTC: { reserve0: bigint; reserve1: bigint; lpSupply: bigint } | null;
+    DIESEL_BUSD: { reserve0: bigint; reserve1: bigint; lpSupply: bigint } | null;
+  };
+  height: number;
+}> {
+  const rpcUrl = config?.rpcUrl || process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
+
+  const response = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'lua_evalscript',
+      params: [STATS_LUA_SCRIPT, []],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`lua_evalscript failed: ${response.status}`);
+  }
+
+  const json = await response.json() as {
+    result?: {
+      calls?: number;
+      returns?: StatsLuaResult;
+      runtime?: number;
+    };
+    error?: { message: string };
+  };
+
+  if (json.error) {
+    throw new Error(`RPC error: ${json.error.message}`);
+  }
+
+  const luaResult = json.result?.returns;
+
+  return {
+    dieselTotalSupply: BigInt(Math.floor(luaResult?.diesel?.total_supply || 0)),
+    pools: {
+      DIESEL_FRBTC: luaResult?.pools?.DIESEL_FRBTC ? {
+        reserve0: BigInt(Math.floor(luaResult.pools.DIESEL_FRBTC.reserve_a)),
+        reserve1: BigInt(Math.floor(luaResult.pools.DIESEL_FRBTC.reserve_b)),
+        lpSupply: BigInt(Math.floor(luaResult.pools.DIESEL_FRBTC.total_supply)),
+      } : null,
+      DIESEL_BUSD: luaResult?.pools?.DIESEL_BUSD ? {
+        reserve0: BigInt(Math.floor(luaResult.pools.DIESEL_BUSD.reserve_a)),
+        reserve1: BigInt(Math.floor(luaResult.pools.DIESEL_BUSD.reserve_b)),
+        lpSupply: BigInt(Math.floor(luaResult.pools.DIESEL_BUSD.total_supply)),
+      } : null,
+    },
+    height: luaResult?.height || 0,
+  };
+}

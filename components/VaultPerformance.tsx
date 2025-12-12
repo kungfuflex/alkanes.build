@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { usePoolPrices, useBtcPrice, formatUsd, formatCompact } from "@/hooks/usePriceData";
+import { usePoolPrices, useBtcPrice, useTvlStats, formatUsd, formatCompact } from "@/hooks/usePriceData";
 
 interface Vault {
   id: string;
@@ -15,6 +15,9 @@ interface Vault {
   token1Symbol: string;
 }
 
+// All alkane tokens use 8 decimals
+const TOKEN_DECIMALS = 8;
+
 function formatReserve(reserve: string, decimals: number): number {
   return Number(reserve) / Math.pow(10, decimals);
 }
@@ -25,11 +28,13 @@ export function VaultPerformance() {
 
   const { data: pools, isLoading: poolsLoading, error: poolsError } = usePoolPrices();
   const { data: btcPrice, isLoading: btcLoading } = useBtcPrice();
+  const { data: tvlStats, isLoading: tvlLoading } = useTvlStats();
 
-  const loading = poolsLoading;
+  const loading = poolsLoading || tvlLoading;
   const error = poolsError?.message || null;
 
-  // Build vault list from live pool data
+  // Build vault list from live pool data with proper TVL calculation
+  // TVL = both sides of the pool valued in USD (2 * reserve1 value)
   const vaults: Vault[] = pools
     ? [
         {
@@ -40,12 +45,15 @@ export function VaultPerformance() {
           priceUsd: btcPrice
             ? formatUsd(pools.pools.DIESEL_FRBTC.price * btcPrice.usd)
             : null,
-          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6))} DIESEL`,
-          tvlUsd: btcPrice
+          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_FRBTC.reserve0, TOKEN_DECIMALS) * 2)} DIESEL`,
+          // TVL = value of both sides = 2 * (reserve1 * btcPrice)
+          tvlUsd: tvlStats?.pools.DIESEL_FRBTC
+            ? formatUsd(tvlStats.pools.DIESEL_FRBTC.tvlUsd)
+            : btcPrice
             ? formatUsd(
-                formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) *
-                  pools.pools.DIESEL_FRBTC.price *
-                  btcPrice.usd
+                formatReserve(pools.pools.DIESEL_FRBTC.reserve1, TOKEN_DECIMALS) *
+                  btcPrice.usd *
+                  2
               )
             : null,
           token1Symbol: "frBTC",
@@ -56,30 +64,33 @@ export function VaultPerformance() {
           symbol: "D-bUSD",
           priceNative: pools.pools.DIESEL_BUSD.price.toFixed(4),
           priceUsd: formatUsd(pools.pools.DIESEL_BUSD.price), // bUSD is already USD
-          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6))} DIESEL`,
-          tvlUsd: formatUsd(
-            formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6) *
-              pools.pools.DIESEL_BUSD.price
-          ),
+          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_BUSD.reserve0, TOKEN_DECIMALS) * 2)} DIESEL`,
+          // TVL = value of both sides = 2 * reserve1 (bUSD is 1:1 USD)
+          tvlUsd: tvlStats?.pools.DIESEL_BUSD
+            ? formatUsd(tvlStats.pools.DIESEL_BUSD.tvlUsd)
+            : formatUsd(
+                formatReserve(pools.pools.DIESEL_BUSD.reserve1, TOKEN_DECIMALS) * 2
+              ),
           token1Symbol: "bUSD",
         },
       ]
     : [];
 
-  // Calculate total DIESEL in pools and USD value
+  // Calculate total DIESEL in pools (both sides)
   const totalDieselAmount = pools
-    ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) +
-      formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6)
+    ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, TOKEN_DECIMALS) * 2 +
+      formatReserve(pools.pools.DIESEL_BUSD.reserve0, TOKEN_DECIMALS) * 2
     : 0;
 
-  const totalTvlUsd =
-    pools && btcPrice
-      ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) *
-          pools.pools.DIESEL_FRBTC.price *
-          btcPrice.usd +
-        formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6) *
-          pools.pools.DIESEL_BUSD.price
-      : null;
+  // Use TVL stats if available, otherwise calculate
+  const totalTvlUsd = tvlStats
+    ? tvlStats.totalTvlUsd
+    : pools && btcPrice
+    ? formatReserve(pools.pools.DIESEL_FRBTC.reserve1, TOKEN_DECIMALS) *
+        btcPrice.usd *
+        2 +
+      formatReserve(pools.pools.DIESEL_BUSD.reserve1, TOKEN_DECIMALS) * 2
+    : null;
 
   return (
     <div className="glass-card overflow-hidden">

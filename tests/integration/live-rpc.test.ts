@@ -22,6 +22,10 @@ import {
   estimate24hVolume,
   estimateVolumeBetweenPoints,
   POOL_FEES,
+  DIESEL_TOKEN,
+  getDieselTotalSupply,
+  fetchDieselStats,
+  calculatePoolTvl,
   type PoolKey,
   type CandleFetcherConfig,
 } from "@/lib/pools/candle-fetcher";
@@ -640,6 +644,320 @@ describe.skipIf(!runIntegration)("Live Volume Estimation Integration Tests", () 
       expect(dieselUsd).toBeGreaterThan(0);
       expect(frbtcTvl).toBeGreaterThan(0);
       expect(busdTvl).toBeGreaterThan(0);
+    }, TEST_TIMEOUT);
+  });
+});
+
+describe.skipIf(!runIntegration)("Live DIESEL Stats Integration Tests", () => {
+  describe("DIESEL_TOKEN configuration", () => {
+    it("should have correct token configuration", () => {
+      expect(DIESEL_TOKEN.block).toBe(2);
+      expect(DIESEL_TOKEN.tx).toBe(0);
+      expect(DIESEL_TOKEN.id).toBe("2:0");
+      expect(DIESEL_TOKEN.symbol).toBe("DIESEL");
+      expect(DIESEL_TOKEN.decimals).toBe(8);
+      expect(DIESEL_TOKEN.totalSupplyPayload).toBe("0x20e3ce382a030200653001");
+
+      console.log("DIESEL token configuration verified:");
+      console.log(`  ID: ${DIESEL_TOKEN.id}`);
+      console.log(`  Symbol: ${DIESEL_TOKEN.symbol}`);
+      console.log(`  Decimals: ${DIESEL_TOKEN.decimals}`);
+    });
+  });
+
+  describe("getDieselTotalSupply", () => {
+    it("should fetch DIESEL total supply via metashrew_view", async () => {
+      console.log("\n=== Fetching DIESEL Total Supply ===\n");
+
+      const totalSupply = await getDieselTotalSupply(rpcConfig);
+
+      // Total supply should be a positive bigint
+      expect(totalSupply).toBeGreaterThan(BigInt(0));
+
+      // Convert to human readable format (8 decimals)
+      const formatted = Number(totalSupply) / Math.pow(10, DIESEL_TOKEN.decimals);
+
+      console.log(`Total Supply (raw): ${totalSupply.toString()}`);
+      console.log(`Total Supply (formatted): ${formatted.toLocaleString()} DIESEL`);
+
+      // Known: DIESEL supply is around 574,838.60 DIESEL (57483860295594 raw)
+      // Should be greater than 500,000 DIESEL
+      expect(formatted).toBeGreaterThan(500000);
+    }, TEST_TIMEOUT);
+  });
+
+  describe("fetchDieselStats (Lua script)", () => {
+    it("should fetch all stats in a single RPC call", async () => {
+      console.log("\n=== Fetching DIESEL Stats via Lua Script ===\n");
+
+      const stats = await fetchDieselStats(rpcConfig);
+
+      // Verify DIESEL total supply
+      expect(stats.dieselTotalSupply).toBeGreaterThan(BigInt(0));
+      const totalSupplyFormatted = Number(stats.dieselTotalSupply) / Math.pow(10, 8);
+      console.log(`DIESEL Total Supply: ${totalSupplyFormatted.toLocaleString()} DIESEL`);
+
+      // Verify current height
+      expect(stats.height).toBeGreaterThan(900000);
+      console.log(`Current Height: ${stats.height}`);
+
+      // Verify DIESEL/frBTC pool
+      expect(stats.pools.DIESEL_FRBTC).not.toBeNull();
+      if (stats.pools.DIESEL_FRBTC) {
+        expect(stats.pools.DIESEL_FRBTC.reserve0).toBeGreaterThan(BigInt(0));
+        expect(stats.pools.DIESEL_FRBTC.reserve1).toBeGreaterThan(BigInt(0));
+        expect(stats.pools.DIESEL_FRBTC.lpSupply).toBeGreaterThan(BigInt(0));
+
+        const reserve0 = Number(stats.pools.DIESEL_FRBTC.reserve0) / 1e8;
+        const reserve1 = Number(stats.pools.DIESEL_FRBTC.reserve1) / 1e8;
+        const price = reserve1 / reserve0;
+
+        console.log(`\nDIESEL/frBTC Pool:`);
+        console.log(`  Reserve0 (DIESEL): ${reserve0.toLocaleString()}`);
+        console.log(`  Reserve1 (frBTC): ${reserve1.toFixed(8)}`);
+        console.log(`  LP Supply: ${(Number(stats.pools.DIESEL_FRBTC.lpSupply) / 1e8).toLocaleString()}`);
+        console.log(`  Price: ${price.toFixed(8)} frBTC/DIESEL`);
+      }
+
+      // Verify DIESEL/bUSD pool
+      expect(stats.pools.DIESEL_BUSD).not.toBeNull();
+      if (stats.pools.DIESEL_BUSD) {
+        expect(stats.pools.DIESEL_BUSD.reserve0).toBeGreaterThan(BigInt(0));
+        expect(stats.pools.DIESEL_BUSD.reserve1).toBeGreaterThan(BigInt(0));
+        expect(stats.pools.DIESEL_BUSD.lpSupply).toBeGreaterThan(BigInt(0));
+
+        const reserve0 = Number(stats.pools.DIESEL_BUSD.reserve0) / 1e8;
+        const reserve1 = Number(stats.pools.DIESEL_BUSD.reserve1) / 1e8;
+        const price = reserve1 / reserve0;
+
+        console.log(`\nDIESEL/bUSD Pool:`);
+        console.log(`  Reserve0 (DIESEL): ${reserve0.toLocaleString()}`);
+        console.log(`  Reserve1 (bUSD): ${reserve1.toFixed(2)}`);
+        console.log(`  LP Supply: ${(Number(stats.pools.DIESEL_BUSD.lpSupply) / 1e8).toLocaleString()}`);
+        console.log(`  Price: ${price.toFixed(4)} bUSD/DIESEL`);
+      }
+    }, TEST_TIMEOUT);
+
+    it("should return consistent data with individual calls", async () => {
+      console.log("\n=== Comparing Lua Script vs Individual Calls ===\n");
+
+      // Fetch via Lua script (single call)
+      const stats = await fetchDieselStats(rpcConfig);
+
+      // Fetch individual pool data points
+      const currentHeight = stats.height;
+      const [frbtcData, busdData] = await Promise.all([
+        fetchPoolDataPoints("DIESEL_FRBTC", currentHeight, currentHeight, 1, rpcConfig),
+        fetchPoolDataPoints("DIESEL_BUSD", currentHeight, currentHeight, 1, rpcConfig),
+      ]);
+
+      // Compare DIESEL/frBTC pool
+      if (stats.pools.DIESEL_FRBTC && frbtcData.length > 0) {
+        const luaReserve0 = stats.pools.DIESEL_FRBTC.reserve0;
+        const individualReserve0 = frbtcData[0].reserve0;
+
+        console.log(`DIESEL/frBTC Reserve0:`);
+        console.log(`  Lua script: ${luaReserve0.toString()}`);
+        console.log(`  Individual: ${individualReserve0.toString()}`);
+
+        // Values should be equal or very close (may differ slightly if block changed)
+        const diff = Math.abs(Number(luaReserve0 - individualReserve0));
+        const maxDiff = Number(luaReserve0) * 0.01; // 1% tolerance
+        expect(diff).toBeLessThan(maxDiff);
+      }
+
+      // Compare DIESEL/bUSD pool
+      if (stats.pools.DIESEL_BUSD && busdData.length > 0) {
+        const luaReserve0 = stats.pools.DIESEL_BUSD.reserve0;
+        const individualReserve0 = busdData[0].reserve0;
+
+        console.log(`\nDIESEL/bUSD Reserve0:`);
+        console.log(`  Lua script: ${luaReserve0.toString()}`);
+        console.log(`  Individual: ${individualReserve0.toString()}`);
+
+        const diff = Math.abs(Number(luaReserve0 - individualReserve0));
+        const maxDiff = Number(luaReserve0) * 0.01;
+        expect(diff).toBeLessThan(maxDiff);
+      }
+    }, TEST_TIMEOUT);
+  });
+
+  describe("calculatePoolTvl", () => {
+    it("should calculate TVL correctly for both pools", async () => {
+      console.log("\n=== TVL Calculation Test ===\n");
+
+      const stats = await fetchDieselStats(rpcConfig);
+      const btcPrice = await fetchBitcoinPrice(priceConfig);
+
+      console.log(`BTC Price: $${btcPrice.usd.toLocaleString()}`);
+
+      // Calculate TVL for DIESEL/frBTC
+      if (stats.pools.DIESEL_FRBTC) {
+        const { tvlToken0, tvlToken1, tvlUsd } = calculatePoolTvl(
+          stats.pools.DIESEL_FRBTC.reserve0,
+          stats.pools.DIESEL_FRBTC.reserve1,
+          8, // DIESEL decimals
+          8, // frBTC decimals
+          btcPrice.usd
+        );
+
+        console.log(`\nDIESEL/frBTC TVL:`);
+        console.log(`  TVL in DIESEL: ${tvlToken0.toLocaleString()}`);
+        console.log(`  TVL in frBTC: ${tvlToken1.toFixed(8)}`);
+        console.log(`  TVL in USD: $${tvlUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+
+        // TVL should be positive and reasonable
+        expect(tvlUsd).toBeGreaterThan(0);
+
+        // Verify calculation: TVL = 2 * reserve1 * token1Price
+        const reserve1Formatted = Number(stats.pools.DIESEL_FRBTC.reserve1) / 1e8;
+        const expectedTvl = reserve1Formatted * btcPrice.usd * 2;
+        expect(Math.abs(tvlUsd - expectedTvl)).toBeLessThan(1); // Within $1
+      }
+
+      // Calculate TVL for DIESEL/bUSD
+      if (stats.pools.DIESEL_BUSD) {
+        const { tvlToken0, tvlToken1, tvlUsd } = calculatePoolTvl(
+          stats.pools.DIESEL_BUSD.reserve0,
+          stats.pools.DIESEL_BUSD.reserve1,
+          8, // DIESEL decimals
+          8, // bUSD decimals
+          1  // bUSD is 1:1 with USD
+        );
+
+        console.log(`\nDIESEL/bUSD TVL:`);
+        console.log(`  TVL in DIESEL: ${tvlToken0.toLocaleString()}`);
+        console.log(`  TVL in bUSD: ${tvlToken1.toFixed(2)}`);
+        console.log(`  TVL in USD: $${tvlUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+
+        expect(tvlUsd).toBeGreaterThan(0);
+
+        // Verify calculation: TVL = 2 * reserve1 * 1 (bUSD price)
+        const reserve1Formatted = Number(stats.pools.DIESEL_BUSD.reserve1) / 1e8;
+        const expectedTvl = reserve1Formatted * 2;
+        expect(Math.abs(tvlUsd - expectedTvl)).toBeLessThan(1);
+      }
+    }, TEST_TIMEOUT);
+  });
+
+  describe("Market Cap Calculation", () => {
+    it("should calculate market cap correctly", async () => {
+      console.log("\n=== Market Cap Calculation Test ===\n");
+
+      // Fetch all necessary data
+      const [stats, btcPrice] = await Promise.all([
+        fetchDieselStats(rpcConfig),
+        fetchBitcoinPrice(priceConfig),
+      ]);
+
+      // Calculate DIESEL price from frBTC pool
+      let dieselPriceBtc = 0;
+      if (stats.pools.DIESEL_FRBTC) {
+        dieselPriceBtc = calculatePrice(
+          stats.pools.DIESEL_FRBTC.reserve0,
+          stats.pools.DIESEL_FRBTC.reserve1,
+          8, 8
+        );
+      }
+
+      const dieselPriceUsd = dieselPriceBtc * btcPrice.usd;
+      const totalSupplyFormatted = Number(stats.dieselTotalSupply) / 1e8;
+      const marketCapUsd = totalSupplyFormatted * dieselPriceUsd;
+
+      console.log(`DIESEL Price (BTC): ${dieselPriceBtc.toFixed(8)}`);
+      console.log(`DIESEL Price (USD): $${dieselPriceUsd.toFixed(4)}`);
+      console.log(`Total Supply: ${totalSupplyFormatted.toLocaleString()} DIESEL`);
+      console.log(`Market Cap: $${marketCapUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+
+      // Market cap should be positive and reasonable
+      expect(marketCapUsd).toBeGreaterThan(0);
+
+      // Verify the calculation
+      const expectedMarketCap = totalSupplyFormatted * dieselPriceBtc * btcPrice.usd;
+      expect(Math.abs(marketCapUsd - expectedMarketCap)).toBeLessThan(1);
+    }, TEST_TIMEOUT);
+  });
+
+  describe("End-to-end Dashboard Stats", () => {
+    it("should calculate all dashboard stats correctly", async () => {
+      console.log("\n=== Complete Dashboard Stats ===\n");
+
+      // Fetch all data via Lua script (single RPC call)
+      const stats = await fetchDieselStats(rpcConfig);
+      const btcPrice = await fetchBitcoinPrice(priceConfig);
+
+      // Calculate prices
+      const dieselFrbtcPrice = stats.pools.DIESEL_FRBTC
+        ? calculatePrice(
+            stats.pools.DIESEL_FRBTC.reserve0,
+            stats.pools.DIESEL_FRBTC.reserve1,
+            8, 8
+          )
+        : 0;
+
+      const dieselBusdPrice = stats.pools.DIESEL_BUSD
+        ? calculatePrice(
+            stats.pools.DIESEL_BUSD.reserve0,
+            stats.pools.DIESEL_BUSD.reserve1,
+            8, 8
+          )
+        : 0;
+
+      const dieselUsdPrice = dieselFrbtcPrice * btcPrice.usd;
+
+      // Calculate TVL
+      let totalTvlUsd = 0;
+      if (stats.pools.DIESEL_FRBTC) {
+        const { tvlUsd } = calculatePoolTvl(
+          stats.pools.DIESEL_FRBTC.reserve0,
+          stats.pools.DIESEL_FRBTC.reserve1,
+          8, 8, btcPrice.usd
+        );
+        totalTvlUsd += tvlUsd;
+      }
+      if (stats.pools.DIESEL_BUSD) {
+        const { tvlUsd } = calculatePoolTvl(
+          stats.pools.DIESEL_BUSD.reserve0,
+          stats.pools.DIESEL_BUSD.reserve1,
+          8, 8, 1
+        );
+        totalTvlUsd += tvlUsd;
+      }
+
+      // Calculate market cap
+      const totalSupplyFormatted = Number(stats.dieselTotalSupply) / 1e8;
+      const marketCapUsd = totalSupplyFormatted * dieselUsdPrice;
+
+      console.log(`=== DIESEL Token ===`);
+      console.log(`  Price (frBTC): ${dieselFrbtcPrice.toFixed(8)}`);
+      console.log(`  Price (bUSD):  ${dieselBusdPrice.toFixed(4)}`);
+      console.log(`  Price (USD):   $${dieselUsdPrice.toFixed(4)}`);
+      console.log(`  Total Supply:  ${totalSupplyFormatted.toLocaleString()}`);
+      console.log(`  Market Cap:    $${marketCapUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
+
+      console.log(`\n=== TVL ===`);
+      console.log(`  Total TVL:     $${totalTvlUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
+
+      console.log(`\n=== Network ===`);
+      console.log(`  Block Height:  ${stats.height.toLocaleString()}`);
+      console.log(`  BTC Price:     $${btcPrice.usd.toLocaleString()}`);
+
+      // Verify all values are positive and reasonable
+      expect(dieselFrbtcPrice).toBeGreaterThan(0);
+      expect(dieselBusdPrice).toBeGreaterThan(0);
+      expect(dieselUsdPrice).toBeGreaterThan(0);
+      expect(totalSupplyFormatted).toBeGreaterThan(500000);
+      expect(marketCapUsd).toBeGreaterThan(0);
+      expect(totalTvlUsd).toBeGreaterThan(0);
+
+      // Price consistency check: bUSD price should be close to USD price via frBTC
+      const priceDiff = Math.abs(dieselBusdPrice - dieselUsdPrice);
+      const percentDiff = (priceDiff / dieselBusdPrice) * 100;
+      console.log(`\n=== Price Consistency ===`);
+      console.log(`  bUSD vs frBTC->USD diff: ${percentDiff.toFixed(2)}%`);
+
+      // Prices should be within 20% of each other (allowing for some arbitrage)
+      expect(percentDiff).toBeLessThan(20);
     }, TEST_TIMEOUT);
   });
 });

@@ -253,3 +253,125 @@ export function usePoolVolume(pool: string) {
     refetchInterval: 5 * 60 * 1000,
   });
 }
+
+// Market stats types
+interface MarketStats {
+  totalSupply: string;
+  totalSupplyFormatted: number;
+  priceUsd: number;
+  priceBtc: number;
+  marketCapUsd: number;
+  timestamp: number;
+}
+
+interface TvlPoolData {
+  poolId: string;
+  poolName: string;
+  reserve0: string;
+  reserve1: string;
+  tvlToken0: number;
+  tvlToken1: number;
+  tvlUsd: number;
+  lpTotalSupply: string;
+}
+
+interface TvlStats {
+  pools: {
+    DIESEL_FRBTC?: TvlPoolData;
+    DIESEL_BUSD?: TvlPoolData;
+  };
+  totalTvlUsd: number;
+  timestamp: number;
+}
+
+interface DashboardStats {
+  marketStats: MarketStats;
+  tvlStats: TvlStats;
+  btcPrice: {
+    usd: number;
+    timestamp: number;
+  };
+  timestamp: number;
+}
+
+interface StatsApiResponse {
+  success: boolean;
+  data?: DashboardStats;
+  error?: string;
+}
+
+interface MarketStatsApiResponse {
+  success: boolean;
+  data?: MarketStats;
+  error?: string;
+}
+
+interface TvlStatsApiResponse {
+  success: boolean;
+  data?: TvlStats;
+  error?: string;
+}
+
+/**
+ * Hook to fetch all dashboard stats (market stats + TVL)
+ * This is the most efficient way to get all data for the dashboard
+ */
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/pools/stats?type=all");
+      const data: StatsApiResponse = await res.json();
+
+      if (!data.success || !data.data) {
+        throw new Error(data.error || "Failed to fetch dashboard stats");
+      }
+
+      return data.data;
+    },
+    staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 60 * 1000,
+  });
+}
+
+/**
+ * Hook to fetch DIESEL market stats (total supply, market cap)
+ */
+export function useMarketStats() {
+  return useQuery({
+    queryKey: ["market-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/pools/stats?type=market");
+      const data: MarketStatsApiResponse = await res.json();
+
+      if (!data.success || !data.data) {
+        throw new Error(data.error || "Failed to fetch market stats");
+      }
+
+      return data.data;
+    },
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+}
+
+/**
+ * Hook to fetch TVL stats for all pools
+ */
+export function useTvlStats() {
+  return useQuery({
+    queryKey: ["tvl-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/pools/stats?type=tvl");
+      const data: TvlStatsApiResponse = await res.json();
+
+      if (!data.success || !data.data) {
+        throw new Error(data.error || "Failed to fetch TVL stats");
+      }
+
+      return data.data;
+    },
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+}

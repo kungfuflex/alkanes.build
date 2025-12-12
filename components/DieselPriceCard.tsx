@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { usePoolPrices, useBtcPrice, usePoolCandles, usePoolVolume, formatUsd, formatCompact } from "@/hooks/usePriceData";
+import { usePoolPrices, useBtcPrice, usePoolCandles, usePoolVolume, useMarketStats, formatUsd, formatCompact } from "@/hooks/usePriceData";
 import { AreaPriceChart, type CandleDataPoint } from "@/components/charts";
 
 export function DieselPriceCard() {
@@ -10,6 +10,7 @@ export function DieselPriceCard() {
   const { data: btcPrice, isLoading: btcLoading } = useBtcPrice();
   const { data: candles } = usePoolCandles("DIESEL_FRBTC", "hourly", 24);
   const { data: volume } = usePoolVolume("DIESEL_FRBTC");
+  const { data: marketStats } = useMarketStats();
 
   const isLoading = poolsLoading || btcLoading;
 
@@ -50,6 +51,12 @@ export function DieselPriceCard() {
     }
   }
 
+  // Format market cap from market stats
+  let marketCapStr = "--";
+  if (marketStats && marketStats.marketCapUsd > 0) {
+    marketCapStr = formatUsd(marketStats.marketCapUsd);
+  }
+
   // Format prices
   const priceData = {
     priceBTC: dieselPriceFrbtc.toFixed(8),
@@ -58,7 +65,7 @@ export function DieselPriceCard() {
     high24h: high24h.toFixed(8),
     low24h: low24h.toFixed(8),
     volume24h: volume24hStr,
-    marketCap: "--", // TODO: Calculate from total supply
+    marketCap: marketCapStr,
   };
 
   return (

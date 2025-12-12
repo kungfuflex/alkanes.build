@@ -14,8 +14,13 @@ import {
   getCurrentHeight,
   estimate24hVolume,
   POOL_FEES,
+  DIESEL_TOKEN,
+  fetchDieselStats,
+  calculatePoolTvl,
   type PoolKey as CandleFetcherPoolKey,
   type CandleFetcherConfig,
+  type DieselMarketStats,
+  type TvlStats,
 } from './candle-fetcher';
 import {
   fetchBitcoinPrice as fetchBtcPriceFromApi,
@@ -915,6 +920,387 @@ export async function getAllPoolVolumes(): Promise<Record<PoolKey, PoolVolume>> 
 
   // Cache the combined result
   await cacheSet(cacheKey, result, CACHE_TTL_VOLUME);
+
+  return result;
+}
+
+// Cache TTL for stats
+const CACHE_TTL_STATS = 60; // 1 minute
+
+/**
+ * Serialized market stats for caching (bigints as strings)
+ */
+interface SerializedMarketStats {
+  totalSupply: string;
+  totalSupplyFormatted: number;
+  priceUsd: number;
+  priceBtc: number;
+  marketCapUsd: number;
+  timestamp: number;
+}
+
+/**
+ * Serialized TVL stats for caching
+ */
+interface SerializedTvlStats {
+  pools: {
+    [key: string]: {
+      poolId: string;
+      poolName: string;
+      reserve0: string;
+      reserve1: string;
+      tvlToken0: number;
+      tvlToken1: number;
+      tvlUsd: number;
+      lpTotalSupply: string;
+    };
+  };
+  totalTvlUsd: number;
+  timestamp: number;
+}
+
+// Re-export types
+export type { DieselMarketStats, TvlStats };
+
+/**
+ * Get DIESEL market stats including total supply and market cap
+ */
+export async function getDieselMarketStats(): Promise<DieselMarketStats> {
+  const cacheKey = 'diesel:marketStats';
+
+  // Try cache first
+  const cached = await cacheGet<SerializedMarketStats>(cacheKey);
+  if (cached) {
+    return {
+      ...cached,
+      totalSupply: BigInt(cached.totalSupply),
+    };
+  }
+
+  // Fetch stats via Lua script
+  const config: CandleFetcherConfig = { rpcUrl: RPC_URL };
+  const stats = await fetchDieselStats(config);
+
+  // Get BTC price for USD conversion
+  const btcPrice = await getBitcoinPrice();
+
+  // Get DIESEL price from frBTC pool (more liquid)
+  let dieselPriceBtc = 0;
+  if (stats.pools.DIESEL_FRBTC) {
+    const pool = POOLS.DIESEL_FRBTC;
+    dieselPriceBtc = calculatePrice(
+      stats.pools.DIESEL_FRBTC.reserve0,
+      stats.pools.DIESEL_FRBTC.reserve1,
+      pool.token0.decimals,
+      pool.token1.decimals
+    );
+  }
+
+  const dieselPriceUsd = dieselPriceBtc * btcPrice.usd;
+  const totalSupplyFormatted = Number(stats.dieselTotalSupply) / Math.pow(10, DIESEL_TOKEN.decimals);
+  const marketCapUsd = totalSupplyFormatted * dieselPriceUsd;
+
+  const result: DieselMarketStats = {
+    totalSupply: stats.dieselTotalSupply,
+    totalSupplyFormatted,
+    priceUsd: dieselPriceUsd,
+    priceBtc: dieselPriceBtc,
+    marketCapUsd,
+    timestamp: Date.now(),
+  };
+
+  // Cache the result
+  await cacheSet<SerializedMarketStats>(cacheKey, {
+    ...result,
+    totalSupply: result.totalSupply.toString(),
+  }, CACHE_TTL_STATS);
+
+  return result;
+}
+
+/**
+ * Get TVL stats for all pools
+ */
+export async function getTvlStats(): Promise<TvlStats> {
+  const cacheKey = 'pools:tvlStats';
+
+  // Try cache first
+  const cached = await cacheGet<SerializedTvlStats>(cacheKey);
+  if (cached) {
+    const pools: TvlStats['pools'] = {};
+    for (const [key, pool] of Object.entries(cached.pools)) {
+      pools[key] = {
+        ...pool,
+        reserve0: BigInt(pool.reserve0),
+        reserve1: BigInt(pool.reserve1),
+        lpTotalSupply: BigInt(pool.lpTotalSupply),
+      };
+    }
+    return {
+      pools,
+      totalTvlUsd: cached.totalTvlUsd,
+      timestamp: cached.timestamp,
+    };
+  }
+
+  // Fetch stats via Lua script
+  const config: CandleFetcherConfig = { rpcUrl: RPC_URL };
+  const stats = await fetchDieselStats(config);
+
+  // Get BTC price for USD conversion
+  const btcPrice = await getBitcoinPrice();
+
+  const pools: TvlStats['pools'] = {};
+  let totalTvlUsd = 0;
+
+  // Calculate TVL for DIESEL/frBTC pool
+  if (stats.pools.DIESEL_FRBTC) {
+    const pool = POOLS.DIESEL_FRBTC;
+    const { tvlToken0, tvlToken1, tvlUsd } = calculatePoolTvl(
+      stats.pools.DIESEL_FRBTC.reserve0,
+      stats.pools.DIESEL_FRBTC.reserve1,
+      pool.token0.decimals,
+      pool.token1.decimals,
+      btcPrice.usd // frBTC price in USD
+    );
+
+    pools.DIESEL_FRBTC = {
+      poolId: pool.id,
+      poolName: pool.name,
+      reserve0: stats.pools.DIESEL_FRBTC.reserve0,
+      reserve1: stats.pools.DIESEL_FRBTC.reserve1,
+      tvlToken0,
+      tvlToken1,
+      tvlUsd,
+      lpTotalSupply: stats.pools.DIESEL_FRBTC.lpSupply,
+    };
+
+    totalTvlUsd += tvlUsd;
+  }
+
+  // Calculate TVL for DIESEL/bUSD pool
+  if (stats.pools.DIESEL_BUSD) {
+    const pool = POOLS.DIESEL_BUSD;
+    const { tvlToken0, tvlToken1, tvlUsd } = calculatePoolTvl(
+      stats.pools.DIESEL_BUSD.reserve0,
+      stats.pools.DIESEL_BUSD.reserve1,
+      pool.token0.decimals,
+      pool.token1.decimals,
+      1 // bUSD is 1:1 with USD
+    );
+
+    pools.DIESEL_BUSD = {
+      poolId: pool.id,
+      poolName: pool.name,
+      reserve0: stats.pools.DIESEL_BUSD.reserve0,
+      reserve1: stats.pools.DIESEL_BUSD.reserve1,
+      tvlToken0,
+      tvlToken1,
+      tvlUsd,
+      lpTotalSupply: stats.pools.DIESEL_BUSD.lpSupply,
+    };
+
+    totalTvlUsd += tvlUsd;
+  }
+
+  const result: TvlStats = {
+    pools,
+    totalTvlUsd,
+    timestamp: Date.now(),
+  };
+
+  // Cache the result
+  const serialized: SerializedTvlStats = {
+    pools: {},
+    totalTvlUsd: result.totalTvlUsd,
+    timestamp: result.timestamp,
+  };
+  for (const [key, pool] of Object.entries(result.pools)) {
+    serialized.pools[key] = {
+      ...pool,
+      reserve0: pool.reserve0.toString(),
+      reserve1: pool.reserve1.toString(),
+      lpTotalSupply: pool.lpTotalSupply.toString(),
+    };
+  }
+  await cacheSet(cacheKey, serialized, CACHE_TTL_STATS);
+
+  return result;
+}
+
+/**
+ * Combined stats for dashboard display
+ * Fetches market stats and TVL in one call
+ */
+export interface DashboardStats {
+  marketStats: DieselMarketStats;
+  tvlStats: TvlStats;
+  btcPrice: BitcoinPrice;
+  timestamp: number;
+}
+
+/**
+ * Serialized dashboard stats for caching
+ */
+interface SerializedDashboardStats {
+  marketStats: SerializedMarketStats;
+  tvlStats: SerializedTvlStats;
+  btcPrice: BitcoinPrice;
+  timestamp: number;
+}
+
+/**
+ * Get all dashboard stats in one call (for efficiency)
+ * Optimized to fetch data via single Lua script call instead of multiple parallel calls
+ */
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const cacheKey = 'dashboard:stats';
+
+  // Try cache first
+  const cached = await cacheGet<SerializedDashboardStats>(cacheKey);
+  if (cached) {
+    const tvlPools: TvlStats['pools'] = {};
+    for (const [key, pool] of Object.entries(cached.tvlStats.pools)) {
+      tvlPools[key] = {
+        ...pool,
+        reserve0: BigInt(pool.reserve0),
+        reserve1: BigInt(pool.reserve1),
+        lpTotalSupply: BigInt(pool.lpTotalSupply),
+      };
+    }
+
+    return {
+      marketStats: {
+        ...cached.marketStats,
+        totalSupply: BigInt(cached.marketStats.totalSupply),
+      },
+      tvlStats: {
+        pools: tvlPools,
+        totalTvlUsd: cached.tvlStats.totalTvlUsd,
+        timestamp: cached.tvlStats.timestamp,
+      },
+      btcPrice: cached.btcPrice,
+      timestamp: cached.timestamp,
+    };
+  }
+
+  // Optimized: Fetch stats and BTC price in parallel (single Lua script call for all alkane data)
+  const config: CandleFetcherConfig = { rpcUrl: RPC_URL };
+  const [stats, btcPrice] = await Promise.all([
+    fetchDieselStats(config),
+    getBitcoinPrice(),
+  ]);
+
+  // Calculate market stats from shared data
+  let dieselPriceBtc = 0;
+  if (stats.pools.DIESEL_FRBTC) {
+    const pool = POOLS.DIESEL_FRBTC;
+    dieselPriceBtc = calculatePrice(
+      stats.pools.DIESEL_FRBTC.reserve0,
+      stats.pools.DIESEL_FRBTC.reserve1,
+      pool.token0.decimals,
+      pool.token1.decimals
+    );
+  }
+  const dieselPriceUsd = dieselPriceBtc * btcPrice.usd;
+  const totalSupplyFormatted = Number(stats.dieselTotalSupply) / Math.pow(10, DIESEL_TOKEN.decimals);
+  const marketCapUsd = totalSupplyFormatted * dieselPriceUsd;
+
+  const marketStats: DieselMarketStats = {
+    totalSupply: stats.dieselTotalSupply,
+    totalSupplyFormatted,
+    priceUsd: dieselPriceUsd,
+    priceBtc: dieselPriceBtc,
+    marketCapUsd,
+    timestamp: Date.now(),
+  };
+
+  // Calculate TVL stats from shared data
+  const tvlPools: TvlStats['pools'] = {};
+  let totalTvlUsd = 0;
+
+  if (stats.pools.DIESEL_FRBTC) {
+    const pool = POOLS.DIESEL_FRBTC;
+    const { tvlToken0, tvlToken1, tvlUsd } = calculatePoolTvl(
+      stats.pools.DIESEL_FRBTC.reserve0,
+      stats.pools.DIESEL_FRBTC.reserve1,
+      pool.token0.decimals,
+      pool.token1.decimals,
+      btcPrice.usd
+    );
+
+    tvlPools.DIESEL_FRBTC = {
+      poolId: pool.id,
+      poolName: pool.name,
+      reserve0: stats.pools.DIESEL_FRBTC.reserve0,
+      reserve1: stats.pools.DIESEL_FRBTC.reserve1,
+      tvlToken0,
+      tvlToken1,
+      tvlUsd,
+      lpTotalSupply: stats.pools.DIESEL_FRBTC.lpSupply,
+    };
+    totalTvlUsd += tvlUsd;
+  }
+
+  if (stats.pools.DIESEL_BUSD) {
+    const pool = POOLS.DIESEL_BUSD;
+    const { tvlToken0, tvlToken1, tvlUsd } = calculatePoolTvl(
+      stats.pools.DIESEL_BUSD.reserve0,
+      stats.pools.DIESEL_BUSD.reserve1,
+      pool.token0.decimals,
+      pool.token1.decimals,
+      1 // bUSD is 1:1 with USD
+    );
+
+    tvlPools.DIESEL_BUSD = {
+      poolId: pool.id,
+      poolName: pool.name,
+      reserve0: stats.pools.DIESEL_BUSD.reserve0,
+      reserve1: stats.pools.DIESEL_BUSD.reserve1,
+      tvlToken0,
+      tvlToken1,
+      tvlUsd,
+      lpTotalSupply: stats.pools.DIESEL_BUSD.lpSupply,
+    };
+    totalTvlUsd += tvlUsd;
+  }
+
+  const tvlStats: TvlStats = {
+    pools: tvlPools,
+    totalTvlUsd,
+    timestamp: Date.now(),
+  };
+
+  const result: DashboardStats = {
+    marketStats,
+    tvlStats,
+    btcPrice,
+    timestamp: Date.now(),
+  };
+
+  // Cache the combined result
+  const serialized: SerializedDashboardStats = {
+    marketStats: {
+      ...marketStats,
+      totalSupply: marketStats.totalSupply.toString(),
+    },
+    tvlStats: {
+      pools: {},
+      totalTvlUsd: tvlStats.totalTvlUsd,
+      timestamp: tvlStats.timestamp,
+    },
+    btcPrice,
+    timestamp: result.timestamp,
+  };
+  for (const [key, pool] of Object.entries(tvlStats.pools)) {
+    serialized.tvlStats.pools[key] = {
+      ...pool,
+      reserve0: pool.reserve0.toString(),
+      reserve1: pool.reserve1.toString(),
+      lpTotalSupply: pool.lpTotalSupply.toString(),
+    };
+  }
+  await cacheSet(cacheKey, serialized, CACHE_TTL_STATS);
 
   return result;
 }
