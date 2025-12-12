@@ -10,6 +10,7 @@ node_modules/
 out/
 build/
 dist/
+!ts-sdk/dist/
 
 # ts-sdk artifacts are committed (built from .external-build/alkanes-rs)
 # ts-sdk/

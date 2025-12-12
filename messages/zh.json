@@ -193,6 +193,8 @@
       "high": "24小时最高",
       "low": "24小时最低",
       "volume": "24小时成交量",
+      "volumeDisclaimer": "基于链上采样估算",
+      "volumeLink": "完整数据请访问 oyl.io/swap",
       "marketCap": "总市值"
     },
     "vaults": {
@@ -281,6 +283,12 @@
         "wrapBtc": "BTC 封装/解封",
         "token": "代币开发",
         "amm": "AMM 开发"
+      },
+      "integration": {
+        "title": "集成示例",
+        "alkanesWebSys": "获取 Alkane 数据",
+        "luaScripts": "Lua 脚本优化",
+        "marketData": "市值与 TVL"
       }
     }
   },
