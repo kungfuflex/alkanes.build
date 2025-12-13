@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 const content = {
   en: {
@@ -12,15 +13,17 @@ const content = {
     installDesc: "Install the SDK via npm or pnpm:",
 
     architectureTitle: "Architecture Overview",
-    architectureDesc: "The SDK provides a unified TypeScript interface over WASM bindings:",
+    architectureDesc: "The SDK provides a unified TypeScript interface over WASM bindings. See the full API Reference for complete method documentation.",
     architectureItems: [
-      "AlkanesProvider - Main entry point with sub-clients for each API",
-      "EsploraClient - Bitcoin UTXO and transaction data",
-      "AlkanesRpcClient - Alkane token balances and contract calls",
-      "MetashrewClient - Low-level metashrew_view RPC access",
-      "LuaClient - Server-side Lua script execution with caching",
-      "DataApiClient - Market data, candles, and BTC price"
+      { name: "AlkanesProvider", desc: "Main entry point with sub-clients for each API", anchor: "AlkanesProvider" },
+      { name: "EsploraClient", desc: "Bitcoin UTXO and transaction data", anchor: "EsploraClient" },
+      { name: "AlkanesRpcClient", desc: "Alkane token balances and contract calls", anchor: "AlkanesRpcClient" },
+      { name: "MetashrewClient", desc: "Low-level metashrew_view RPC access", anchor: "MetashrewClient" },
+      { name: "LuaClient", desc: "Server-side Lua script execution with caching", anchor: "LuaClient" },
+      { name: "DataApiClient", desc: "Market data, candles, and BTC price", anchor: "DataApiClient" },
+      { name: "BitcoinRpcClient", desc: "Bitcoin Core RPC methods", anchor: "BitcoinRpcClient" }
     ],
+    apiRefLink: "View Complete API Reference",
 
     providerTitle: "Creating the Provider",
     providerDesc: "The AlkanesProvider is the main entry point. Here's how alkanes.build initializes it:",
@@ -78,15 +81,17 @@ const content = {
     installDesc: "通过 npm 或 pnpm 安装 SDK：",
 
     architectureTitle: "架构概述",
-    architectureDesc: "SDK 在 WASM 绑定上提供统一的 TypeScript 接口：",
+    architectureDesc: "SDK 在 WASM 绑定上提供统一的 TypeScript 接口。查看完整的 API 参考以获取详细的方法文档。",
     architectureItems: [
-      "AlkanesProvider - 主入口点，包含每个 API 的子客户端",
-      "EsploraClient - 比特币 UTXO 和交易数据",
-      "AlkanesRpcClient - Alkane 代币余额和合约调用",
-      "MetashrewClient - 低级 metashrew_view RPC 访问",
-      "LuaClient - 带缓存的服务器端 Lua 脚本执行",
-      "DataApiClient - 市场数据、K线和 BTC 价格"
+      { name: "AlkanesProvider", desc: "主入口点，包含每个 API 的子客户端", anchor: "AlkanesProvider" },
+      { name: "EsploraClient", desc: "比特币 UTXO 和交易数据", anchor: "EsploraClient" },
+      { name: "AlkanesRpcClient", desc: "Alkane 代币余额和合约调用", anchor: "AlkanesRpcClient" },
+      { name: "MetashrewClient", desc: "低级 metashrew_view RPC 访问", anchor: "MetashrewClient" },
+      { name: "LuaClient", desc: "带缓存的服务器端 Lua 脚本执行", anchor: "LuaClient" },
+      { name: "DataApiClient", desc: "市场数据、K线和 BTC 价格", anchor: "DataApiClient" },
+      { name: "BitcoinRpcClient", desc: "Bitcoin Core RPC 方法", anchor: "BitcoinRpcClient" }
     ],
+    apiRefLink: "查看完整 API 参考",
 
     providerTitle: "创建 Provider",
     providerDesc: "AlkanesProvider 是主入口点。以下是 alkanes.build 初始化它的方式：",
@@ -197,9 +202,25 @@ provider.dataApi      // DataApiClient - market data, BTC price
 provider.bitcoin      // BitcoinRpcClient - bitcoind RPC calls`}</CodeBlock>
         <ul className="list-disc list-inside space-y-2 text-[color:var(--sf-muted)] mt-4">
           {t.architectureItems.map((item, i) => (
-            <li key={i}><code className="text-[color:var(--sf-primary)]">{item.split(' - ')[0]}</code> - {item.split(' - ')[1]}</li>
+            <li key={i}>
+              <Link
+                href={`/docs/api/ts-sdk#${item.anchor}`}
+                className="text-[color:var(--sf-primary)] hover:underline font-mono"
+              >
+                {item.name}
+              </Link>
+              <span> - {item.desc}</span>
+            </li>
           ))}
         </ul>
+        <div className="mt-4">
+          <Link
+            href="/docs/api/ts-sdk"
+            className="inline-flex items-center gap-2 text-[color:var(--sf-primary)] hover:underline font-medium"
+          >
+            {t.apiRefLink} →
+          </Link>
+        </div>
       </Section>
 
       {/* Provider Setup */}

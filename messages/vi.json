@@ -287,6 +287,7 @@
       "integration": {
         "title": "Ví dụ Tích hợp",
         "tsSdk": "Hướng dẫn TS SDK",
+        "tsSdkApi": "Tài liệu API TS SDK",
         "alkanesWebSys": "Lấy dữ liệu Alkane",
         "luaScripts": "Tối ưu Script Lua",
         "marketData": "Vốn hóa & TVL"

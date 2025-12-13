@@ -287,6 +287,7 @@
       "integration": {
         "title": "통합 예제",
         "tsSdk": "TS SDK 가이드",
+        "tsSdkApi": "TS SDK API 레퍼런스",
         "alkanesWebSys": "Alkane 데이터 조회",
         "luaScripts": "Lua 스크립트 최적화",
         "marketData": "시가총액 & TVL"

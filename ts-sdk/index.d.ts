@@ -45,61 +45,72 @@ declare module '@alkanes/ts-sdk' {
   export function unlockKeystore(encryptedKeystore: any, password: string): Promise<any>;
   
   // Provider exports
-  export class AlkanesProvider {
-    readonly network: any;
-    readonly networkType: string;
-    readonly rpcUrl: string;
-    readonly dataApiUrl: string;
-
-    constructor(config: {
-      network: string;
-      rpcUrl?: string;
-      dataApiUrl?: string;
-      bitcoinNetwork?: any;
-    });
-
-    initialize(): Promise<void>;
-    getBalance(address: string): Promise<any>;
-    getBlockHeight(): Promise<number>;
-    broadcastTransaction(txHex: string): Promise<string>;
-
-    // Sub-clients
-    readonly esplora: {
-      getAddressUtxos(address: string): Promise<any[]>;
-      getAddressInfo(address: string): Promise<any>;
-      getAddressTxs(address: string): Promise<any[]>;
-      getTx(txid: string): Promise<any>;
-      getTxStatus(txid: string): Promise<any>;
-      broadcastTx(txHex: string): Promise<string>;
-    };
-
-    readonly alkanes: {
-      getBalance(address?: string): Promise<AlkaneBalance[]>;
-      getByAddress(address: string, blockTag?: string, protocolTag?: number): Promise<any>;
-      simulate(contractId: string, contextJson: string, blockTag?: string): Promise<any>;
-    };
-
-    readonly metashrew: {
-      getHeight(): Promise<number>;
-      view(viewFn: string, payload: string, blockTag?: string): Promise<string>;
-    };
-
-    readonly lua: {
-      eval(script: string, args?: any[]): Promise<{ calls: number; returns: any; runtime: number }>;
-    };
-
-    readonly dataApi: {
-      getBitcoinPrice(): Promise<any>;
-      getCandles(pool: string, interval: string, startTime?: number, endTime?: number, limit?: number): Promise<any[]>;
-      getReserves(pool: string): Promise<any>;
-    };
-
-    [key: string]: any; // Allow dynamic access
+  export interface AlkanesProviderConfig {
+    network?: string;
+    networkType?: string;
+    url?: string;
+    rpcUrl?: string;
+    dataApiUrl?: string;
+    projectId?: string;
+    version?: string;
+    [key: string]: any;
   }
 
-  export const NETWORK_PRESETS: Record<string, { rpcUrl: string; dataApiUrl: string; networkType: string }>;
+  export class AlkanesProvider {
+    constructor(config: AlkanesProviderConfig);
+    readonly networkType: 'mainnet' | 'testnet' | 'regtest';
+    readonly bitcoin: any;
+    readonly esplora: any;
+    readonly alkanes: any;
+    readonly dataApi: any;
+    readonly lua: any;
+    readonly metashrew: any;
+
+    initialize(): Promise<void>;
+    getBalance(address: string): Promise<{ confirmed: number; unconfirmed: number; utxos: any[] }>;
+    getUtxos(address: string): Promise<any[]>;
+    getAddressUtxos(address: string, spendStrategy?: any): Promise<any>;
+    broadcastTransaction(txHex: string): Promise<string>;
+    broadcastTx(txHex: string): Promise<string>;
+    getBlockHeight(): Promise<number>;
+    getAddressHistory(address: string): Promise<any[]>;
+    getAddressHistoryWithTraces(address: string): Promise<any[]>;
+    getAlkaneBalance(address: string): Promise<AlkaneBalance[]>;
+    getEnrichedBalances(address: string): Promise<any>;
+    getAlkaneTokenDetails(params: { alkaneId: AlkaneId }): Promise<any>;
+    simulateAlkanes(contractId: string, calldata: number[]): Promise<any>;
+    getAllPools(factoryId: string): Promise<any[]>;
+    getPoolReserves(poolId: string): Promise<any>;
+    getPoolTrades(poolId: string, limit?: number): Promise<any[]>;
+    getPoolCandles(poolId: string, interval?: string, limit?: number): Promise<any[]>;
+    getBitcoinPrice(): Promise<number>;
+    // Allow dynamic access to data API methods
+    [key: string]: any;
+  }
+  
   export function createProvider(config: any, wasmModule?: any): AlkanesProvider;
   
+  // AMM and utility exports
+  export const amm: any;
+  export function executeWithBtcWrapUnwrap(...args: any[]): Promise<any>;
+  export function wrapBtc(...args: any[]): Promise<any>;
+  export function unwrapBtc(...args: any[]): Promise<any>;
+
+  // UTXO type
+  export interface UTXO {
+    txid: string;
+    vout: number;
+    value: number;
+    scriptPubKey?: string;
+    status?: {
+      confirmed: boolean;
+      block_height?: number;
+      block_hash?: string;
+      block_time?: number;
+    };
+    address?: string;
+  }
+
   // Alkane types
   export interface AlkaneId {
     block: number;
@@ -107,20 +118,14 @@ declare module '@alkanes/ts-sdk' {
   }
 
   export interface AlkaneBalance {
-    id?: AlkaneId;
-    alkane_id?: AlkaneId;
-    amount?: string;
-    balance?: string;
+    id?: string;
+    alkane_id?: string;
+    balance: string;
     name?: string;
     symbol?: string;
     decimals?: number;
+    [key: string]: any;
   }
-
-  // AMM and utility exports
-  export const amm: any;
-  export function executeWithBtcWrapUnwrap(...args: any[]): Promise<any>;
-  export function wrapBtc(...args: any[]): Promise<any>;
-  export function unwrapBtc(...args: any[]): Promise<any>;
 
   // Browser wallet types
   export interface BrowserWalletInfo {
@@ -222,6 +227,371 @@ declare module '@alkanes/ts-sdk' {
 
   export function formatBackupDate(timestamp: string): string;
   export function getRelativeTime(timestamp: string): string;
+
+  // ============================================================================
+  // Client Module - Unified ethers.js-style interface
+  // ============================================================================
+
+  // Network type
+  export type NetworkType = 'mainnet' | 'testnet' | 'regtest';
+
+  // Signer interfaces
+  export interface SignerAccount {
+    address: string;
+    publicKey: string;
+    addressType?: string;
+  }
+
+  export interface SignPsbtOptions {
+    finalize?: boolean;
+    extractTx?: boolean;
+    inputsToSign?: Array<{
+      index: number;
+      address?: string;
+      sighashTypes?: number[];
+    }>;
+  }
+
+  export interface SignMessageOptions {
+    address?: string;
+  }
+
+  export interface SignedPsbt {
+    psbtHex: string;
+    psbtBase64: string;
+    txHex?: string;
+  }
+
+  export type SignerEventType = 'accountsChanged' | 'networkChanged' | 'disconnect';
+  export type SignerEvents = {
+    accountsChanged: (accounts: string[]) => void;
+    networkChanged: (network: string) => void;
+    disconnect: () => void;
+  };
+
+  // Abstract signer base class
+  export abstract class AlkanesSigner {
+    abstract readonly network: NetworkType;
+    abstract getAccount(): Promise<SignerAccount>;
+    abstract getAddress(): Promise<string>;
+    abstract getPublicKey(): Promise<string>;
+    abstract signMessage(message: string, options?: SignMessageOptions): Promise<string>;
+    abstract signPsbt(psbt: string, options?: SignPsbtOptions): Promise<SignedPsbt>;
+    abstract signPsbts(psbts: string[], options?: SignPsbtOptions): Promise<SignedPsbt[]>;
+    abstract isConnected(): Promise<boolean>;
+    abstract disconnect(): Promise<void>;
+    abstract getSignerType(): string;
+    protected parsePsbt(psbt: string): any;
+  }
+
+  // Event emitting signer
+  export abstract class EventEmittingSigner extends AlkanesSigner {
+    on<E extends SignerEventType>(event: E, callback: SignerEvents[E]): void;
+    off<E extends SignerEventType>(event: E, callback: SignerEvents[E]): void;
+    protected emit<E extends SignerEventType>(event: E, ...args: any[]): void;
+  }
+
+  // Keystore signer config
+  export interface KeystoreSignerConfig {
+    network: NetworkType;
+    addressType?: 'p2wpkh' | 'p2tr' | 'p2pkh' | 'p2sh-p2wpkh';
+    accountIndex?: number;
+    addressIndex?: number;
+  }
+
+  // Keystore signer
+  export class KeystoreSigner extends AlkanesSigner {
+    static fromMnemonic(mnemonic: string, config?: Partial<KeystoreSignerConfig>): KeystoreSigner;
+    static fromEncrypted(keystoreJson: string, password: string, config?: Partial<KeystoreSignerConfig>): Promise<KeystoreSigner>;
+    static fromKeystore(keystore: any, config?: Partial<KeystoreSignerConfig>): KeystoreSigner;
+    static generate(config?: Partial<KeystoreSignerConfig>, wordCount?: 12 | 24): KeystoreSigner;
+
+    readonly network: NetworkType;
+    getAccount(): Promise<SignerAccount>;
+    getAddress(): Promise<string>;
+    getPublicKey(): Promise<string>;
+    signMessage(message: string, options?: SignMessageOptions): Promise<string>;
+    signPsbt(psbt: string, options?: SignPsbtOptions): Promise<SignedPsbt>;
+    signPsbts(psbts: string[], options?: SignPsbtOptions): Promise<SignedPsbt[]>;
+    isConnected(): Promise<boolean>;
+    disconnect(): Promise<void>;
+    getSignerType(): string;
+
+    exportMnemonic(): string;
+    exportToKeystore(password: string): Promise<string>;
+    deriveAddress(type: 'p2wpkh' | 'p2tr' | 'p2pkh' | 'p2sh-p2wpkh', index: number): {
+      address: string;
+      publicKey: string;
+      path: string;
+    };
+    getAddresses(count: number): Array<{ index: number; address: string; publicKey: string; path: string }>;
+  }
+
+  // Browser wallet signer config
+  export interface BrowserWalletSignerConfig {
+    autoReconnect?: boolean;
+    preferredAddressType?: 'payment' | 'ordinals' | 'both';
+  }
+
+  export interface WalletSelection {
+    walletId: string;
+    walletName: string;
+    walletInfo: BrowserWalletInfo;
+  }
+
+  // Browser wallet signer
+  export class BrowserWalletSigner extends EventEmittingSigner {
+    static getAvailableWallets(): Promise<BrowserWalletInfo[]>;
+    static getSupportedWallets(): BrowserWalletInfo[];
+    static isWalletInstalled(walletId: string): boolean;
+    static connect(walletId: string, config?: BrowserWalletSignerConfig): Promise<BrowserWalletSigner>;
+    static connectAny(config?: BrowserWalletSignerConfig): Promise<BrowserWalletSigner>;
+    static fromConnectedWallet(wallet: ConnectedWallet, config?: BrowserWalletSignerConfig): BrowserWalletSigner;
+
+    readonly network: NetworkType;
+    getSignerType(): string;
+    getWalletInfo(): BrowserWalletInfo;
+    getAdapter(): any; // JsWalletAdapter for WASM integration
+    getAccount(): Promise<SignerAccount>;
+    getAddress(): Promise<string>;
+    getPublicKey(): Promise<string>;
+    signMessage(message: string, options?: SignMessageOptions): Promise<string>;
+    signPsbt(psbt: string, options?: SignPsbtOptions): Promise<SignedPsbt>;
+    signPsbts(psbts: string[], options?: SignPsbtOptions): Promise<SignedPsbt[]>;
+    isConnected(): Promise<boolean>;
+    disconnect(): Promise<void>;
+
+    pushTransaction(txHex: string): Promise<string>;
+    pushPsbt(psbtHex: string): Promise<string>;
+    getBalance(): Promise<number | null>;
+    getInscriptions(cursor?: number, size?: number): Promise<any>;
+    switchNetwork(network: NetworkType): Promise<void>;
+  }
+
+  // Transaction result
+  export interface TransactionResult {
+    txid: string;
+    rawTx: string;
+    broadcast: boolean;
+  }
+
+  // Balance summary
+  export interface BalanceSummary {
+    confirmed: number;
+    unconfirmed: number;
+    total: number;
+    utxos: any[];
+  }
+
+  export interface EnrichedBalance extends BalanceSummary {
+    alkanes: any[];
+  }
+
+  // Wallet option for UI
+  export interface WalletOption {
+    id: string;
+    name: string;
+    icon: string;
+    installed: boolean;
+  }
+
+  // Unified AlkanesClient
+  export class AlkanesClient {
+    constructor(provider: AlkanesProvider, signer: AlkanesSigner);
+
+    readonly provider: AlkanesProvider;
+    readonly signer: AlkanesSigner;
+
+    // Static factory methods
+    static withBrowserWallet(walletId: string, network?: string, signerConfig?: BrowserWalletSignerConfig): Promise<AlkanesClient>;
+    static withAnyBrowserWallet(network?: string, signerConfig?: BrowserWalletSignerConfig): Promise<AlkanesClient>;
+    static withKeystore(keystoreJson: string, password: string, network?: string, signerConfig?: Partial<KeystoreSignerConfig>): Promise<AlkanesClient>;
+    static withMnemonic(mnemonic: string, network?: string, signerConfig?: Partial<KeystoreSignerConfig>): AlkanesClient;
+    static fromKeystore(keystore: any, network?: string, signerConfig?: Partial<KeystoreSignerConfig>): AlkanesClient;
+    static generate(network?: string, wordCount?: 12 | 24, signerConfig?: Partial<KeystoreSignerConfig>): AlkanesClient;
+
+    // Initialization
+    initialize(): Promise<void>;
+    isReady(): Promise<boolean>;
+
+    // Account methods (from Signer)
+    getAddress(): Promise<string>;
+    getPublicKey(): Promise<string>;
+    getAccount(): Promise<SignerAccount>;
+    getSignerType(): string;
+    getNetwork(): NetworkType;
+
+    // Balance methods (from Provider)
+    getBalance(address?: string): Promise<BalanceSummary>;
+    getEnrichedBalances(address?: string): Promise<any>;
+    getAlkaneBalances(address?: string): Promise<any[]>;
+    getUtxos(address?: string): Promise<any[]>;
+
+    // Signing methods (from Signer)
+    signMessage(message: string, options?: SignMessageOptions): Promise<string>;
+    signPsbt(psbt: string, options?: SignPsbtOptions): Promise<SignedPsbt>;
+    signPsbts(psbts: string[], options?: SignPsbtOptions): Promise<SignedPsbt[]>;
+
+    // Transaction methods
+    sendTransaction(psbt: string, options?: SignPsbtOptions): Promise<TransactionResult>;
+    signTransaction(psbt: string, options?: SignPsbtOptions): Promise<SignedPsbt>;
+    broadcastTransaction(txHex: string): Promise<string>;
+
+    // Alkanes methods
+    getBlockHeight(): Promise<number>;
+    getTransactionHistory(address?: string): Promise<any[]>;
+    getTransactionHistoryWithTraces(address?: string): Promise<any[]>;
+    getAlkaneTokenDetails(alkaneId: any): Promise<any>;
+    simulateAlkanes(contractId: string, calldata: number[]): Promise<any>;
+
+    // AMM/DEX methods
+    getPools(factoryId: string): Promise<any[]>;
+    getPoolReserves(poolId: string): Promise<any>;
+    getPoolTrades(poolId: string, limit?: number): Promise<any[]>;
+    getPoolCandles(poolId: string, interval?: string, limit?: number): Promise<any[]>;
+
+    // Utility methods
+    getBitcoinPrice(): Promise<number>;
+    disconnect(): Promise<void>;
+
+    // Sub-clients
+    readonly bitcoin: any;
+    readonly esplora: any;
+    readonly alkanes: any;
+    readonly dataApi: any;
+    readonly lua: any;
+    readonly metashrew: any;
+  }
+
+  // Connect wallet utilities
+  export function getAvailableWallets(): Promise<WalletOption[]>;
+  export function connectWallet(walletId: string, network?: string): Promise<AlkanesClient>;
+  export function connectAnyWallet(network?: string): Promise<AlkanesClient>;
+  export function createReadOnlyProvider(network?: string): AlkanesProvider;
+  export function getWalletOptions(): Promise<Array<{
+    id: string;
+    name: string;
+    icon: string;
+    installed: boolean;
+    info: BrowserWalletInfo;
+  }>>;
+
+  // WASM wallet adapter types
+  export interface JsWalletAdapter {
+    getInfo(): any;
+    connect(): Promise<any>;
+    disconnect(): Promise<void>;
+    getAccounts(): Promise<any[]>;
+    getNetwork(): Promise<string>;
+    getPublicKey(): Promise<string>;
+    getBalance(): Promise<number | null>;
+    signMessage(message: string, address: string): Promise<string>;
+    signPsbt(psbtHex: string, options?: any): Promise<string>;
+    signPsbts(psbtHexs: string[], options?: any): Promise<string[]>;
+    pushTx(txHex: string): Promise<string>;
+    pushPsbt(psbtHex: string): Promise<string>;
+    switchNetwork(network: string): Promise<void>;
+    getInscriptions(cursor?: number, size?: number): Promise<any>;
+  }
+
+  export interface WalletInfoForWasm {
+    id: string;
+    name: string;
+    icon: string;
+    injection_key: string;
+    supports_psbt: boolean;
+    supports_taproot: boolean;
+    supports_ordinals: boolean;
+    mobile_support: boolean;
+  }
+
+  export interface WalletAccountForWasm {
+    address: string;
+    public_key?: string;
+    address_type?: string;
+  }
+
+  export interface PsbtSigningOptionsForWasm {
+    auto_finalized?: boolean;
+    to_sign_inputs?: Array<{
+      index: number;
+      address?: string;
+      sighash_types?: number[];
+    }>;
+  }
+
+  export function createWalletAdapter(wallet: ConnectedWallet): JsWalletAdapter;
+  export class MockWalletAdapter implements JsWalletAdapter {
+    constructor(network?: string, address?: string);
+    getInfo(): any;
+    connect(): Promise<any>;
+    disconnect(): Promise<void>;
+    getAccounts(): Promise<any[]>;
+    getNetwork(): Promise<string>;
+    getPublicKey(): Promise<string>;
+    getBalance(): Promise<number | null>;
+    signMessage(message: string, address: string): Promise<string>;
+    signPsbt(psbtHex: string, options?: any): Promise<string>;
+    signPsbts(psbtHexs: string[], options?: any): Promise<string[]>;
+    pushTx(txHex: string): Promise<string>;
+    pushPsbt(psbtHex: string): Promise<string>;
+    switchNetwork(network: string): Promise<void>;
+    getInscriptions(cursor?: number, size?: number): Promise<any>;
+  }
+  export class BaseWalletAdapter implements JsWalletAdapter {
+    constructor(wallet: ConnectedWallet);
+    getInfo(): any;
+    connect(): Promise<any>;
+    disconnect(): Promise<void>;
+    getAccounts(): Promise<any[]>;
+    getNetwork(): Promise<string>;
+    getPublicKey(): Promise<string>;
+    getBalance(): Promise<number | null>;
+    signMessage(message: string, address: string): Promise<string>;
+    signPsbt(psbtHex: string, options?: any): Promise<string>;
+    signPsbts(psbtHexs: string[], options?: any): Promise<string[]>;
+    pushTx(txHex: string): Promise<string>;
+    pushPsbt(psbtHex: string): Promise<string>;
+    switchNetwork(network: string): Promise<void>;
+    getInscriptions(cursor?: number, size?: number): Promise<any>;
+  }
+  export class UnisatAdapter extends BaseWalletAdapter {}
+  export class XverseAdapter extends BaseWalletAdapter {}
+  export class OkxAdapter extends BaseWalletAdapter {}
+  export class LeatherAdapter extends BaseWalletAdapter {}
+  export class PhantomAdapter extends BaseWalletAdapter {}
+  export class MagicEdenAdapter extends BaseWalletAdapter {}
+  export class WizzAdapter extends BaseWalletAdapter {}
+
+  // Utility functions
+  export function getNetwork(networkType: string): any;
+  export function validateAddress(address: string, network?: any): boolean;
+  export function satoshisToBTC(satoshis: number): number;
+  export function btcToSatoshis(btc: number): number;
+  export function formatAlkaneId(alkaneId: AlkaneId | string): string;
+  export function parseAlkaneId(alkaneIdStr: string): AlkaneId;
+  export function delay(ms: number): Promise<void>;
+  export function retry<T>(fn: () => Promise<T>, retries?: number, delayMs?: number): Promise<T>;
+  export function calculateFee(vbytes: number, feeRate: number): number;
+  export function estimateTxSize(inputs: number, outputs: number): number;
+  export function hexToBytes(hex: string): Uint8Array;
+  export function bytesToHex(bytes: Uint8Array): string;
+  export function reverseBytes(bytes: Uint8Array): Uint8Array;
+  export function reversedHex(hex: string): string;
+  export function isBrowser(): boolean;
+  export function isNode(): boolean;
+  export function safeJsonParse<T>(json: string, defaultValue: T): T;
+  export function formatTimestamp(timestamp: number): string;
+  export function calculateWeight(vbytes: number): number;
+  export function weightToVsize(weight: number): number;
+
+  // Network presets
+  export const NETWORK_PRESETS: {
+    mainnet: AlkanesProviderConfig;
+    testnet: AlkanesProviderConfig;
+    signet: AlkanesProviderConfig;
+    regtest: AlkanesProviderConfig;
+  };
 
   // Other exports
   export const VERSION: string;

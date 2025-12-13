@@ -1,11 +1,14 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 const content = {
   en: {
     title: "alkanes-web-sys Integration",
     intro: "alkanes-web-sys provides WebAssembly bindings for interacting with Alkanes from both browser and Node.js environments. This guide covers installation, configuration, and common use cases including wallet management, transaction signing, and RPC communication.",
+    sdkNote: "For a higher-level TypeScript interface, see the @alkanes/ts-sdk which wraps alkanes-web-sys with typed client classes.",
+    sdkLink: "View TS SDK API Reference",
 
     installTitle: "Installation",
     installDesc: "Install the package using your preferred package manager:",
@@ -29,6 +32,7 @@ const content = {
 
     rpcTitle: "Making RPC Calls",
     rpcDesc: "Use the provider to make JSON-RPC calls:",
+    rpcNote: "These RPC methods are wrapped with TypeScript types in the @alkanes/ts-sdk. For example, alkanes_protorunesbyaddress is available as provider.alkanes.getBalance().",
 
     luaTitle: "Executing Lua Scripts",
     luaDesc: "Run Lua scripts using lua_evalscript:",
@@ -58,6 +62,8 @@ const content = {
   zh: {
     title: "alkanes-web-sys 集成",
     intro: "alkanes-web-sys 为从浏览器和 Node.js 环境与 Alkanes 交互提供 WebAssembly 绑定。本指南涵盖安装、配置和常见用例，包括钱包管理、交易签名和 RPC 通信。",
+    sdkNote: "对于更高级的 TypeScript 接口，请参阅 @alkanes/ts-sdk，它使用类型化的客户端类封装了 alkanes-web-sys。",
+    sdkLink: "查看 TS SDK API 参考",
 
     installTitle: "安装",
     installDesc: "使用您喜欢的包管理器安装包：",
@@ -81,6 +87,7 @@ const content = {
 
     rpcTitle: "进行 RPC 调用",
     rpcDesc: "使用 provider 进行 JSON-RPC 调用：",
+    rpcNote: "这些 RPC 方法在 @alkanes/ts-sdk 中具有 TypeScript 类型包装。例如，alkanes_protorunesbyaddress 可通过 provider.alkanes.getBalance() 使用。",
 
     luaTitle: "执行 Lua 脚本",
     luaDesc: "使用 lua_evalscript 运行 Lua 脚本：",
@@ -135,6 +142,17 @@ export default function WebSysPage() {
       <div>
         <h1 className="text-3xl font-bold mb-4">{t.title}</h1>
         <p className="text-lg text-[color:var(--sf-muted)]">{t.intro}</p>
+        <div className="mt-4 p-4 rounded-lg border border-[color:var(--sf-outline)] bg-[color:var(--sf-surface)]">
+          <p className="text-sm text-[color:var(--sf-muted)]">
+            {t.sdkNote}{" "}
+            <Link
+              href="/docs/api/ts-sdk"
+              className="text-[color:var(--sf-primary)] hover:underline"
+            >
+              {t.sdkLink} →
+            </Link>
+          </p>
+        </div>
       </div>
 
       <Section title={t.installTitle}>
@@ -246,6 +264,17 @@ const poolState = await provider.call('metashrew_view', [
   '0x208bce382a06029fda04e7073001',  // DIESEL/frBTC pool payload
   blockHeight.toString()
 ]);`}</CodeBlock>
+        <div className="mt-4 p-3 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-sm">
+          <p className="text-[color:var(--sf-muted)]">
+            {t.rpcNote}{" "}
+            <Link
+              href="/docs/api/ts-sdk#AlkanesRpcClient"
+              className="text-[color:var(--sf-primary)] hover:underline"
+            >
+              AlkanesRpcClient →
+            </Link>
+          </p>
+        </div>
       </Section>
 
       <Section title={t.luaTitle}>

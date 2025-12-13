@@ -562,6 +562,44 @@ function copyDir(src, dest) {
   }
 }
 
+// Create npm-installable tarball for the ts-sdk package
+function createTsSdkTarball() {
+  console.log('\nCreating ts-sdk tarball for npm installation...');
+
+  const tarballPath = path.join(TS_SDK_DEST, 'package.tgz');
+
+  // Files to include in the tarball (matching package.json "files" field)
+  const filesToInclude = [
+    'package.json',
+    'dist',
+    'build',
+    'README.md',
+    'index.d.ts',
+  ];
+
+  // Filter to only existing files
+  const existingFiles = filesToInclude.filter(file =>
+    fs.existsSync(path.join(TS_SDK_DEST, file))
+  );
+
+  // Create tarball with package/ prefix (npm convention)
+  const tarCommand = [
+    'tar',
+    '-czf',
+    tarballPath,
+    '--transform', 's,^,package/,',
+    '-C', TS_SDK_DEST,
+    ...existingFiles
+  ].join(' ');
+
+  exec(tarCommand);
+
+  const stats = fs.statSync(tarballPath);
+  const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
+  console.log(`  Created tarball: ${tarballPath} (${sizeMB} MB)`);
+  console.log('ts-sdk tarball created successfully!');
+}
+
 // Copy only built artifacts from ts-sdk to project root
 function copyTsSdkArtifacts() {
   console.log('\nCopying ts-sdk artifacts to ./ts-sdk...');
@@ -632,9 +670,14 @@ function main() {
     // Copy built artifacts to ./ts-sdk
     copyTsSdkArtifacts();
 
+    // Create npm-installable tarball
+    createTsSdkTarball();
+
     console.log('\n' + '='.repeat(60));
     console.log('Build completed successfully!');
     console.log('\nThe ts-sdk artifacts have been copied to ./ts-sdk');
+    console.log('Package tarball available at: ./ts-sdk/package.tgz');
+    console.log('Install via: npm install "https://alkanes.build/pkg/@alkanes/ts-sdk"');
     console.log('You can now run your regular build process.');
 
   } catch (error) {

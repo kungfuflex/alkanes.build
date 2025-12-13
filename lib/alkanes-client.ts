@@ -200,8 +200,12 @@ export function calculatePrice(
 
 /**
  * Format alkane ID to string
+ * Accepts either an AlkaneId object or a string (which is returned as-is)
  */
-export function formatAlkaneId(id: AlkaneId): string {
+export function formatAlkaneId(id: AlkaneId | string): string {
+  if (typeof id === 'string') {
+    return id;
+  }
   return `${id.block}:${id.tx}`;
 }
 

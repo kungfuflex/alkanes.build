@@ -4,7 +4,7 @@
  * Asynchronously encrypts data using the Web Crypto API.
  */
 export function encryptMnemonic(mnemonic: string, passphrase: string): Promise<any>;
-export function analyze_psbt(psbt_base64: string): string;
+export function analyze_psbt(psbt_base64: string, network_str: string): string;
 export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
 export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
 export interface PoolWithDetails {
@@ -39,6 +39,73 @@ export class PbkdfParams {
   [Symbol.dispose](): void;
   constructor(val: any);
   to_js(): any;
+}
+/**
+ * WASM-exported BrowserWalletProvider that can be created from JavaScript
+ */
+export class WasmBrowserWalletProvider {
+  free(): void;
+  [Symbol.dispose](): void;
+  /**
+   * Create a new BrowserWalletProvider from a JavaScript wallet adapter
+   *
+   * @param adapter - A JavaScript object implementing the JsWalletAdapter interface
+   * @param network - Network string ("mainnet", "testnet", "signet", "regtest")
+   * @returns Promise<WasmBrowserWalletProvider>
+   */
+  constructor(adapter: JsWalletAdapter, network: string);
+  /**
+   * Get the connected wallet address
+   */
+  getAddress(): string | undefined;
+  /**
+   * Get the wallet public key
+   */
+  getPublicKey(): Promise<string>;
+  /**
+   * Sign a PSBT (hex encoded)
+   */
+  signPsbt(psbt_hex: string, options: any): Promise<string>;
+  /**
+   * Sign a message
+   */
+  signMessage(message: string, address?: string | null): Promise<string>;
+  /**
+   * Broadcast a transaction
+   */
+  broadcastTransaction(tx_hex: string): Promise<string>;
+  /**
+   * Get balance
+   */
+  getBalance(): Promise<any>;
+  /**
+   * Get UTXOs
+   */
+  getUtxos(include_frozen: boolean): Promise<any>;
+  /**
+   * Get enriched UTXOs with asset information
+   */
+  getEnrichedUtxos(): Promise<any>;
+  /**
+   * Get all balances (BTC + alkanes)
+   */
+  getAllBalances(): Promise<any>;
+  /**
+   * Get wallet info
+   */
+  getWalletInfo(): any;
+  /**
+   * Get connection status
+   */
+  getConnectionStatus(): string;
+  /**
+   * Get current network
+   */
+  getNetwork(): string;
+  /**
+   * Disconnect from the wallet
+   */
+  disconnect(): Promise<void>;
 }
 /**
  * Web-compatible provider implementation for browser environments

@@ -6,11 +6,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useWallet } from '@/context/WalletContext';
 import {
   BROWSER_WALLETS,
-  isWalletInstalled,
   GoogleDriveBackup,
   unlockKeystore,
   type BrowserWalletInfo,
   type WalletBackupInfo,
+  type WalletOption,
 } from '@alkanes/ts-sdk';
 
 type WalletView = 'select' | 'create' | 'restore-mnemonic' | 'restore-json' | 'restore-drive-picker' | 'restore-drive-unlock' | 'browser-extension' | 'unlock' | 'show-mnemonic';
@@ -26,6 +26,7 @@ export default function ConnectWalletModal() {
     restoreWallet: restoreWalletFromContext,
     connectBrowserWallet,
     disconnect,
+    getWalletOptions,
   } = useWallet();
 
   const [view, setView] = useState<WalletView>('select');
@@ -40,7 +41,7 @@ export default function ConnectWalletModal() {
   const [hasExistingKeystore, setHasExistingKeystore] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mnemonicConfirmed, setMnemonicConfirmed] = useState(false);
-  const [installedWallets, setInstalledWallets] = useState<BrowserWalletInfo[]>([]);
+  const [walletOptions, setWalletOptions] = useState<WalletOption[]>([]);
   const [driveBackups, setDriveBackups] = useState<WalletBackupInfo[]>([]);
   const [selectedDriveWallet, setSelectedDriveWallet] = useState<WalletBackupInfo | null>(null);
   const [passwordHint, setPasswordHint] = useState<string | null>(null);
@@ -49,17 +50,21 @@ export default function ConnectWalletModal() {
   const [driveBackup] = useState(() => new GoogleDriveBackup());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Computed values from wallet options
+  const installedWallets = walletOptions.filter(w => w.installed);
+  const allWallets = walletOptions;
+
   useEffect(() => {
     if (isConnectModalOpen) {
       setHasExistingKeystore(hasExistingKeystoreFromContext);
       setView('select');
       resetForm();
-      // Detect installed browser wallets
-      setInstalledWallets(BROWSER_WALLETS.filter(isWalletInstalled));
+      // Load wallet options using the unified SDK method
+      getWalletOptions().then(setWalletOptions).catch(console.error);
       // Check Google Drive configuration
       setDriveConfigured(driveBackup.isConfigured());
     }
-  }, [isConnectModalOpen, hasExistingKeystoreFromContext, driveBackup]);
+  }, [isConnectModalOpen, hasExistingKeystoreFromContext, driveBackup, getWalletOptions]);
 
   const resetForm = () => {
     setPassword('');
@@ -300,12 +305,27 @@ export default function ConnectWalletModal() {
     }
   };
 
-  const handleConnectBrowserWallet = async (wallet: BrowserWalletInfo) => {
+  const handleConnectBrowserWallet = async (wallet: WalletOption | BrowserWalletInfo) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      await connectBrowserWallet(wallet);
+      // Convert WalletOption to BrowserWalletInfo if needed
+      const walletInfo: BrowserWalletInfo = 'injectionKey' in wallet
+        ? wallet
+        : BROWSER_WALLETS.find(w => w.id === wallet.id) || {
+            id: wallet.id,
+            name: wallet.name,
+            icon: wallet.icon,
+            injectionKey: wallet.id,
+            website: '',
+            supportsPsbt: true,
+            supportsTaproot: true,
+            supportsOrdinals: false,
+            mobileSupport: false,
+          };
+
+      await connectBrowserWallet(walletInfo);
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect wallet');
@@ -444,7 +464,7 @@ export default function ConnectWalletModal() {
                       <div className="text-sm text-white/50">
                         {installedWallets.length > 0
                           ? `${installedWallets.length} wallet${installedWallets.length > 1 ? 's' : ''} detected`
-                          : 'No wallets detected'}
+                          : walletOptions.length > 0 ? 'No wallets installed' : 'Loading...'}
                       </div>
                     </div>
                   </div>
@@ -750,45 +770,52 @@ export default function ConnectWalletModal() {
 
               {installedWallets.length > 0 ? (
                 <div className="max-h-80 overflow-y-auto space-y-2">
-                  {installedWallets.map((wallet) => (
-                    <button
-                      key={wallet.id}
-                      onClick={() => handleConnectBrowserWallet(wallet)}
-                      disabled={isLoading}
-                      className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10 disabled:opacity-50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <img src={wallet.icon} alt={wallet.name} className="w-8 h-8" />
-                        <div className="text-left">
-                          <div className="font-medium text-white">{wallet.name}</div>
-                          <div className="text-xs text-white/50 flex gap-2">
-                            {wallet.supportsTaproot && <span>Taproot</span>}
-                            {wallet.supportsOrdinals && <span>Ordinals</span>}
+                  {installedWallets.map((wallet) => {
+                    // Get additional info from BROWSER_WALLETS if available
+                    const fullInfo = BROWSER_WALLETS.find(w => w.id === wallet.id);
+                    return (
+                      <button
+                        key={wallet.id}
+                        onClick={() => handleConnectBrowserWallet(wallet)}
+                        disabled={isLoading}
+                        className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10 disabled:opacity-50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img src={wallet.icon} alt={wallet.name} className="w-8 h-8" />
+                          <div className="text-left">
+                            <div className="font-medium text-white">{wallet.name}</div>
+                            <div className="text-xs text-white/50 flex gap-2">
+                              {fullInfo?.supportsTaproot && <span>Taproot</span>}
+                              {fullInfo?.supportsOrdinals && <span>Ordinals</span>}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <ChevronRight size={20} className="text-white/50" />
-                    </button>
-                  ))}
+                        <ChevronRight size={20} className="text-white/50" />
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <div className="text-white/70 mb-4">No browser wallets detected</div>
                   <div className="text-sm text-white/50 mb-4">Install one of these wallets:</div>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {BROWSER_WALLETS.slice(0, 5).map((wallet) => (
-                      <a
-                        key={wallet.id}
-                        href={wallet.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg border border-white/20 hover:bg-white/5 transition-colors"
-                      >
-                        <img src={wallet.icon} alt={wallet.name} className="w-6 h-6" />
-                        <span className="flex-1 text-left text-sm text-white">{wallet.name}</span>
-                        <Download size={16} className="text-white/50" />
-                      </a>
-                    ))}
+                    {allWallets.filter(w => !w.installed).slice(0, 5).map((wallet) => {
+                      const fullInfo = BROWSER_WALLETS.find(w => w.id === wallet.id);
+                      return (
+                        <a
+                          key={wallet.id}
+                          href={fullInfo?.website || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 rounded-lg border border-white/20 hover:bg-white/5 transition-colors"
+                        >
+                          <img src={wallet.icon} alt={wallet.name} className="w-6 h-6" />
+                          <span className="flex-1 text-left text-sm text-white">{wallet.name}</span>
+                          <Download size={16} className="text-white/50" />
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               )}
