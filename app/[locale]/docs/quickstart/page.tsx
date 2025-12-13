@@ -72,6 +72,111 @@ const content = {
       "frBTC - 支持期货的封装 BTC",
       "AMM 池 - 自动做市商"
     ]
+  },
+  ms: {
+    title: "Mula Pantas",
+    intro: "Panduan ini akan membantu anda membina dan melebarkan kontrak pintar Alkane pertama anda di Bitcoin.",
+    prereqTitle: "Prasyarat",
+    prereqIntro: "Sebelum anda bermula, pastikan anda mempunyai:",
+    prereqs: [
+      "Rust (1.70 atau lebih baru) - Pasang dari rustup.rs",
+      "wasm-pack - cargo install wasm-pack",
+      "Node.js (18 atau lebih baru) - Untuk CLI dan tooling"
+    ],
+    step1Title: "Langkah 1: Pasang CLI",
+    step1Intro: "Klon dan bina dari sumber:",
+    step1Alt: "Atau pasang melalui npm:",
+    step2Title: "Langkah 2: Cipta Wallet",
+    step3Title: "Langkah 3: Cipta Kontrak Anda",
+    step3Intro: "Cipta projek Rust baharu:",
+    step3Toml: "Kemas kini Cargo.toml:",
+    step3Code: "Tulis kontrak anda dalam src/lib.rs:",
+    step4Title: "Langkah 4: Bina Kontrak",
+    step5Title: "Langkah 5: Lebarkan ke Bitcoin",
+    step6Title: "Langkah 6: Berinteraksi dengan Kontrak Anda",
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Ketahui tentang penyimpanan kontrak", href: "/docs/concepts/alkanes" },
+      { text: "Terokai perpustakaan alkanes-std", href: "/docs/concepts/alkanes" },
+      { text: "Bina kontrak yang lebih kompleks", href: "/docs/concepts/alkanes" }
+    ],
+    examplesTitle: "Contoh Kontrak",
+    examplesIntro: "Semak contoh kontrak ini dalam repositori alkanes-rs:",
+    examples: [
+      "Token DIESEL - Implementasi token boleh kulat",
+      "frBTC - BTC terbungkus dengan sokongan futures",
+      "Kolam AMM - Pembuat pasaran automatik"
+    ]
+  },
+  vi: {
+    title: "Khởi Động Nhanh",
+    intro: "Hướng dẫn này sẽ giúp bạn xây dựng và triển khai hợp đồng thông minh Alkane đầu tiên trên Bitcoin.",
+    prereqTitle: "Yêu Cầu",
+    prereqIntro: "Trước khi bắt đầu, hãy đảm bảo bạn có:",
+    prereqs: [
+      "Rust (1.70 hoặc mới hơn) - Cài đặt từ rustup.rs",
+      "wasm-pack - cargo install wasm-pack",
+      "Node.js (18 hoặc mới hơn) - Cho CLI và công cụ"
+    ],
+    step1Title: "Bước 1: Cài Đặt CLI",
+    step1Intro: "Sao chép và xây dựng từ nguồn:",
+    step1Alt: "Hoặc cài đặt qua npm:",
+    step2Title: "Bước 2: Tạo Ví",
+    step3Title: "Bước 3: Tạo Hợp Đồng Của Bạn",
+    step3Intro: "Tạo dự án Rust mới:",
+    step3Toml: "Cập nhật Cargo.toml:",
+    step3Code: "Viết hợp đồng của bạn trong src/lib.rs:",
+    step4Title: "Bước 4: Xây Dựng Hợp Đồng",
+    step5Title: "Bước 5: Triển Khai Lên Bitcoin",
+    step6Title: "Bước 6: Tương Tác Với Hợp Đồng Của Bạn",
+    nextStepsTitle: "Các Bước Tiếp Theo",
+    nextSteps: [
+      { text: "Tìm hiểu về lưu trữ hợp đồng", href: "/docs/concepts/alkanes" },
+      { text: "Khám phá thư viện alkanes-std", href: "/docs/concepts/alkanes" },
+      { text: "Xây dựng các hợp đồng phức tạp hơn", href: "/docs/concepts/alkanes" }
+    ],
+    examplesTitle: "Ví Dụ Hợp Đồng",
+    examplesIntro: "Xem các hợp đồng ví dụ này trong kho alkanes-rs:",
+    examples: [
+      "Token DIESEL - Triển khai token có thể thay thế",
+      "frBTC - BTC được bao bọc với hỗ trợ futures",
+      "Bể AMM - Nhà tạo lập thị trường tự động"
+    ]
+  },
+  ko: {
+    title: "빠른 시작",
+    intro: "이 가이드는 Bitcoin에서 첫 번째 Alkane 스마트 계약을 구축하고 배포하는 데 도움이 됩니다.",
+    prereqTitle: "전제 조건",
+    prereqIntro: "시작하기 전에 다음이 있는지 확인하세요:",
+    prereqs: [
+      "Rust (1.70 이상) - rustup.rs에서 설치",
+      "wasm-pack - cargo install wasm-pack",
+      "Node.js (18 이상) - CLI 및 도구용"
+    ],
+    step1Title: "단계 1: CLI 설치",
+    step1Intro: "소스에서 복제 및 빌드:",
+    step1Alt: "또는 npm을 통해 설치:",
+    step2Title: "단계 2: 지갑 생성",
+    step3Title: "단계 3: 계약 생성",
+    step3Intro: "새 Rust 프로젝트 생성:",
+    step3Toml: "Cargo.toml 업데이트:",
+    step3Code: "src/lib.rs에 계약 작성:",
+    step4Title: "단계 4: 계약 빌드",
+    step5Title: "단계 5: Bitcoin에 배포",
+    step6Title: "단계 6: 계약과 상호작용",
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "계약 스토리지에 대해 알아보기", href: "/docs/concepts/alkanes" },
+      { text: "alkanes-std 라이브러리 탐색", href: "/docs/concepts/alkanes" },
+      { text: "더 복잡한 계약 구축", href: "/docs/concepts/alkanes" }
+    ],
+    examplesTitle: "예제 계약",
+    examplesIntro: "alkanes-rs 저장소에서 이러한 예제 계약을 확인하세요:",
+    examples: [
+      "DIESEL 토큰 - 대체 가능 토큰 구현",
+      "frBTC - 선물 지원이 있는 래핑된 BTC",
+      "AMM 풀 - 자동화된 마켓 메이커"
+    ]
   }
 };
 

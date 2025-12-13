@@ -155,6 +155,234 @@ const content = {
       { text: "部署指南", href: "/docs/contracts/deployment", desc: "生产部署" },
     ],
   },
+  ms: {
+    title: "Bina Token",
+    subtitle: "Panduan langkah demi langkah untuk mencipta token fungible di Alkanes",
+    intro: "Dalam tutorial ini, anda akan membina kontrak token fungible lengkap dengan pencetakan, pembakaran, dan penjejakan bekalan. Kami akan meliputi corak penting yang digunakan dalam token pengeluaran seperti DIESEL dan FROST.",
+
+    prerequisitesTitle: "Prasyarat",
+    prerequisites: [
+      "Rust dan sasaran wasm32-unknown-unknown telah dipasang",
+      "Pemahaman asas tentang Rust",
+      "alkanes-cli telah dipasang",
+      "Persekitaran regtest tempatan sedang berjalan",
+    ],
+
+    overviewTitle: "Gambaran Keseluruhan Token",
+    overviewDesc: "Token kami akan mempunyai ciri-ciri berikut:",
+    features: [
+      { name: "Inisialisasi", desc: "Sediakan token dengan nama, simbol, dan bekalan awal" },
+      { name: "Cetak", desc: "Cipta token baharu (pentadbir sahaja)" },
+      { name: "Bakar", desc: "Musnahkan token untuk mengurangkan bekalan" },
+      { name: "Jumlah Bekalan", desc: "Tanya jumlah bekalan semasa" },
+      { name: "Nama/Simbol", desc: "Kembalikan metadata token" },
+    ],
+
+    step1Title: "Langkah 1: Persediaan Projek",
+    step1Desc: "Cipta projek Rust baharu untuk token anda:",
+
+    step2Title: "Langkah 2: Cargo.toml",
+    step2Desc: "Konfigurasikan kebergantungan anda:",
+
+    step3Title: "Langkah 3: Struktur Token",
+    step3Desc: "Tentukan struct token dan enum mesej anda:",
+
+    step4Title: "Langkah 4: Pembantu Penyimpanan",
+    step4Desc: "Tambah kaedah pembantu untuk akses penyimpanan:",
+
+    step5Title: "Langkah 5: Inisialisasi",
+    step5Desc: "Laksanakan logik inisialisasi:",
+
+    step6Title: "Langkah 6: Pencetakan",
+    step6Desc: "Tambah pencetakan khusus pentadbir dengan perlindungan token pengesahan:",
+
+    step7Title: "Langkah 7: Pembakaran",
+    step7Desc: "Laksanakan pembakaran token daripada pemindahan masuk:",
+
+    step8Title: "Langkah 8: Kaedah Pertanyaan",
+    step8Desc: "Tambah kaedah baca sahaja untuk metadata token:",
+
+    step9Title: "Langkah 9: Kontrak Lengkap",
+    step9Desc: "Berikut adalah kontrak token lengkap:",
+
+    buildTitle: "Membina Kontrak",
+    buildDesc: "Kompil token anda kepada WebAssembly:",
+
+    deployTitle: "Menggunakan Token",
+    deployDesc: "Gunakan token anda ke regtest:",
+
+    testingTitle: "Menguji Token",
+    testingDesc: "Uji token anda dengan arahan ini:",
+
+    advancedTitle: "Ciri Lanjutan",
+    advancedDesc: "Berikut adalah beberapa peningkatan yang boleh anda tambah:",
+    advancedFeatures: [
+      { name: "Elaun", desc: "Laksanakan approve/transferFrom untuk pemindahan yang diwakilkan" },
+      { name: "Boleh Dijeda", desc: "Tambah keupayaan untuk menjeda semua pemindahan dalam kecemasan" },
+      { name: "Boleh Dinaik Taraf", desc: "Gunakan corak proksi untuk logik yang boleh dinaik taraf" },
+      { name: "Peletakan Hak", desc: "Laksanakan pelepasan token berkunci masa" },
+      { name: "Tangkapan", desc: "Jejaki baki pada ketinggian blok tertentu" },
+    ],
+
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Bina AMM", href: "/docs/tutorials/amm", desc: "Cipta kolam kecairan" },
+      { text: "Corak Penyimpanan", href: "/docs/contracts/storage", desc: "Teknik penyimpanan lanjutan" },
+      { text: "Panduan Penggunaan", href: "/docs/contracts/deployment", desc: "Penggunaan pengeluaran" },
+    ],
+  },
+  vi: {
+    title: "Xây dựng Token",
+    subtitle: "Hướng dẫn từng bước tạo token fungible trên Alkanes",
+    intro: "Trong hướng dẫn này, bạn sẽ xây dựng một hợp đồng token fungible hoàn chỉnh với tính năng đúc, đốt và theo dõi nguồn cung. Chúng tôi sẽ đề cập đến các mẫu thiết yếu được sử dụng trong các token sản xuất như DIESEL và FROST.",
+
+    prerequisitesTitle: "Yêu cầu trước",
+    prerequisites: [
+      "Đã cài đặt Rust và target wasm32-unknown-unknown",
+      "Hiểu biết cơ bản về Rust",
+      "Đã cài đặt alkanes-cli",
+      "Môi trường regtest cục bộ đang chạy",
+    ],
+
+    overviewTitle: "Tổng quan Token",
+    overviewDesc: "Token của chúng ta sẽ có các tính năng sau:",
+    features: [
+      { name: "Khởi tạo", desc: "Thiết lập token với tên, ký hiệu và nguồn cung ban đầu" },
+      { name: "Đúc", desc: "Tạo token mới (chỉ quản trị viên)" },
+      { name: "Đốt", desc: "Hủy token để giảm nguồn cung" },
+      { name: "Tổng nguồn cung", desc: "Truy vấn tổng nguồn cung hiện tại" },
+      { name: "Tên/Ký hiệu", desc: "Trả về metadata token" },
+    ],
+
+    step1Title: "Bước 1: Thiết lập Dự án",
+    step1Desc: "Tạo dự án Rust mới cho token của bạn:",
+
+    step2Title: "Bước 2: Cargo.toml",
+    step2Desc: "Cấu hình các phụ thuộc của bạn:",
+
+    step3Title: "Bước 3: Cấu trúc Token",
+    step3Desc: "Định nghĩa struct token và enum message của bạn:",
+
+    step4Title: "Bước 4: Hàm hỗ trợ Lưu trữ",
+    step4Desc: "Thêm các phương thức hỗ trợ để truy cập lưu trữ:",
+
+    step5Title: "Bước 5: Khởi tạo",
+    step5Desc: "Triển khai logic khởi tạo:",
+
+    step6Title: "Bước 6: Đúc Token",
+    step6Desc: "Thêm tính năng đúc chỉ dành cho quản trị viên với bảo vệ token xác thực:",
+
+    step7Title: "Bước 7: Đốt Token",
+    step7Desc: "Triển khai đốt token từ các giao dịch chuyển đến:",
+
+    step8Title: "Bước 8: Phương thức Truy vấn",
+    step8Desc: "Thêm các phương thức chỉ đọc cho metadata token:",
+
+    step9Title: "Bước 9: Hợp đồng Hoàn chỉnh",
+    step9Desc: "Đây là hợp đồng token hoàn chỉnh:",
+
+    buildTitle: "Xây dựng Hợp đồng",
+    buildDesc: "Biên dịch token của bạn thành WebAssembly:",
+
+    deployTitle: "Triển khai Token",
+    deployDesc: "Triển khai token của bạn lên regtest:",
+
+    testingTitle: "Kiểm tra Token",
+    testingDesc: "Kiểm tra token của bạn với các lệnh sau:",
+
+    advancedTitle: "Tính năng Nâng cao",
+    advancedDesc: "Dưới đây là một số cải tiến bạn có thể thêm:",
+    advancedFeatures: [
+      { name: "Phân bổ", desc: "Triển khai approve/transferFrom cho chuyển giao ủy quyền" },
+      { name: "Có thể tạm dừng", desc: "Thêm khả năng tạm dừng tất cả chuyển giao trong trường hợp khẩn cấp" },
+      { name: "Có thể nâng cấp", desc: "Sử dụng mẫu proxy cho logic có thể nâng cấp" },
+      { name: "Phân bổ dần", desc: "Triển khai phát hành token bị khóa thời gian" },
+      { name: "Ảnh chụp", desc: "Theo dõi số dư tại các độ cao khối cụ thể" },
+    ],
+
+    nextStepsTitle: "Bước tiếp theo",
+    nextSteps: [
+      { text: "Xây dựng AMM", href: "/docs/tutorials/amm", desc: "Tạo các pool thanh khoản" },
+      { text: "Mẫu Lưu trữ", href: "/docs/contracts/storage", desc: "Kỹ thuật lưu trữ nâng cao" },
+      { text: "Hướng dẫn Triển khai", href: "/docs/contracts/deployment", desc: "Triển khai sản xuất" },
+    ],
+  },
+  ko: {
+    title: "토큰 구축",
+    subtitle: "Alkanes에서 대체 가능한 토큰을 생성하는 단계별 가이드",
+    intro: "이 튜토리얼에서는 발행, 소각 및 공급량 추적 기능을 갖춘 완전한 대체 가능 토큰 계약을 구축합니다. DIESEL 및 FROST와 같은 프로덕션 토큰에서 사용되는 필수 패턴을 다룹니다.",
+
+    prerequisitesTitle: "전제 조건",
+    prerequisites: [
+      "Rust 및 wasm32-unknown-unknown 타겟 설치",
+      "Rust에 대한 기본 이해",
+      "alkanes-cli 설치",
+      "로컬 regtest 환경 실행 중",
+    ],
+
+    overviewTitle: "토큰 개요",
+    overviewDesc: "우리의 토큰은 다음 기능을 갖습니다:",
+    features: [
+      { name: "초기화", desc: "이름, 심볼 및 초기 공급량으로 토큰 설정" },
+      { name: "발행", desc: "새 토큰 생성(관리자 전용)" },
+      { name: "소각", desc: "토큰을 파괴하여 공급량 감소" },
+      { name: "총 공급량", desc: "현재 총 공급량 조회" },
+      { name: "이름/심볼", desc: "토큰 메타데이터 반환" },
+    ],
+
+    step1Title: "1단계: 프로젝트 설정",
+    step1Desc: "토큰을 위한 새 Rust 프로젝트 생성:",
+
+    step2Title: "2단계: Cargo.toml",
+    step2Desc: "의존성 구성:",
+
+    step3Title: "3단계: 토큰 구조",
+    step3Desc: "토큰 구조체와 메시지 enum 정의:",
+
+    step4Title: "4단계: 스토리지 헬퍼",
+    step4Desc: "스토리지 액세스를 위한 헬퍼 메서드 추가:",
+
+    step5Title: "5단계: 초기화",
+    step5Desc: "초기화 로직 구현:",
+
+    step6Title: "6단계: 발행",
+    step6Desc: "인증 토큰 보호 기능이 있는 관리자 전용 발행 추가:",
+
+    step7Title: "7단계: 소각",
+    step7Desc: "들어오는 전송에서 토큰 소각 구현:",
+
+    step8Title: "8단계: 쿼리 메서드",
+    step8Desc: "토큰 메타데이터를 위한 읽기 전용 메서드 추가:",
+
+    step9Title: "9단계: 완전한 계약",
+    step9Desc: "다음은 완전한 토큰 계약입니다:",
+
+    buildTitle: "계약 빌드",
+    buildDesc: "토큰을 WebAssembly로 컴파일:",
+
+    deployTitle: "토큰 배포",
+    deployDesc: "regtest에 토큰 배포:",
+
+    testingTitle: "토큰 테스트",
+    testingDesc: "다음 명령으로 토큰 테스트:",
+
+    advancedTitle: "고급 기능",
+    advancedDesc: "추가할 수 있는 몇 가지 개선 사항:",
+    advancedFeatures: [
+      { name: "허용량", desc: "위임된 전송을 위한 approve/transferFrom 구현" },
+      { name: "일시 중지 가능", desc: "긴급 상황에서 모든 전송을 일시 중지하는 기능 추가" },
+      { name: "업그레이드 가능", desc: "업그레이드 가능한 로직을 위한 프록시 패턴 사용" },
+      { name: "베스팅", desc: "시간 잠금 토큰 릴리스 구현" },
+      { name: "스냅샷", desc: "특정 블록 높이에서 잔액 추적" },
+    ],
+
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "AMM 구축", href: "/docs/tutorials/amm", desc: "유동성 풀 생성" },
+      { text: "스토리지 패턴", href: "/docs/contracts/storage", desc: "고급 스토리지 기술" },
+      { text: "배포 가이드", href: "/docs/contracts/deployment", desc: "프로덕션 배포" },
+    ],
+  },
 };
 
 function CodeBlock({ children, title, language = "rust" }: { children: string; title?: string; language?: string }) {

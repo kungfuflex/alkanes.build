@@ -108,6 +108,165 @@ const content = {
     getrawmempoolDesc: "获取所有内存池交易 ID。",
     estimatesmartfeeTitle: "btc_estimatesmartfee",
     estimatesmartfeeDesc: "估算在 N 个区块内确认所需的费用。"
+  },
+  ms: {
+    title: "Kaedah btc_* (Bitcoin Core)",
+    intro: "Ruang nama btc_* menyediakan akses terus kepada kaedah Bitcoin Core RPC. Ini adalah kaedah JSON-RPC bitcoind standard dengan awalan btc_.",
+    blockMethodsTitle: "Kaedah Blok",
+    blockMethods: [
+      { name: "btc_getblockcount", desc: "Dapatkan ketinggian blok semasa" },
+      { name: "btc_getblockhash", desc: "Dapatkan hash blok pada ketinggian tertentu" },
+      { name: "btc_getbestblockhash", desc: "Dapatkan hash blok terbaik semasa" },
+      { name: "btc_getblock", desc: "Dapatkan data blok mengikut hash" },
+      { name: "btc_getblockheader", desc: "Dapatkan data header blok" }
+    ],
+    chainInfoTitle: "Maklumat Blockchain",
+    chainMethods: [
+      { name: "btc_getblockchaininfo", desc: "Dapatkan maklumat keadaan blockchain" },
+      { name: "btc_getdifficulty", desc: "Dapatkan kesukaran semasa" }
+    ],
+    txMethodsTitle: "Kaedah Transaksi",
+    txMethods: [
+      { name: "btc_getrawtransaction", desc: "Dapatkan data transaksi mentah" },
+      { name: "btc_sendrawtransaction", desc: "Siarkan transaksi yang telah ditandatangani" }
+    ],
+    mempoolMethodsTitle: "Kaedah Mempool",
+    mempoolMethods: [
+      { name: "btc_getmempoolinfo", desc: "Dapatkan statistik mempool" },
+      { name: "btc_getrawmempool", desc: "Dapatkan semua ID transaksi mempool" }
+    ],
+    feeMethodsTitle: "Anggaran Bayaran",
+    feeMethods: [
+      { name: "btc_estimatesmartfee", desc: "Anggarkan bayaran untuk pengesahan dalam N blok" }
+    ],
+    getblockcountTitle: "btc_getblockcount",
+    getblockcountDesc: "Dapatkan ketinggian blok semasa.",
+    getblockhashTitle: "btc_getblockhash",
+    getblockhashDesc: "Dapatkan hash blok pada ketinggian tertentu.",
+    getbestblockhashTitle: "btc_getbestblockhash",
+    getbestblockhashDesc: "Dapatkan hash blok terbaik semasa.",
+    getblockTitle: "btc_getblock",
+    getblockDesc: "Dapatkan data blok mengikut hash. Verbosity: 0=hex, 1=JSON, 2=JSON dengan tx penuh.",
+    getblockchaininfoTitle: "btc_getblockchaininfo",
+    getblockchaininfoDesc: "Dapatkan maklumat keadaan blockchain.",
+    getdifficultyTitle: "btc_getdifficulty",
+    getdifficultyDesc: "Dapatkan kesukaran semasa.",
+    getrawtransactionTitle: "btc_getrawtransaction",
+    getrawtransactionDesc: "Dapatkan data transaksi mentah.",
+    sendrawtransactionTitle: "btc_sendrawtransaction",
+    sendrawtransactionDesc: "Siarkan transaksi yang telah ditandatangani.",
+    getmempoolinfoTitle: "btc_getmempoolinfo",
+    getmempoolinfoDesc: "Dapatkan statistik mempool.",
+    getrawmempoolTitle: "btc_getrawmempool",
+    getrawmempoolDesc: "Dapatkan semua ID transaksi mempool.",
+    estimatesmartfeeTitle: "btc_estimatesmartfee",
+    estimatesmartfeeDesc: "Anggarkan bayaran untuk pengesahan dalam N blok."
+  },
+  vi: {
+    title: "Các phương thức btc_* (Bitcoin Core)",
+    intro: "Namespace btc_* cung cấp quyền truy cập trực tiếp vào các phương thức Bitcoin Core RPC. Đây là các phương thức JSON-RPC bitcoind tiêu chuẩn với tiền tố btc_.",
+    blockMethodsTitle: "Phương thức Khối",
+    blockMethods: [
+      { name: "btc_getblockcount", desc: "Lấy chiều cao khối hiện tại" },
+      { name: "btc_getblockhash", desc: "Lấy hash khối tại một chiều cao cụ thể" },
+      { name: "btc_getbestblockhash", desc: "Lấy hash của khối tốt nhất hiện tại" },
+      { name: "btc_getblock", desc: "Lấy dữ liệu khối theo hash" },
+      { name: "btc_getblockheader", desc: "Lấy dữ liệu header khối" }
+    ],
+    chainInfoTitle: "Thông tin Blockchain",
+    chainMethods: [
+      { name: "btc_getblockchaininfo", desc: "Lấy thông tin trạng thái blockchain" },
+      { name: "btc_getdifficulty", desc: "Lấy độ khó hiện tại" }
+    ],
+    txMethodsTitle: "Phương thức Giao dịch",
+    txMethods: [
+      { name: "btc_getrawtransaction", desc: "Lấy dữ liệu giao dịch thô" },
+      { name: "btc_sendrawtransaction", desc: "Phát sóng giao dịch đã ký" }
+    ],
+    mempoolMethodsTitle: "Phương thức Mempool",
+    mempoolMethods: [
+      { name: "btc_getmempoolinfo", desc: "Lấy thống kê mempool" },
+      { name: "btc_getrawmempool", desc: "Lấy tất cả ID giao dịch mempool" }
+    ],
+    feeMethodsTitle: "Ước tính Phí",
+    feeMethods: [
+      { name: "btc_estimatesmartfee", desc: "Ước tính phí để xác nhận trong N khối" }
+    ],
+    getblockcountTitle: "btc_getblockcount",
+    getblockcountDesc: "Lấy chiều cao khối hiện tại.",
+    getblockhashTitle: "btc_getblockhash",
+    getblockhashDesc: "Lấy hash khối tại một chiều cao cụ thể.",
+    getbestblockhashTitle: "btc_getbestblockhash",
+    getbestblockhashDesc: "Lấy hash của khối tốt nhất hiện tại.",
+    getblockTitle: "btc_getblock",
+    getblockDesc: "Lấy dữ liệu khối theo hash. Verbosity: 0=hex, 1=JSON, 2=JSON với tx đầy đủ.",
+    getblockchaininfoTitle: "btc_getblockchaininfo",
+    getblockchaininfoDesc: "Lấy thông tin trạng thái blockchain.",
+    getdifficultyTitle: "btc_getdifficulty",
+    getdifficultyDesc: "Lấy độ khó hiện tại.",
+    getrawtransactionTitle: "btc_getrawtransaction",
+    getrawtransactionDesc: "Lấy dữ liệu giao dịch thô.",
+    sendrawtransactionTitle: "btc_sendrawtransaction",
+    sendrawtransactionDesc: "Phát sóng giao dịch đã ký.",
+    getmempoolinfoTitle: "btc_getmempoolinfo",
+    getmempoolinfoDesc: "Lấy thống kê mempool.",
+    getrawmempoolTitle: "btc_getrawmempool",
+    getrawmempoolDesc: "Lấy tất cả ID giao dịch mempool.",
+    estimatesmartfeeTitle: "btc_estimatesmartfee",
+    estimatesmartfeeDesc: "Ước tính phí để xác nhận trong N khối."
+  },
+  ko: {
+    title: "btc_* 메서드 (Bitcoin Core)",
+    intro: "btc_* 네임스페이스는 Bitcoin Core RPC 메서드에 대한 직접 액세스를 제공합니다. 이는 btc_ 접두사가 있는 표준 bitcoind JSON-RPC 메서드입니다.",
+    blockMethodsTitle: "블록 메서드",
+    blockMethods: [
+      { name: "btc_getblockcount", desc: "현재 블록 높이 가져오기" },
+      { name: "btc_getblockhash", desc: "특정 높이의 블록 해시 가져오기" },
+      { name: "btc_getbestblockhash", desc: "현재 최상의 블록 해시 가져오기" },
+      { name: "btc_getblock", desc: "해시로 블록 데이터 가져오기" },
+      { name: "btc_getblockheader", desc: "블록 헤더 데이터 가져오기" }
+    ],
+    chainInfoTitle: "블록체인 정보",
+    chainMethods: [
+      { name: "btc_getblockchaininfo", desc: "블록체인 상태 정보 가져오기" },
+      { name: "btc_getdifficulty", desc: "현재 난이도 가져오기" }
+    ],
+    txMethodsTitle: "거래 메서드",
+    txMethods: [
+      { name: "btc_getrawtransaction", desc: "원시 거래 데이터 가져오기" },
+      { name: "btc_sendrawtransaction", desc: "서명된 거래 브로드캐스트" }
+    ],
+    mempoolMethodsTitle: "멤풀 메서드",
+    mempoolMethods: [
+      { name: "btc_getmempoolinfo", desc: "멤풀 통계 가져오기" },
+      { name: "btc_getrawmempool", desc: "모든 멤풀 거래 ID 가져오기" }
+    ],
+    feeMethodsTitle: "수수료 추정",
+    feeMethods: [
+      { name: "btc_estimatesmartfee", desc: "N 블록 내 확인을 위한 수수료 추정" }
+    ],
+    getblockcountTitle: "btc_getblockcount",
+    getblockcountDesc: "현재 블록 높이를 가져옵니다.",
+    getblockhashTitle: "btc_getblockhash",
+    getblockhashDesc: "특정 높이의 블록 해시를 가져옵니다.",
+    getbestblockhashTitle: "btc_getbestblockhash",
+    getbestblockhashDesc: "현재 최상의 블록 해시를 가져옵니다.",
+    getblockTitle: "btc_getblock",
+    getblockDesc: "해시로 블록 데이터를 가져옵니다. Verbosity: 0=hex, 1=JSON, 2=전체 tx가 있는 JSON.",
+    getblockchaininfoTitle: "btc_getblockchaininfo",
+    getblockchaininfoDesc: "블록체인 상태 정보를 가져옵니다.",
+    getdifficultyTitle: "btc_getdifficulty",
+    getdifficultyDesc: "현재 난이도를 가져옵니다.",
+    getrawtransactionTitle: "btc_getrawtransaction",
+    getrawtransactionDesc: "원시 거래 데이터를 가져옵니다.",
+    sendrawtransactionTitle: "btc_sendrawtransaction",
+    sendrawtransactionDesc: "서명된 거래를 브로드캐스트합니다.",
+    getmempoolinfoTitle: "btc_getmempoolinfo",
+    getmempoolinfoDesc: "멤풀 통계를 가져옵니다.",
+    getrawmempoolTitle: "btc_getrawmempool",
+    getrawmempoolDesc: "모든 멤풀 거래 ID를 가져옵니다.",
+    estimatesmartfeeTitle: "btc_estimatesmartfee",
+    estimatesmartfeeDesc: "N 블록 내 확인을 위한 수수료를 추정합니다."
   }
 };
 

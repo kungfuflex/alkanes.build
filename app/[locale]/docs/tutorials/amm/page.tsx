@@ -161,6 +161,243 @@ const content = {
       { text: "部署", href: "/docs/contracts/deployment", desc: "部署到主网" },
     ],
   },
+  ms: {
+    title: "Bina AMM",
+    subtitle: "Cipta pembuat pasaran automatik dengan formula produk tetap",
+    intro: "Dalam tutorial ini, anda akan belajar cara membina AMM (Automated Market Maker) menggunakan seni bina OYL AMM. Kami akan meliputi kolam kecairan, formula produk tetap, dan mekanik pertukaran.",
+
+    conceptsTitle: "Konsep Utama",
+    concepts: [
+      { name: "Produk Tetap", desc: "x * y = k - harga menyesuaikan secara automatik berdasarkan rizab" },
+      { name: "Kolam Kecairan", desc: "Pengguna mendepositkan pasangan token dan menerima token LP" },
+      { name: "Token LP", desc: "Mewakili bahagian kolam, dibakar untuk mengeluarkan kecairan" },
+      { name: "Yuran Pertukaran", desc: "Yuran kecil (0.3%) dikutip pada setiap pertukaran" },
+      { name: "TWAP", desc: "Harga purata berwajaran masa untuk fungsi oracle" },
+    ],
+
+    architectureTitle: "Seni Bina AMM",
+    architectureDesc: "OYL AMM menggunakan corak kilang dengan komponen ini:",
+    components: [
+      { name: "Kilang", desc: "Mencipta kolam baharu dan mengurus tetapan global" },
+      { name: "Kolam", desc: "Memegang rizab, mengendalikan pertukaran, dan mencetak token LP" },
+      { name: "Penghala", desc: "Pembantu untuk pertukaran berbilang lompatan dan perlindungan selisihan (pilihan)" },
+      { name: "Proksi Beacon", desc: "Membenarkan menaik taraf logik kolam merentasi semua kolam" },
+    ],
+
+    poolStorageTitle: "Susun Atur Penyimpanan Kolam",
+    poolStorageDesc: "Setiap kolam menyimpan keadaan berikut:",
+
+    formulaTitle: "Formula Produk Tetap",
+    formulaDesc: "AMM mengekalkan invarian: reserve0 * reserve1 = k",
+
+    addLiquidityTitle: "Menambah Kecairan",
+    addLiquidityDesc: "Apabila pengguna menambah kecairan, token LP dicetak secara berkadar:",
+
+    removeLiquidityTitle: "Mengeluarkan Kecairan",
+    removeLiquidityDesc: "Bakar token LP untuk mengeluarkan bahagian berkadar rizab:",
+
+    swapTitle: "Pelaksanaan Pertukaran",
+    swapDesc: "Laksanakan pertukaran sambil mengekalkan invarian produk tetap:",
+
+    twapTitle: "Oracle TWAP",
+    twapDesc: "Jejaki harga kumulatif untuk pengiraan harga purata berwajaran masa:",
+
+    poolContractTitle: "Kontrak Kolam",
+    poolContractDesc: "Berikut adalah kontrak kolam yang dipermudahkan yang melaksanakan fungsi AMM teras:",
+
+    factoryContractTitle: "Corak Kilang",
+    factoryContractDesc: "Kilang mencipta dan menjejaki semua kolam:",
+
+    deploymentTitle: "Langkah Penggunaan",
+    deploymentDesc: "Gunakan sistem AMM mengikut urutan berikut:",
+    deploymentSteps: [
+      "Gunakan kilang token auth di [4, 65517]",
+      "Gunakan templat proksi beacon di [4, 780993]",
+      "Gunakan logik kilang di [4, 65524]",
+      "Gunakan logik kolam di [4, 65520]",
+      "Gunakan proksi kilang boleh naik taraf di [4, 65522]",
+      "Gunakan beacon boleh naik taraf untuk kolam di [4, 65523]",
+      "Inisialisasi kilang dengan rujukan beacon kolam",
+      "Cipta kolam melalui kilang",
+    ],
+
+    createPoolTitle: "Mencipta Kolam",
+    createPoolDesc: "Cipta kolam kecairan baharu melalui kilang:",
+
+    swapExampleTitle: "Melaksanakan Pertukaran",
+    swapExampleDesc: "Tukar token melalui kolam sedia ada:",
+
+    flashSwapsTitle: "Pertukaran Pantas",
+    flashSwapsDesc: "Laksanakan pertukaran di mana pembayaran berlaku dalam panggilan balik (lanjutan):",
+
+    feesTitle: "Pengumpulan Yuran",
+    feesDesc: "Yuran protokol dikutip dan diagihkan kepada tadbir urus:",
+
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Balut BTC", href: "/docs/tutorials/wrap-btc", desc: "Dapatkan frBTC untuk perdagangan" },
+      { text: "Tutorial Token", href: "/docs/tutorials/token", desc: "Cipta token boleh niaga" },
+      { text: "Penggunaan", href: "/docs/contracts/deployment", desc: "Gunakan ke mainnet" },
+    ],
+  },
+  vi: {
+    title: "Xây dựng AMM",
+    subtitle: "Tạo nhà tạo lập thị trường tự động với công thức tích số không đổi",
+    intro: "Trong hướng dẫn này, bạn sẽ học cách xây dựng AMM (Automated Market Maker) bằng kiến trúc OYL AMM. Chúng tôi sẽ đề cập đến các pool thanh khoản, công thức tích số không đổi và cơ chế hoán đổi.",
+
+    conceptsTitle: "Khái niệm Chính",
+    concepts: [
+      { name: "Tích số không đổi", desc: "x * y = k - giá tự động điều chỉnh dựa trên dự trữ" },
+      { name: "Pool Thanh khoản", desc: "Người dùng gửi cặp token và nhận token LP" },
+      { name: "Token LP", desc: "Đại diện cho phần của pool, bị đốt để rút thanh khoản" },
+      { name: "Phí Hoán đổi", desc: "Phí nhỏ (0.3%) được thu trên mỗi giao dịch hoán đổi" },
+      { name: "TWAP", desc: "Giá trung bình gia quyền theo thời gian cho chức năng oracle" },
+    ],
+
+    architectureTitle: "Kiến trúc AMM",
+    architectureDesc: "OYL AMM sử dụng mẫu factory với các thành phần này:",
+    components: [
+      { name: "Factory", desc: "Tạo các pool mới và quản lý cài đặt toàn cục" },
+      { name: "Pool", desc: "Giữ dự trữ, xử lý hoán đổi và đúc token LP" },
+      { name: "Router", desc: "Trợ giúp cho hoán đổi đa bước và bảo vệ trượt giá (tùy chọn)" },
+      { name: "Beacon Proxy", desc: "Cho phép nâng cấp logic pool trên tất cả các pool" },
+    ],
+
+    poolStorageTitle: "Bố cục Lưu trữ Pool",
+    poolStorageDesc: "Mỗi pool lưu trữ trạng thái sau:",
+
+    formulaTitle: "Công thức Tích số không đổi",
+    formulaDesc: "AMM duy trì bất biến: reserve0 * reserve1 = k",
+
+    addLiquidityTitle: "Thêm Thanh khoản",
+    addLiquidityDesc: "Khi người dùng thêm thanh khoản, token LP được đúc theo tỷ lệ:",
+
+    removeLiquidityTitle: "Rút Thanh khoản",
+    removeLiquidityDesc: "Đốt token LP để rút phần dự trữ theo tỷ lệ:",
+
+    swapTitle: "Triển khai Hoán đổi",
+    swapDesc: "Thực hiện hoán đổi trong khi duy trì bất biến tích số không đổi:",
+
+    twapTitle: "Oracle TWAP",
+    twapDesc: "Theo dõi giá tích lũy để tính giá trung bình gia quyền theo thời gian:",
+
+    poolContractTitle: "Hợp đồng Pool",
+    poolContractDesc: "Đây là hợp đồng pool đơn giản hóa triển khai chức năng AMM cốt lõi:",
+
+    factoryContractTitle: "Mẫu Factory",
+    factoryContractDesc: "Factory tạo và theo dõi tất cả các pool:",
+
+    deploymentTitle: "Các bước Triển khai",
+    deploymentDesc: "Triển khai hệ thống AMM theo thứ tự sau:",
+    deploymentSteps: [
+      "Triển khai auth token factory tại [4, 65517]",
+      "Triển khai beacon proxy template tại [4, 780993]",
+      "Triển khai factory logic tại [4, 65524]",
+      "Triển khai pool logic tại [4, 65520]",
+      "Triển khai upgradeable factory proxy tại [4, 65522]",
+      "Triển khai upgradeable beacon cho pools tại [4, 65523]",
+      "Khởi tạo factory với tham chiếu pool beacon",
+      "Tạo pools qua factory",
+    ],
+
+    createPoolTitle: "Tạo Pool",
+    createPoolDesc: "Tạo pool thanh khoản mới thông qua factory:",
+
+    swapExampleTitle: "Thực hiện Hoán đổi",
+    swapExampleDesc: "Hoán đổi token thông qua pool hiện có:",
+
+    flashSwapsTitle: "Hoán đổi Flash",
+    flashSwapsDesc: "Thực hiện hoán đổi mà thanh toán xảy ra trong callback (nâng cao):",
+
+    feesTitle: "Thu Phí",
+    feesDesc: "Phí giao thức được thu và phân phối cho quản trị:",
+
+    nextStepsTitle: "Bước tiếp theo",
+    nextSteps: [
+      { text: "Bọc BTC", href: "/docs/tutorials/wrap-btc", desc: "Nhận frBTC để giao dịch" },
+      { text: "Hướng dẫn Token", href: "/docs/tutorials/token", desc: "Tạo token có thể giao dịch" },
+      { text: "Triển khai", href: "/docs/contracts/deployment", desc: "Triển khai lên mainnet" },
+    ],
+  },
+  ko: {
+    title: "AMM 구축",
+    subtitle: "일정한 곱 공식으로 자동화된 시장 메이커 생성",
+    intro: "이 튜토리얼에서는 OYL AMM 아키텍처를 사용하여 AMM(자동화된 시장 메이커)을 구축하는 방법을 배웁니다. 유동성 풀, 일정한 곱 공식 및 스왑 메커니즘을 다룹니다.",
+
+    conceptsTitle: "주요 개념",
+    concepts: [
+      { name: "일정한 곱", desc: "x * y = k - 가격이 준비금에 따라 자동으로 조정됨" },
+      { name: "유동성 풀", desc: "사용자가 토큰 쌍을 예치하고 LP 토큰을 받음" },
+      { name: "LP 토큰", desc: "풀의 지분을 나타내며, 유동성 인출 시 소각됨" },
+      { name: "스왑 수수료", desc: "각 스왑에서 징수되는 소액 수수료(0.3%)" },
+      { name: "TWAP", desc: "오라클 기능을 위한 시간 가중 평균 가격" },
+    ],
+
+    architectureTitle: "AMM 아키텍처",
+    architectureDesc: "OYL AMM은 다음 구성 요소와 함께 팩토리 패턴을 사용합니다:",
+    components: [
+      { name: "팩토리", desc: "새 풀을 생성하고 전역 설정 관리" },
+      { name: "풀", desc: "준비금 보유, 스왑 처리 및 LP 토큰 발행" },
+      { name: "라우터", desc: "멀티홉 스왑 및 슬리피지 보호를 위한 헬퍼(선택사항)" },
+      { name: "비콘 프록시", desc: "모든 풀에 걸쳐 풀 로직 업그레이드 허용" },
+    ],
+
+    poolStorageTitle: "풀 스토리지 레이아웃",
+    poolStorageDesc: "각 풀은 다음 상태를 저장합니다:",
+
+    formulaTitle: "일정한 곱 공식",
+    formulaDesc: "AMM은 불변량을 유지합니다: reserve0 * reserve1 = k",
+
+    addLiquidityTitle: "유동성 추가",
+    addLiquidityDesc: "사용자가 유동성을 추가하면 LP 토큰이 비례적으로 발행됩니다:",
+
+    removeLiquidityTitle: "유동성 제거",
+    removeLiquidityDesc: "LP 토큰을 소각하여 준비금의 비례 지분 인출:",
+
+    swapTitle: "스왑 구현",
+    swapDesc: "일정한 곱 불변량을 유지하면서 스왑 실행:",
+
+    twapTitle: "TWAP 오라클",
+    twapDesc: "시간 가중 평균 가격 계산을 위한 누적 가격 추적:",
+
+    poolContractTitle: "풀 계약",
+    poolContractDesc: "다음은 핵심 AMM 기능을 구현하는 단순화된 풀 계약입니다:",
+
+    factoryContractTitle: "팩토리 패턴",
+    factoryContractDesc: "팩토리는 모든 풀을 생성하고 추적합니다:",
+
+    deploymentTitle: "배포 단계",
+    deploymentDesc: "다음 순서로 AMM 시스템 배포:",
+    deploymentSteps: [
+      "[4, 65517]에 인증 토큰 팩토리 배포",
+      "[4, 780993]에 비콘 프록시 템플릿 배포",
+      "[4, 65524]에 팩토리 로직 배포",
+      "[4, 65520]에 풀 로직 배포",
+      "[4, 65522]에 업그레이드 가능한 팩토리 프록시 배포",
+      "[4, 65523]에 풀용 업그레이드 가능한 비콘 배포",
+      "풀 비콘 참조로 팩토리 초기화",
+      "팩토리를 통해 풀 생성",
+    ],
+
+    createPoolTitle: "풀 생성",
+    createPoolDesc: "팩토리를 통해 새 유동성 풀 생성:",
+
+    swapExampleTitle: "스왑 실행",
+    swapExampleDesc: "기존 풀을 통해 토큰 스왑:",
+
+    flashSwapsTitle: "플래시 스왑",
+    flashSwapsDesc: "콜백에서 결제가 발생하는 스왑 실행(고급):",
+
+    feesTitle: "수수료 징수",
+    feesDesc: "프로토콜 수수료가 징수되어 거버넌스에 분배됩니다:",
+
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "BTC 래핑", href: "/docs/tutorials/wrap-btc", desc: "거래를 위한 frBTC 획득" },
+      { text: "토큰 튜토리얼", href: "/docs/tutorials/token", desc: "거래 가능한 토큰 생성" },
+      { text: "배포", href: "/docs/contracts/deployment", desc: "메인넷에 배포" },
+    ],
+  },
 };
 
 function CodeBlock({ children, title, language = "rust" }: { children: string; title?: string; language?: string }) {

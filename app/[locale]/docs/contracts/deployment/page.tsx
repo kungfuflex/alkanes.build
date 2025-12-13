@@ -203,6 +203,306 @@ const content = {
       { text: "CLI 参考", href: "/docs/cli", desc: "完整 CLI 文档" },
     ],
   },
+  ms: {
+    title: "Panduan Penempatan",
+    subtitle: "Tempatkan dan berinteraksi dengan kontrak pintar Alkanes pada regtest dan mainnet",
+    intro: "Panduan ini merangkumi penempatan kontrak Alkanes menggunakan alkanes-cli. Anda akan mempelajari corak penempatan, arahan CLI, dan cara berinteraksi dengan kontrak yang ditempatkan.",
+
+    patternsTitle: "Corak Penempatan",
+    patternsDesc: "Alkanes menggunakan corak cellpack tertentu untuk operasi penempatan yang berbeza:",
+    patterns: [
+      { pattern: "[3, tx]", desc: "Tempatkan WASM ke slot kilang [4, tx] - gunakan untuk templat dan kilang" },
+      { pattern: "[6, tx]", desc: "Klon dari templat [4, tx] ke [2, n] tersedia seterusnya" },
+      { pattern: "[1, 0]", desc: "Tempatkan melalui CREATE ke [2, n] tersedia seterusnya" },
+    ],
+
+    alkaneIdRangesTitle: "Julat AlkaneId",
+    alkaneIdRangesDesc: "Awalan blok yang berbeza menunjukkan jenis kontrak yang berbeza:",
+    alkaneIdRanges: [
+      { range: "[2, n]", desc: "Kontrak yang ditempatkan biasa (CREATE atau CLONE)" },
+      { range: "[4, n]", desc: "Templat kilang - ditempatkan melalui [3, n]" },
+      { range: "[6, n]", desc: "Operasi klon (menentukan templat untuk diklon)" },
+      { range: "[32, n]", desc: "Kontrak genesis (frBTC, dll.)" },
+      { range: "[31, n]", desc: "Kontrak sistem (ftrBTC, dll.)" },
+    ],
+
+    cliSetupTitle: "Persediaan CLI",
+    cliSetupDesc: "Pertama, sediakan alkanes-cli dan cipta dompet:",
+
+    regtestSetupTitle: "Persekitaran Regtest",
+    regtestSetupDesc: "Mulakan persekitaran regtest tempatan untuk ujian:",
+
+    walletSetupTitle: "Persediaan Dompet",
+    walletSetupDesc: "Cipta dan danai dompet untuk penempatan:",
+
+    deployCommandTitle: "Arahan Tempatkan",
+    deployCommandDesc: "Gunakan arahan alkanes execute dengan envelope untuk menempatkan WASM:",
+
+    protostoneTitle: "Format Protostone",
+    protostoneDesc: "Format protostone ialah: [block,tx,opcode,...args]:output0:output1",
+    protostoneExamples: [
+      { example: "[3,1000,0]:v0:v0", desc: "Tempatkan WASM ke [4, 1000], panggil opcode 0 (initialize)" },
+      { example: "[6,1000,0,arg1,arg2]:v0:v0", desc: "Klon dari [4, 1000], hantar args ke opcode 0" },
+      { example: "[2,0,77]:v0:v0", desc: "Panggil opcode 77 (mint) pada DIESEL [2,0]" },
+      { example: "[4,65522,0]:v0:v0", desc: "Panggil opcode 0 pada kilang di [4, 65522]" },
+    ],
+
+    deployTemplateTitle: "Menempatkan Templat",
+    deployTemplateDesc: "Tempatkan kontrak sebagai templat kilang di [4, tx]:",
+
+    cloningTitle: "Mengklon dari Templat",
+    cloningDesc: "Cipta instance dari templat menggunakan [6, template_tx]:",
+
+    initializationTitle: "Permulaan Kontrak",
+    initializationDesc: "Kebanyakan kontrak memerlukan permulaan selepas penempatan:",
+
+    mintingDieselTitle: "Mencetak DIESEL",
+    mintingDieselDesc: "Lombong token DIESEL dengan memanggil opcode 77 pada [2,0]:",
+
+    wrappingBtcTitle: "Membungkus BTC kepada frBTC",
+    wrappingBtcDesc: "Tukar BTC kepada frBTC menggunakan arahan wrap-btc:",
+
+    poolCreationTitle: "Mencipta Kolam AMM",
+    poolCreationDesc: "Cipta kolam kecairan menggunakan init-pool:",
+
+    swapTitle: "Melakukan Pertukaran",
+    swapDesc: "Tukar token melalui kolam AMM:",
+
+    simulateTitle: "Mensimulasikan Panggilan",
+    simulateDesc: "Uji panggilan tanpa penyiaran menggunakan simulate:",
+
+    verifyDeploymentTitle: "Mengesahkan Penempatan",
+    verifyDeploymentDesc: "Semak bahawa kontrak ditempatkan dengan betul:",
+
+    mainnetTitle: "Penempatan Mainnet",
+    mainnetDesc: "Untuk penempatan mainnet, tukar bendera rangkaian:",
+    mainnetWarnings: [
+      "Uji dengan teliti pada regtest dahulu",
+      "Gunakan kadar yuran yang lebih tinggi untuk pengesahan lebih cepat",
+      "Simpan kata laluan dompet dengan selamat",
+      "Sahkan bytecode kontrak sebelum menempatkan",
+      "Pertimbangkan untuk menggunakan multisig untuk operasi pentadbir",
+    ],
+
+    troubleshootingTitle: "Penyelesaian Masalah",
+    troubleshooting: [
+      { issue: "UTXO tidak ditemui", solution: "Tunggu pengindeks disegerakkan atau lombong lebih banyak blok" },
+      { issue: "Bytecode tidak ditemui", solution: "Semak tx penempatan disahkan, tunggu pengindeks" },
+      { issue: "Sudah dimulakan", solution: "Kontrak sudah dimulakan - ini dijangka" },
+      { issue: "Dana tidak mencukupi", solution: "Lombong lebih banyak blok ke alamat dompet anda" },
+      { issue: "Token pengesahan diperlukan", solution: "Sertakan token pengesahan dengan bendera --inputs" },
+    ],
+
+    exampleScriptTitle: "Skrip Penempatan Lengkap",
+    exampleScriptDesc: "Berikut adalah skrip lengkap untuk menempatkan kontrak token:",
+
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Bina Token", href: "/docs/tutorials/token", desc: "Tutorial token" },
+      { text: "Bina AMM", href: "/docs/tutorials/amm", desc: "Tutorial AMM" },
+      { text: "Rujukan CLI", href: "/docs/cli", desc: "Dokumentasi CLI penuh" },
+    ],
+  },
+  vi: {
+    title: "Hướng Dẫn Triển Khai",
+    subtitle: "Triển khai và tương tác với hợp đồng thông minh Alkanes trên regtest và mainnet",
+    intro: "Hướng dẫn này bao gồm việc triển khai hợp đồng Alkanes bằng alkanes-cli. Bạn sẽ học các mẫu triển khai, lệnh CLI và cách tương tác với hợp đồng đã triển khai.",
+
+    patternsTitle: "Các Mẫu Triển Khai",
+    patternsDesc: "Alkanes sử dụng các mẫu cellpack cụ thể cho các hoạt động triển khai khác nhau:",
+    patterns: [
+      { pattern: "[3, tx]", desc: "Triển khai WASM vào slot factory [4, tx] - sử dụng cho template và factory" },
+      { pattern: "[6, tx]", desc: "Sao chép từ template [4, tx] đến [2, n] có sẵn tiếp theo" },
+      { pattern: "[1, 0]", desc: "Triển khai qua CREATE đến [2, n] có sẵn tiếp theo" },
+    ],
+
+    alkaneIdRangesTitle: "Phạm Vi AlkaneId",
+    alkaneIdRangesDesc: "Các tiền tố block khác nhau chỉ ra các loại hợp đồng khác nhau:",
+    alkaneIdRanges: [
+      { range: "[2, n]", desc: "Hợp đồng triển khai thông thường (CREATE hoặc CLONE)" },
+      { range: "[4, n]", desc: "Template factory - triển khai qua [3, n]" },
+      { range: "[6, n]", desc: "Hoạt động sao chép (chỉ định template để sao chép)" },
+      { range: "[32, n]", desc: "Hợp đồng genesis (frBTC, v.v.)" },
+      { range: "[31, n]", desc: "Hợp đồng hệ thống (ftrBTC, v.v.)" },
+    ],
+
+    cliSetupTitle: "Thiết Lập CLI",
+    cliSetupDesc: "Đầu tiên, thiết lập alkanes-cli và tạo ví:",
+
+    regtestSetupTitle: "Môi Trường Regtest",
+    regtestSetupDesc: "Khởi động môi trường regtest cục bộ để kiểm thử:",
+
+    walletSetupTitle: "Thiết Lập Ví",
+    walletSetupDesc: "Tạo và nạp tiền vào ví để triển khai:",
+
+    deployCommandTitle: "Lệnh Triển Khai",
+    deployCommandDesc: "Sử dụng lệnh alkanes execute với envelope để triển khai WASM:",
+
+    protostoneTitle: "Định Dạng Protostone",
+    protostoneDesc: "Định dạng protostone là: [block,tx,opcode,...args]:output0:output1",
+    protostoneExamples: [
+      { example: "[3,1000,0]:v0:v0", desc: "Triển khai WASM vào [4, 1000], gọi opcode 0 (initialize)" },
+      { example: "[6,1000,0,arg1,arg2]:v0:v0", desc: "Sao chép từ [4, 1000], truyền args cho opcode 0" },
+      { example: "[2,0,77]:v0:v0", desc: "Gọi opcode 77 (mint) trên DIESEL [2,0]" },
+      { example: "[4,65522,0]:v0:v0", desc: "Gọi opcode 0 trên factory tại [4, 65522]" },
+    ],
+
+    deployTemplateTitle: "Triển Khai Template",
+    deployTemplateDesc: "Triển khai hợp đồng như một template factory tại [4, tx]:",
+
+    cloningTitle: "Sao Chép Từ Template",
+    cloningDesc: "Tạo instance từ template sử dụng [6, template_tx]:",
+
+    initializationTitle: "Khởi Tạo Hợp Đồng",
+    initializationDesc: "Hầu hết các hợp đồng cần khởi tạo sau khi triển khai:",
+
+    mintingDieselTitle: "Đúc DIESEL",
+    mintingDieselDesc: "Khai thác token DIESEL bằng cách gọi opcode 77 trên [2,0]:",
+
+    wrappingBtcTitle: "Bọc BTC thành frBTC",
+    wrappingBtcDesc: "Chuyển đổi BTC thành frBTC bằng lệnh wrap-btc:",
+
+    poolCreationTitle: "Tạo Pool AMM",
+    poolCreationDesc: "Tạo pool thanh khoản bằng init-pool:",
+
+    swapTitle: "Thực Hiện Swap",
+    swapDesc: "Hoán đổi token qua pool AMM:",
+
+    simulateTitle: "Mô Phỏng Lời Gọi",
+    simulateDesc: "Kiểm thử lời gọi mà không phát sóng bằng simulate:",
+
+    verifyDeploymentTitle: "Xác Minh Triển Khai",
+    verifyDeploymentDesc: "Kiểm tra xem hợp đồng đã được triển khai đúng chưa:",
+
+    mainnetTitle: "Triển Khai Mainnet",
+    mainnetDesc: "Để triển khai mainnet, thay đổi cờ mạng:",
+    mainnetWarnings: [
+      "Kiểm thử kỹ lưỡng trên regtest trước",
+      "Sử dụng tỷ lệ phí cao hơn để xác nhận nhanh hơn",
+      "Giữ an toàn mật khẩu ví",
+      "Xác minh bytecode hợp đồng trước khi triển khai",
+      "Cân nhắc sử dụng multisig cho các hoạt động quản trị",
+    ],
+
+    troubleshootingTitle: "Khắc Phục Sự Cố",
+    troubleshooting: [
+      { issue: "Không tìm thấy UTXO", solution: "Đợi indexer đồng bộ hoặc khai thác thêm block" },
+      { issue: "Không tìm thấy bytecode", solution: "Kiểm tra tx triển khai đã xác nhận, đợi indexer" },
+      { issue: "Đã được khởi tạo", solution: "Hợp đồng đã khởi tạo - điều này mong đợi" },
+      { issue: "Không đủ tiền", solution: "Khai thác thêm block đến địa chỉ ví của bạn" },
+      { issue: "Yêu cầu token xác thực", solution: "Bao gồm token xác thực với cờ --inputs" },
+    ],
+
+    exampleScriptTitle: "Script Triển Khai Hoàn Chỉnh",
+    exampleScriptDesc: "Đây là script hoàn chỉnh để triển khai hợp đồng token:",
+
+    nextStepsTitle: "Các Bước Tiếp Theo",
+    nextSteps: [
+      { text: "Xây Dựng Token", href: "/docs/tutorials/token", desc: "Hướng dẫn token" },
+      { text: "Xây Dựng AMM", href: "/docs/tutorials/amm", desc: "Hướng dẫn AMM" },
+      { text: "Tài Liệu CLI", href: "/docs/cli", desc: "Tài liệu CLI đầy đủ" },
+    ],
+  },
+  ko: {
+    title: "배포 가이드",
+    subtitle: "regtest 및 메인넷에서 Alkanes 스마트 컨트랙트 배포 및 상호작용",
+    intro: "이 가이드는 alkanes-cli를 사용한 Alkanes 컨트랙트 배포를 다룹니다. 배포 패턴, CLI 명령 및 배포된 컨트랙트와 상호작용하는 방법을 배웁니다.",
+
+    patternsTitle: "배포 패턴",
+    patternsDesc: "Alkanes는 다양한 배포 작업에 특정 cellpack 패턴을 사용합니다:",
+    patterns: [
+      { pattern: "[3, tx]", desc: "WASM을 팩토리 슬롯 [4, tx]에 배포 - 템플릿 및 팩토리용" },
+      { pattern: "[6, tx]", desc: "템플릿 [4, tx]에서 다음 사용 가능한 [2, n]으로 복제" },
+      { pattern: "[1, 0]", desc: "CREATE를 통해 다음 사용 가능한 [2, n]으로 배포" },
+    ],
+
+    alkaneIdRangesTitle: "AlkaneId 범위",
+    alkaneIdRangesDesc: "다른 블록 접두사는 다른 컨트랙트 유형을 나타냅니다:",
+    alkaneIdRanges: [
+      { range: "[2, n]", desc: "일반 배포된 컨트랙트 (CREATE 또는 CLONE)" },
+      { range: "[4, n]", desc: "팩토리 템플릿 - [3, n]을 통해 배포됨" },
+      { range: "[6, n]", desc: "복제 작업 (복제할 템플릿 지정)" },
+      { range: "[32, n]", desc: "제네시스 컨트랙트 (frBTC 등)" },
+      { range: "[31, n]", desc: "시스템 컨트랙트 (ftrBTC 등)" },
+    ],
+
+    cliSetupTitle: "CLI 설정",
+    cliSetupDesc: "먼저 alkanes-cli를 설정하고 지갑을 생성합니다:",
+
+    regtestSetupTitle: "Regtest 환경",
+    regtestSetupDesc: "테스트를 위한 로컬 regtest 환경 시작:",
+
+    walletSetupTitle: "지갑 설정",
+    walletSetupDesc: "배포를 위한 지갑 생성 및 자금 조달:",
+
+    deployCommandTitle: "배포 명령",
+    deployCommandDesc: "envelope와 함께 alkanes execute 명령을 사용하여 WASM 배포:",
+
+    protostoneTitle: "Protostone 형식",
+    protostoneDesc: "protostone 형식: [block,tx,opcode,...args]:output0:output1",
+    protostoneExamples: [
+      { example: "[3,1000,0]:v0:v0", desc: "WASM을 [4, 1000]에 배포, opcode 0 (initialize) 호출" },
+      { example: "[6,1000,0,arg1,arg2]:v0:v0", desc: "[4, 1000]에서 복제, opcode 0에 인자 전달" },
+      { example: "[2,0,77]:v0:v0", desc: "DIESEL [2,0]에서 opcode 77 (mint) 호출" },
+      { example: "[4,65522,0]:v0:v0", desc: "[4, 65522]의 팩토리에서 opcode 0 호출" },
+    ],
+
+    deployTemplateTitle: "템플릿 배포",
+    deployTemplateDesc: "컨트랙트를 [4, tx]의 팩토리 템플릿으로 배포:",
+
+    cloningTitle: "템플릿에서 복제",
+    cloningDesc: "[6, template_tx]를 사용하여 템플릿에서 인스턴스 생성:",
+
+    initializationTitle: "컨트랙트 초기화",
+    initializationDesc: "대부분의 컨트랙트는 배포 후 초기화가 필요합니다:",
+
+    mintingDieselTitle: "DIESEL 발행",
+    mintingDieselDesc: "[2,0]에서 opcode 77을 호출하여 DIESEL 토큰 채굴:",
+
+    wrappingBtcTitle: "BTC를 frBTC로 래핑",
+    wrappingBtcDesc: "wrap-btc 명령을 사용하여 BTC를 frBTC로 변환:",
+
+    poolCreationTitle: "AMM 풀 생성",
+    poolCreationDesc: "init-pool을 사용하여 유동성 풀 생성:",
+
+    swapTitle: "스왑 수행",
+    swapDesc: "AMM 풀을 통해 토큰 스왑:",
+
+    simulateTitle: "호출 시뮬레이션",
+    simulateDesc: "simulate를 사용하여 브로드캐스트 없이 호출 테스트:",
+
+    verifyDeploymentTitle: "배포 검증",
+    verifyDeploymentDesc: "컨트랙트가 올바르게 배포되었는지 확인:",
+
+    mainnetTitle: "메인넷 배포",
+    mainnetDesc: "메인넷 배포의 경우 네트워크 플래그를 변경:",
+    mainnetWarnings: [
+      "먼저 regtest에서 철저히 테스트",
+      "더 빠른 확인을 위해 더 높은 수수료율 사용",
+      "지갑 암호를 안전하게 보관",
+      "배포 전에 컨트랙트 바이트코드 확인",
+      "관리 작업에 멀티시그 사용 고려",
+    ],
+
+    troubleshootingTitle: "문제 해결",
+    troubleshooting: [
+      { issue: "UTXO를 찾을 수 없음", solution: "인덱서 동기화 대기 또는 더 많은 블록 채굴" },
+      { issue: "바이트코드를 찾을 수 없음", solution: "배포 tx 확인 확인, 인덱서 대기" },
+      { issue: "이미 초기화됨", solution: "컨트랙트가 이미 초기화됨 - 예상된 동작" },
+      { issue: "자금 부족", solution: "지갑 주소로 더 많은 블록 채굴" },
+      { issue: "인증 토큰 필요", solution: "--inputs 플래그로 인증 토큰 포함" },
+    ],
+
+    exampleScriptTitle: "전체 배포 스크립트",
+    exampleScriptDesc: "토큰 컨트랙트를 배포하는 전체 스크립트:",
+
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "토큰 구축", href: "/docs/tutorials/token", desc: "토큰 튜토리얼" },
+      { text: "AMM 구축", href: "/docs/tutorials/amm", desc: "AMM 튜토리얼" },
+      { text: "CLI 참조", href: "/docs/cli", desc: "전체 CLI 문서" },
+    ],
+  },
 };
 
 function CodeBlock({ children, title, language = "bash" }: { children: string; title?: string; language?: string }) {

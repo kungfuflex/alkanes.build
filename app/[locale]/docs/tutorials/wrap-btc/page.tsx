@@ -193,6 +193,291 @@ const content = {
       { text: "TS SDK 指南", href: "/docs/guides/ts-sdk", desc: "完整 SDK 使用" },
     ],
   },
+  ms: {
+    title: "Balut/Buka Balutan BTC",
+    subtitle: "Tukar BTC kepada frBTC untuk digunakan dalam Alkanes DeFi",
+    intro: "frBTC (Fractional BTC) adalah representasi sintetik Bitcoin pada protokol Alkanes. Tutorial ini meliputi cara membalut BTC kepada frBTC dan membuka balutan frBTC kembali kepada BTC.",
+
+    overviewTitle: "Gambaran Keseluruhan",
+    overviewDesc: "Kontrak frBTC di [32, 0] membenarkan pengguna untuk:",
+    features: [
+      { name: "Balut BTC", desc: "Hantar BTC ke alamat penandatangan untuk mencetak frBTC" },
+      { name: "Buka Balutan frBTC", desc: "Bakar frBTC untuk menerima BTC di alamat yang ditentukan" },
+      { name: "Tanya Penandatangan", desc: "Dapatkan kunci awam penandatangan semasa" },
+      { name: "Yuran Premium", desc: "Yuran kecil ditolak semasa membalut (boleh dikonfigurasi)" },
+    ],
+
+    howItWorksTitle: "Cara Pembalutan Berfungsi",
+    howItWorksDesc: "Proses pembalutan mengesahkan transaksi Bitcoin pada rantaian:",
+    steps: [
+      "Pengguna menghantar BTC ke alamat p2tr penandatangan",
+      "Pengguna memanggil wrap (opcode 77) pada kontrak frBTC",
+      "Kontrak mengesahkan BTC telah dihantar ke penandatangan",
+      "Kontrak mencetak frBTC yang setara (tolak premium)",
+      "frBTC dihantar kepada pemanggil",
+    ],
+
+    unwrapProcessTitle: "Cara Pembukaan Balutan Berfungsi",
+    unwrapProcessDesc: "Proses pembukaan balutan mencipta rekod pembayaran untuk penandatangan:",
+    unwrapSteps: [
+      "Pengguna memanggil unwrap (opcode 78) dengan frBTC",
+      "Kontrak membakar frBTC",
+      "Kontrak mencipta rekod pembayaran untuk penandatangan",
+      "Penandatangan memproses pembayaran dan menghantar BTC",
+      "Pembayaran ditandakan sebagai lengkap",
+    ],
+
+    wrapCommandTitle: "Membalut BTC",
+    wrapCommandDesc: "Gunakan arahan alkanes-cli wrap-btc:",
+
+    unwrapCommandTitle: "Membuka Balutan frBTC",
+    unwrapCommandDesc: "Panggil opcode unwrap pada kontrak frBTC:",
+
+    queryCommandsTitle: "Arahan Pertanyaan",
+    queryCommandsDesc: "Semak keadaan dan baki frBTC:",
+
+    premiumTitle: "Yuran Premium",
+    premiumDesc: "Kontrak frBTC mengenakan premium kecil pada pembalutan. Premium diukur dalam bahagian per 100,000,000 (satoshi per BTC).",
+
+    signerTitle: "Alamat Penandatangan",
+    signerDesc: "Penandatangan adalah alamat yang memegang BTC yang dibalut. Hanya penandatangan boleh memproses permintaan pembukaan balutan.",
+
+    frbtcContractTitle: "Struktur Kontrak frBTC",
+    frbtcContractDesc: "Komponen utama kontrak frBTC:",
+
+    storageLayoutTitle: "Susun Atur Penyimpanan",
+    storageLayout: [
+      { path: "/signer", desc: "Kunci awam penandatangan (x sahaja, 32 bait)" },
+      { path: "/premium", desc: "Yuran premium dalam bahagian per 100M" },
+      { path: "/totalsupply", desc: "Jumlah bekalan frBTC" },
+      { path: "/seen/{txid}", desc: "ID transaksi yang diproses" },
+      { path: "/payments/byheight/{h}", desc: "Rekod pembayaran yang menunggu" },
+    ],
+
+    opcodesTitle: "Opcode frBTC",
+    opcodes: [
+      { opcode: "0", name: "Initialize", desc: "Sediakan kontrak dengan token auth" },
+      { opcode: "1", name: "SetSigner", desc: "Kemas kini kunci awam penandatangan (pemilik sahaja)" },
+      { opcode: "4", name: "SetPremium", desc: "Kemas kini yuran premium (pemilik sahaja)" },
+      { opcode: "77", name: "Wrap", desc: "Cetak frBTC untuk BTC yang dihantar ke penandatangan" },
+      { opcode: "78", name: "Unwrap", desc: "Bakar frBTC dan cipta rekod pembayaran" },
+      { opcode: "99", name: "GetName", desc: "Kembalikan 'frBTC'" },
+      { opcode: "100", name: "GetSymbol", desc: "Kembalikan 'frBTC'" },
+      { opcode: "101", name: "GetPendingPayments", desc: "Dapatkan semua rekod pembayaran yang menunggu" },
+      { opcode: "103", name: "GetSigner", desc: "Kembalikan kunci awam penandatangan" },
+      { opcode: "104", name: "GetPremium", desc: "Kembalikan premium semasa" },
+      { opcode: "105", name: "GetTotalSupply", desc: "Kembalikan jumlah bekalan" },
+    ],
+
+    securityTitle: "Pertimbangan Keselamatan",
+    securityItems: [
+      "frBTC disokong 1:1 oleh BTC yang dipegang oleh penandatangan",
+      "Ulangan transaksi dicegah dengan menjejaki txid yang dilihat",
+      "Hanya EOA (bukan kontrak) boleh memanggil unwrap",
+      "Unwrap mencipta rekod pembayaran, BTC sebenar dihantar di luar rantaian",
+      "Yuran premium boleh diselaraskan oleh pemilik dengan token auth",
+    ],
+
+    integrationTitle: "Integrasi TypeScript",
+    integrationDesc: "Gunakan TS SDK untuk berinteraksi dengan frBTC:",
+
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Bina AMM", href: "/docs/tutorials/amm", desc: "Berdagang frBTC" },
+      { text: "Bina Token", href: "/docs/tutorials/token", desc: "Cipta token" },
+      { text: "Panduan TS SDK", href: "/docs/guides/ts-sdk", desc: "Penggunaan SDK penuh" },
+    ],
+  },
+  vi: {
+    title: "Bọc/Mở bọc BTC",
+    subtitle: "Chuyển đổi BTC thành frBTC để sử dụng trong Alkanes DeFi",
+    intro: "frBTC (Fractional BTC) là biểu diễn tổng hợp của Bitcoin trên giao thức Alkanes. Hướng dẫn này bao gồm cách bọc BTC thành frBTC và mở bọc frBTC trở lại BTC.",
+
+    overviewTitle: "Tổng quan",
+    overviewDesc: "Hợp đồng frBTC tại [32, 0] cho phép người dùng:",
+    features: [
+      { name: "Bọc BTC", desc: "Gửi BTC đến địa chỉ người ký để đúc frBTC" },
+      { name: "Mở bọc frBTC", desc: "Đốt frBTC để nhận BTC tại địa chỉ được chỉ định" },
+      { name: "Truy vấn Người ký", desc: "Lấy khóa công khai của người ký hiện tại" },
+      { name: "Phí Premium", desc: "Phí nhỏ được khấu trừ khi bọc (có thể cấu hình)" },
+    ],
+
+    howItWorksTitle: "Cách hoạt động của Bọc",
+    howItWorksDesc: "Quá trình bọc xác minh giao dịch Bitcoin trên chuỗi:",
+    steps: [
+      "Người dùng gửi BTC đến địa chỉ p2tr của người ký",
+      "Người dùng gọi wrap (opcode 77) trên hợp đồng frBTC",
+      "Hợp đồng xác minh BTC đã được gửi đến người ký",
+      "Hợp đồng đúc frBTC tương đương (trừ premium)",
+      "frBTC được gửi đến người gọi",
+    ],
+
+    unwrapProcessTitle: "Cách hoạt động của Mở bọc",
+    unwrapProcessDesc: "Quá trình mở bọc tạo bản ghi thanh toán cho người ký:",
+    unwrapSteps: [
+      "Người dùng gọi unwrap (opcode 78) với frBTC",
+      "Hợp đồng đốt frBTC",
+      "Hợp đồng tạo bản ghi thanh toán cho người ký",
+      "Người ký xử lý thanh toán và gửi BTC",
+      "Thanh toán được đánh dấu hoàn tất",
+    ],
+
+    wrapCommandTitle: "Bọc BTC",
+    wrapCommandDesc: "Sử dụng lệnh alkanes-cli wrap-btc:",
+
+    unwrapCommandTitle: "Mở bọc frBTC",
+    unwrapCommandDesc: "Gọi opcode unwrap trên hợp đồng frBTC:",
+
+    queryCommandsTitle: "Lệnh Truy vấn",
+    queryCommandsDesc: "Kiểm tra trạng thái và số dư frBTC:",
+
+    premiumTitle: "Phí Premium",
+    premiumDesc: "Hợp đồng frBTC tính phí premium nhỏ khi bọc. Premium được đo bằng phần trên 100,000,000 (satoshi trên BTC).",
+
+    signerTitle: "Địa chỉ Người ký",
+    signerDesc: "Người ký là địa chỉ giữ BTC đã bọc. Chỉ người ký mới có thể xử lý yêu cầu mở bọc.",
+
+    frbtcContractTitle: "Cấu trúc Hợp đồng frBTC",
+    frbtcContractDesc: "Các thành phần chính của hợp đồng frBTC:",
+
+    storageLayoutTitle: "Bố cục Lưu trữ",
+    storageLayout: [
+      { path: "/signer", desc: "Khóa công khai người ký (chỉ x, 32 byte)" },
+      { path: "/premium", desc: "Phí premium theo phần trên 100M" },
+      { path: "/totalsupply", desc: "Tổng nguồn cung frBTC" },
+      { path: "/seen/{txid}", desc: "ID giao dịch đã xử lý" },
+      { path: "/payments/byheight/{h}", desc: "Bản ghi thanh toán đang chờ" },
+    ],
+
+    opcodesTitle: "Opcode frBTC",
+    opcodes: [
+      { opcode: "0", name: "Initialize", desc: "Thiết lập hợp đồng với token xác thực" },
+      { opcode: "1", name: "SetSigner", desc: "Cập nhật khóa công khai người ký (chỉ chủ sở hữu)" },
+      { opcode: "4", name: "SetPremium", desc: "Cập nhật phí premium (chỉ chủ sở hữu)" },
+      { opcode: "77", name: "Wrap", desc: "Đúc frBTC cho BTC gửi đến người ký" },
+      { opcode: "78", name: "Unwrap", desc: "Đốt frBTC và tạo bản ghi thanh toán" },
+      { opcode: "99", name: "GetName", desc: "Trả về 'frBTC'" },
+      { opcode: "100", name: "GetSymbol", desc: "Trả về 'frBTC'" },
+      { opcode: "101", name: "GetPendingPayments", desc: "Lấy tất cả bản ghi thanh toán đang chờ" },
+      { opcode: "103", name: "GetSigner", desc: "Trả về khóa công khai người ký" },
+      { opcode: "104", name: "GetPremium", desc: "Trả về premium hiện tại" },
+      { opcode: "105", name: "GetTotalSupply", desc: "Trả về tổng nguồn cung" },
+    ],
+
+    securityTitle: "Cân nhắc Bảo mật",
+    securityItems: [
+      "frBTC được hỗ trợ 1:1 bởi BTC do người ký nắm giữ",
+      "Phát lại giao dịch được ngăn chặn bằng cách theo dõi txid đã thấy",
+      "Chỉ EOA (không phải hợp đồng) mới có thể gọi unwrap",
+      "Unwrap tạo bản ghi thanh toán, BTC thực tế được gửi ngoài chuỗi",
+      "Phí premium có thể được điều chỉnh bởi chủ sở hữu với token xác thực",
+    ],
+
+    integrationTitle: "Tích hợp TypeScript",
+    integrationDesc: "Sử dụng TS SDK để tương tác với frBTC:",
+
+    nextStepsTitle: "Bước tiếp theo",
+    nextSteps: [
+      { text: "Xây dựng AMM", href: "/docs/tutorials/amm", desc: "Giao dịch frBTC" },
+      { text: "Xây dựng Token", href: "/docs/tutorials/token", desc: "Tạo token" },
+      { text: "Hướng dẫn TS SDK", href: "/docs/guides/ts-sdk", desc: "Sử dụng SDK đầy đủ" },
+    ],
+  },
+  ko: {
+    title: "BTC 래핑/언래핑",
+    subtitle: "Alkanes DeFi에서 사용하기 위해 BTC를 frBTC로 변환",
+    intro: "frBTC(Fractional BTC)는 Alkanes 프로토콜에서 비트코인의 합성 표현입니다. 이 튜토리얼은 BTC를 frBTC로 래핑하고 frBTC를 다시 BTC로 언래핑하는 방법을 다룹니다.",
+
+    overviewTitle: "개요",
+    overviewDesc: "[32, 0]에 있는 frBTC 계약은 사용자에게 다음을 허용합니다:",
+    features: [
+      { name: "BTC 래핑", desc: "서명자 주소로 BTC를 보내 frBTC 발행" },
+      { name: "frBTC 언래핑", desc: "frBTC를 소각하여 지정된 주소에서 BTC 수령" },
+      { name: "서명자 조회", desc: "현재 서명자 공개 키 가져오기" },
+      { name: "프리미엄 수수료", desc: "래핑 시 차감되는 소액 수수료(구성 가능)" },
+    ],
+
+    howItWorksTitle: "래핑 작동 방식",
+    howItWorksDesc: "래핑 프로세스는 온체인에서 비트코인 거래를 검증합니다:",
+    steps: [
+      "사용자가 서명자의 p2tr 주소로 BTC를 전송",
+      "사용자가 frBTC 계약에서 wrap(opcode 77) 호출",
+      "계약이 BTC가 서명자에게 전송되었는지 확인",
+      "계약이 동등한 frBTC 발행(프리미엄 차감)",
+      "frBTC가 호출자에게 전송됨",
+    ],
+
+    unwrapProcessTitle: "언래핑 작동 방식",
+    unwrapProcessDesc: "언래핑 프로세스는 서명자에 대한 결제 기록을 생성합니다:",
+    unwrapSteps: [
+      "사용자가 frBTC로 unwrap(opcode 78) 호출",
+      "계약이 frBTC를 소각",
+      "계약이 서명자에 대한 결제 기록 생성",
+      "서명자가 결제를 처리하고 BTC 전송",
+      "결제가 완료로 표시됨",
+    ],
+
+    wrapCommandTitle: "BTC 래핑",
+    wrapCommandDesc: "alkanes-cli wrap-btc 명령 사용:",
+
+    unwrapCommandTitle: "frBTC 언래핑",
+    unwrapCommandDesc: "frBTC 계약에서 unwrap opcode 호출:",
+
+    queryCommandsTitle: "조회 명령",
+    queryCommandsDesc: "frBTC 상태 및 잔액 확인:",
+
+    premiumTitle: "프리미엄 수수료",
+    premiumDesc: "frBTC 계약은 래핑 시 소액의 프리미엄을 부과합니다. 프리미엄은 100,000,000당 부분(BTC당 사토시)으로 측정됩니다.",
+
+    signerTitle: "서명자 주소",
+    signerDesc: "서명자는 래핑된 BTC를 보유하는 주소입니다. 서명자만 언래핑 요청을 처리할 수 있습니다.",
+
+    frbtcContractTitle: "frBTC 계약 구조",
+    frbtcContractDesc: "frBTC 계약의 주요 구성 요소:",
+
+    storageLayoutTitle: "스토리지 레이아웃",
+    storageLayout: [
+      { path: "/signer", desc: "서명자 공개 키(x만, 32바이트)" },
+      { path: "/premium", desc: "100M당 부분 단위 프리미엄 수수료" },
+      { path: "/totalsupply", desc: "총 frBTC 공급량" },
+      { path: "/seen/{txid}", desc: "처리된 거래 ID" },
+      { path: "/payments/byheight/{h}", desc: "대기 중인 결제 기록" },
+    ],
+
+    opcodesTitle: "frBTC Opcode",
+    opcodes: [
+      { opcode: "0", name: "Initialize", desc: "인증 토큰으로 계약 설정" },
+      { opcode: "1", name: "SetSigner", desc: "서명자 공개 키 업데이트(소유자 전용)" },
+      { opcode: "4", name: "SetPremium", desc: "프리미엄 수수료 업데이트(소유자 전용)" },
+      { opcode: "77", name: "Wrap", desc: "서명자에게 전송된 BTC에 대해 frBTC 발행" },
+      { opcode: "78", name: "Unwrap", desc: "frBTC 소각 및 결제 기록 생성" },
+      { opcode: "99", name: "GetName", desc: "'frBTC' 반환" },
+      { opcode: "100", name: "GetSymbol", desc: "'frBTC' 반환" },
+      { opcode: "101", name: "GetPendingPayments", desc: "모든 대기 중인 결제 기록 가져오기" },
+      { opcode: "103", name: "GetSigner", desc: "서명자 공개 키 반환" },
+      { opcode: "104", name: "GetPremium", desc: "현재 프리미엄 반환" },
+      { opcode: "105", name: "GetTotalSupply", desc: "총 공급량 반환" },
+    ],
+
+    securityTitle: "보안 고려사항",
+    securityItems: [
+      "frBTC는 서명자가 보유한 BTC로 1:1 지원됨",
+      "거래 재생은 확인된 txid 추적으로 방지됨",
+      "EOA만 unwrap을 호출할 수 있음(계약 불가)",
+      "Unwrap은 결제 기록을 생성하며, 실제 BTC는 오프체인에서 전송됨",
+      "프리미엄 수수료는 소유자가 인증 토큰으로 조정 가능",
+    ],
+
+    integrationTitle: "TypeScript 통합",
+    integrationDesc: "TS SDK를 사용하여 frBTC와 상호작용:",
+
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "AMM 구축", href: "/docs/tutorials/amm", desc: "frBTC 거래" },
+      { text: "토큰 구축", href: "/docs/tutorials/token", desc: "토큰 생성" },
+      { text: "TS SDK 가이드", href: "/docs/guides/ts-sdk", desc: "전체 SDK 사용법" },
+    ],
+  },
 };
 
 function CodeBlock({ children, title, language = "bash" }: { children: string; title?: string; language?: string }) {

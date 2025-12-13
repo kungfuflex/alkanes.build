@@ -106,6 +106,162 @@ const content = {
       { text: "Metashrew 索引器", href: "https://github.com/kungfuflex/metashrew" },
       { text: "CLI 参考", href: "/docs/cli" }
     ]
+  },
+  ms: {
+    title: "Rujukan API Alkanes",
+    intro: "API Alkanes menyediakan kaedah untuk berinteraksi dengan protokol Alkanes pada Bitcoin. Ia membolehkan pertanyaan baki, simulasi transaksi, dan pengurusan aset protorunes/alkanes.",
+    baseUrlTitle: "URL Asas",
+    baseUrlContent: "Semua kaedah API tersedia melalui permintaan HTTP POST kepada endpoint Sandshrew:",
+    endpoints: [
+      { network: "Mainnet", url: "https://mainnet.sandshrew.io/v4" },
+      { network: "Testnet", url: "https://testnet.sandshrew.io/v4" },
+      { network: "Signet", url: "https://signet.sandshrew.io/v4" }
+    ],
+    rpcMethodsTitle: "Kaedah RPC",
+    protorunesByAddressTitle: "protorunesbyaddress",
+    protorunesByAddressDesc: "Tanya baki protorunes untuk alamat tertentu.",
+    protorunesByAddressParams: [
+      { name: "address", desc: "Alamat Bitcoin untuk ditanya" },
+      { name: "protocolTag", desc: "Pengecam protokol (1n untuk Alkanes)" }
+    ],
+    protorunesByAddressReturns: [
+      { name: "outpoints", desc: "Array UTXO yang mengandungi protorunes" },
+      { name: "balanceSheet", desc: "Array baki protorune" }
+    ],
+    protorunesByHeightTitle: "protorunesbyheight",
+    protorunesByHeightDesc: "Tanya keadaan protorunes pada ketinggian blok tertentu.",
+    protorunesByOutpointTitle: "protorunesbyoutpoint",
+    protorunesByOutpointDesc: "Tanya protorunes pada UTXO tertentu.",
+    simulateTitle: "simulate",
+    simulateDesc: "Simulasikan pelaksanaan transaksi Alkanes tanpa penyiaran.",
+    usageTitle: "Contoh Penggunaan",
+    queryBalanceTitle: "Tanya Baki",
+    simulateTxTitle: "Simulasikan Transaksi",
+    getAlkanesTitle: "Dapatkan Senarai Alkanes",
+    getByAddressTitle: "Dapatkan Alkanes mengikut Alamat",
+    cliTitle: "Integrasi CLI",
+    cliContent: "Kaedah API juga boleh diakses melalui CLI:",
+    errorHandlingTitle: "Pengendalian Ralat",
+    errorHandlingContent: "Semua kaedah boleh mengembalikan ralat dengan struktur ini:",
+    errorCodes: [
+      { code: "-32700", meaning: "Ralat menghurai" },
+      { code: "-32600", meaning: "Permintaan tidak sah" },
+      { code: "-32601", meaning: "Kaedah tidak dijumpai" },
+      { code: "-32602", meaning: "Parameter tidak sah" },
+      { code: "-32603", meaning: "Ralat dalaman" }
+    ],
+    rateLimitsTitle: "Had Kadar",
+    rateLimitsContent: "Endpoint Sandshrew awam mempunyai had kadar. Untuk penggunaan produksi, pertimbangkan untuk menjalankan pengindeks Metashrew anda sendiri atau hubungi Sandshrew untuk kunci API.",
+    resourcesTitle: "Sumber",
+    resources: [
+      { text: "Dokumentasi Oyl SDK", href: "https://github.com/Oyl-Wallet/oyl-sdk" },
+      { text: "Pengindeks Metashrew", href: "https://github.com/kungfuflex/metashrew" },
+      { text: "Rujukan CLI", href: "/docs/cli" }
+    ]
+  },
+  vi: {
+    title: "Tham khảo API Alkanes",
+    intro: "API Alkanes cung cấp các phương thức để tương tác với giao thức Alkanes trên Bitcoin. Nó cho phép truy vấn số dư, mô phỏng giao dịch và quản lý tài sản protorunes/alkanes.",
+    baseUrlTitle: "URL Cơ sở",
+    baseUrlContent: "Tất cả các phương thức API có sẵn thông qua các yêu cầu HTTP POST đến các endpoint Sandshrew:",
+    endpoints: [
+      { network: "Mainnet", url: "https://mainnet.sandshrew.io/v4" },
+      { network: "Testnet", url: "https://testnet.sandshrew.io/v4" },
+      { network: "Signet", url: "https://signet.sandshrew.io/v4" }
+    ],
+    rpcMethodsTitle: "Phương thức RPC",
+    protorunesByAddressTitle: "protorunesbyaddress",
+    protorunesByAddressDesc: "Truy vấn số dư protorunes cho một địa chỉ cụ thể.",
+    protorunesByAddressParams: [
+      { name: "address", desc: "Địa chỉ Bitcoin cần truy vấn" },
+      { name: "protocolTag", desc: "Định danh giao thức (1n cho Alkanes)" }
+    ],
+    protorunesByAddressReturns: [
+      { name: "outpoints", desc: "Mảng UTXO chứa protorunes" },
+      { name: "balanceSheet", desc: "Mảng số dư protorune" }
+    ],
+    protorunesByHeightTitle: "protorunesbyheight",
+    protorunesByHeightDesc: "Truy vấn trạng thái protorunes tại một chiều cao khối cụ thể.",
+    protorunesByOutpointTitle: "protorunesbyoutpoint",
+    protorunesByOutpointDesc: "Truy vấn protorunes tại một UTXO cụ thể.",
+    simulateTitle: "simulate",
+    simulateDesc: "Mô phỏng thực thi giao dịch Alkanes mà không phát sóng.",
+    usageTitle: "Ví dụ Sử dụng",
+    queryBalanceTitle: "Truy vấn Số dư",
+    simulateTxTitle: "Mô phỏng Giao dịch",
+    getAlkanesTitle: "Lấy Danh sách Alkanes",
+    getByAddressTitle: "Lấy Alkanes theo Địa chỉ",
+    cliTitle: "Tích hợp CLI",
+    cliContent: "Các phương thức API cũng có thể truy cập thông qua CLI:",
+    errorHandlingTitle: "Xử lý Lỗi",
+    errorHandlingContent: "Tất cả các phương thức có thể trả về lỗi với cấu trúc này:",
+    errorCodes: [
+      { code: "-32700", meaning: "Lỗi phân tích cú pháp" },
+      { code: "-32600", meaning: "Yêu cầu không hợp lệ" },
+      { code: "-32601", meaning: "Không tìm thấy phương thức" },
+      { code: "-32602", meaning: "Tham số không hợp lệ" },
+      { code: "-32603", meaning: "Lỗi nội bộ" }
+    ],
+    rateLimitsTitle: "Giới hạn Tốc độ",
+    rateLimitsContent: "Các endpoint Sandshrew công khai có giới hạn tốc độ. Đối với việc sử dụng trong sản xuất, hãy xem xét chạy bộ lập chỉ mục Metashrew của riêng bạn hoặc liên hệ với Sandshrew để lấy khóa API.",
+    resourcesTitle: "Tài nguyên",
+    resources: [
+      { text: "Tài liệu Oyl SDK", href: "https://github.com/Oyl-Wallet/oyl-sdk" },
+      { text: "Bộ lập chỉ mục Metashrew", href: "https://github.com/kungfuflex/metashrew" },
+      { text: "Tham khảo CLI", href: "/docs/cli" }
+    ]
+  },
+  ko: {
+    title: "Alkanes API 참조",
+    intro: "Alkanes API는 Bitcoin의 Alkanes 프로토콜과 상호 작용하는 메서드를 제공합니다. 잔액 조회, 거래 시뮬레이션 및 protorunes/alkanes 자산 관리를 가능하게 합니다.",
+    baseUrlTitle: "기본 URL",
+    baseUrlContent: "모든 API 메서드는 Sandshrew 엔드포인트에 대한 HTTP POST 요청을 통해 사용할 수 있습니다:",
+    endpoints: [
+      { network: "메인넷", url: "https://mainnet.sandshrew.io/v4" },
+      { network: "테스트넷", url: "https://testnet.sandshrew.io/v4" },
+      { network: "Signet", url: "https://signet.sandshrew.io/v4" }
+    ],
+    rpcMethodsTitle: "RPC 메서드",
+    protorunesByAddressTitle: "protorunesbyaddress",
+    protorunesByAddressDesc: "특정 주소에 대한 protorunes 잔액을 쿼리합니다.",
+    protorunesByAddressParams: [
+      { name: "address", desc: "쿼리할 Bitcoin 주소" },
+      { name: "protocolTag", desc: "프로토콜 식별자 (Alkanes의 경우 1n)" }
+    ],
+    protorunesByAddressReturns: [
+      { name: "outpoints", desc: "protorunes를 포함하는 UTXO 배열" },
+      { name: "balanceSheet", desc: "protorune 잔액 배열" }
+    ],
+    protorunesByHeightTitle: "protorunesbyheight",
+    protorunesByHeightDesc: "특정 블록 높이에서 protorunes 상태를 쿼리합니다.",
+    protorunesByOutpointTitle: "protorunesbyoutpoint",
+    protorunesByOutpointDesc: "특정 UTXO에서 protorunes를 쿼리합니다.",
+    simulateTitle: "simulate",
+    simulateDesc: "브로드캐스트하지 않고 Alkanes 거래 실행을 시뮬레이션합니다.",
+    usageTitle: "사용 예제",
+    queryBalanceTitle: "잔액 조회",
+    simulateTxTitle: "거래 시뮬레이션",
+    getAlkanesTitle: "Alkanes 목록 가져오기",
+    getByAddressTitle: "주소별 Alkanes 가져오기",
+    cliTitle: "CLI 통합",
+    cliContent: "API 메서드는 CLI를 통해서도 액세스할 수 있습니다:",
+    errorHandlingTitle: "오류 처리",
+    errorHandlingContent: "모든 메서드는 다음 구조의 오류를 반환할 수 있습니다:",
+    errorCodes: [
+      { code: "-32700", meaning: "구문 분석 오류" },
+      { code: "-32600", meaning: "유효하지 않은 요청" },
+      { code: "-32601", meaning: "메서드를 찾을 수 없음" },
+      { code: "-32602", meaning: "유효하지 않은 매개변수" },
+      { code: "-32603", meaning: "내부 오류" }
+    ],
+    rateLimitsTitle: "속도 제한",
+    rateLimitsContent: "공개 Sandshrew 엔드포인트에는 속도 제한이 있습니다. 프로덕션 사용을 위해 자체 Metashrew 인덱서를 실행하거나 API 키를 위해 Sandshrew에 문의하는 것을 고려하십시오.",
+    resourcesTitle: "리소스",
+    resources: [
+      { text: "Oyl SDK 문서", href: "https://github.com/Oyl-Wallet/oyl-sdk" },
+      { text: "Metashrew 인덱서", href: "https://github.com/kungfuflex/metashrew" },
+      { text: "CLI 참조", href: "/docs/cli" }
+    ]
   }
 };
 

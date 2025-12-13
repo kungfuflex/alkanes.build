@@ -79,6 +79,120 @@ const content = {
       { text: "Subfrost API", href: "https://mainnet.sandshrew.io", desc: "托管索引器基础设施" },
       { text: "DIESEL 治理", href: "/governance", desc: "参与协议治理" }
     ]
+  },
+  ms: {
+    title: "Pengenalan kepada Alkanes",
+    intro: "Alkanes adalah metaprotokol yang dibina di atas Protorunes yang membawa fungsi kontrak pintar ke Bitcoin. Tidak seperti skrip Bitcoin tradisional, Alkanes membolehkan logik boleh atur cara yang kompleks sambil mengekalkan jaminan keselamatan rangkaian Bitcoin.",
+    whatTitle: "Apa itu Alkanes?",
+    whatContent: "Alkanes adalah kontrak pintar WebAssembly (WASM) yang berjalan di Bitcoin melalui protokol Protorunes. Mereka membolehkan:",
+    features: [
+      "DeFi di Bitcoin - AMM, pinjaman, derivatif",
+      "Piawaian token - Token boleh dan tidak boleh kulat",
+      "Tadbir urus - Pengundian dalam rantaian dan DAO",
+      "Logik kompleks - Pengiraan sewenang-wenangnya berlabuh ke Bitcoin"
+    ],
+    howTitle: "Cara Ia Berfungsi",
+    howSteps: [
+      "Tulis kontrak dalam Rust - Gunakan tooling biasa dan perpustakaan alkanes-std",
+      "Kompilasi ke WASM - Sasarkan wasm32-unknown-unknown",
+      "Lebarkan ke Bitcoin - Inskripkan binari WASM melalui Ordinals",
+      "Berinteraksi melalui transaksi - Panggil kaedah kontrak melalui transaksi Bitcoin"
+    ],
+    conceptsTitle: "Konsep Utama",
+    protorunesTitle: "Protorunes",
+    protorunesDesc: "Protorunes memperluaskan protokol Runes dengan fungsi boleh atur cara. Setiap Alkane adalah jenis Protorune khas yang mengandungi kod WASM boleh laksana.",
+    dieselTitle: "Token DIESEL",
+    dieselDesc: "DIESEL adalah token tadbir urus asli ekosistem Alkanes. Ia digunakan untuk mengundi peningkatan protokol, membayar gas (kos pelaksanaan), dan staking.",
+    metashrewTitle: "Pengindeks Metashrew",
+    metashrewDesc: "Metashrew adalah infrastruktur pengindeksan yang memproses blok Bitcoin dan mengekalkan keadaan Alkane. Ia membolehkan pertanyaan pantas dan kemas kini masa nyata.",
+    gettingStartedTitle: "Bermula",
+    quickStartTitle: "Mula Pantas →",
+    quickStartDesc: "Bina dan lebarkan Alkane pertama anda dalam masa kurang dari 10 minit",
+    cliTitle: "Rujukan CLI →",
+    cliDesc: "Panduan lengkap untuk alat alkanes-cli",
+    architectureTitle: "Gambaran Keseluruhan Seni Bina",
+    resourcesTitle: "Sumber",
+    resources: [
+      { text: "Repositori GitHub", href: "https://github.com/kungfuflex/alkanes-rs/tree/develop", desc: "Kod sumber dan contoh" },
+      { text: "API Subfrost", href: "https://mainnet.sandshrew.io", desc: "Infrastruktur pengindeks yang dihoskan" },
+      { text: "Tadbir Urus DIESEL", href: "/governance", desc: "Sertai tadbir urus protokol" }
+    ]
+  },
+  vi: {
+    title: "Giới thiệu về Alkanes",
+    intro: "Alkanes là một metaprotocol được xây dựng trên Protorunes mang chức năng hợp đồng thông minh đến Bitcoin. Không giống như các script Bitcoin truyền thống, Alkanes cho phép logic lập trình phức tạp trong khi vẫn duy trì các đảm bảo bảo mật của mạng Bitcoin.",
+    whatTitle: "Alkanes là gì?",
+    whatContent: "Alkanes là các hợp đồng thông minh WebAssembly (WASM) chạy trên Bitcoin thông qua giao thức Protorunes. Chúng cho phép:",
+    features: [
+      "DeFi trên Bitcoin - AMM, cho vay, phái sinh",
+      "Tiêu chuẩn token - Token có thể thay thế và không thể thay thế",
+      "Quản trị - Bỏ phiếu trên chuỗi và DAO",
+      "Logic phức tạp - Tính toán tùy ý được neo vào Bitcoin"
+    ],
+    howTitle: "Cách Hoạt Động",
+    howSteps: [
+      "Viết hợp đồng bằng Rust - Sử dụng công cụ quen thuộc và thư viện alkanes-std",
+      "Biên dịch sang WASM - Nhắm mục tiêu wasm32-unknown-unknown",
+      "Triển khai lên Bitcoin - Khắc file nhị phân WASM qua Ordinals",
+      "Tương tác qua giao dịch - Gọi các phương thức hợp đồng thông qua giao dịch Bitcoin"
+    ],
+    conceptsTitle: "Khái Niệm Chính",
+    protorunesTitle: "Protorunes",
+    protorunesDesc: "Protorunes mở rộng giao thức Runes với chức năng có thể lập trình. Mỗi Alkane là một loại Protorune đặc biệt chứa mã WASM có thể thực thi.",
+    dieselTitle: "Token DIESEL",
+    dieselDesc: "DIESEL là token quản trị gốc của hệ sinh thái Alkanes. Nó được sử dụng để bỏ phiếu nâng cấp giao thức, trả phí gas (chi phí thực thi) và staking.",
+    metashrewTitle: "Trình Lập Chỉ Mục Metashrew",
+    metashrewDesc: "Metashrew là cơ sở hạ tầng lập chỉ mục xử lý các khối Bitcoin và duy trì trạng thái Alkane. Nó cho phép truy vấn nhanh và cập nhật thời gian thực.",
+    gettingStartedTitle: "Bắt Đầu",
+    quickStartTitle: "Khởi Động Nhanh →",
+    quickStartDesc: "Xây dựng và triển khai Alkane đầu tiên của bạn trong vòng chưa đầy 10 phút",
+    cliTitle: "Tài Liệu CLI →",
+    cliDesc: "Hướng dẫn đầy đủ về công cụ alkanes-cli",
+    architectureTitle: "Tổng Quan Kiến Trúc",
+    resourcesTitle: "Tài Nguyên",
+    resources: [
+      { text: "Kho GitHub", href: "https://github.com/kungfuflex/alkanes-rs/tree/develop", desc: "Mã nguồn và ví dụ" },
+      { text: "API Subfrost", href: "https://mainnet.sandshrew.io", desc: "Cơ sở hạ tầng indexer được lưu trữ" },
+      { text: "Quản Trị DIESEL", href: "/governance", desc: "Tham gia quản trị giao thức" }
+    ]
+  },
+  ko: {
+    title: "Alkanes 소개",
+    intro: "Alkanes는 Protorunes 위에 구축된 메타프로토콜로 Bitcoin에 스마트 계약 기능을 제공합니다. 기존 Bitcoin 스크립트와 달리 Alkanes는 Bitcoin 네트워크의 보안 보장을 유지하면서 복잡한 프로그래밍 가능한 로직을 가능하게 합니다.",
+    whatTitle: "Alkanes란 무엇인가요?",
+    whatContent: "Alkanes는 Protorunes 프로토콜을 통해 Bitcoin에서 실행되는 WebAssembly(WASM) 스마트 계약입니다. 다음을 지원합니다:",
+    features: [
+      "Bitcoin의 DeFi - AMM, 대출, 파생상품",
+      "토큰 표준 - 대체 가능 및 대체 불가능 토큰",
+      "거버넌스 - 온체인 투표 및 DAO",
+      "복잡한 로직 - Bitcoin에 고정된 임의 연산"
+    ],
+    howTitle: "작동 방식",
+    howSteps: [
+      "Rust로 계약 작성 - 익숙한 도구와 alkanes-std 라이브러리 사용",
+      "WASM으로 컴파일 - wasm32-unknown-unknown 타겟",
+      "Bitcoin에 배포 - Ordinals를 통해 WASM 바이너리 인스크립션",
+      "트랜잭션을 통한 상호작용 - Bitcoin 트랜잭션을 통해 계약 메서드 호출"
+    ],
+    conceptsTitle: "핵심 개념",
+    protorunesTitle: "Protorunes",
+    protorunesDesc: "Protorunes는 프로그래밍 가능한 기능으로 Runes 프로토콜을 확장합니다. 각 Alkane은 실행 가능한 WASM 코드를 포함하는 특별한 유형의 Protorune입니다.",
+    dieselTitle: "DIESEL 토큰",
+    dieselDesc: "DIESEL은 Alkanes 생태계의 네이티브 거버넌스 토큰입니다. 프로토콜 업그레이드 투표, 가스(실행 비용) 지불 및 스테이킹에 사용됩니다.",
+    metashrewTitle: "Metashrew 인덱서",
+    metashrewDesc: "Metashrew는 Bitcoin 블록을 처리하고 Alkane 상태를 유지하는 인덱싱 인프라입니다. 빠른 쿼리와 실시간 업데이트를 가능하게 합니다.",
+    gettingStartedTitle: "시작하기",
+    quickStartTitle: "빠른 시작 →",
+    quickStartDesc: "10분 이내에 첫 번째 Alkane을 구축하고 배포하세요",
+    cliTitle: "CLI 참조 →",
+    cliDesc: "alkanes-cli 도구 완전 가이드",
+    architectureTitle: "아키텍처 개요",
+    resourcesTitle: "리소스",
+    resources: [
+      { text: "GitHub 저장소", href: "https://github.com/kungfuflex/alkanes-rs/tree/develop", desc: "소스 코드 및 예제" },
+      { text: "Subfrost API", href: "https://mainnet.sandshrew.io", desc: "호스팅된 인덱서 인프라" },
+      { text: "DIESEL 거버넌스", href: "/governance", desc: "프로토콜 거버넌스 참여" }
+    ]
   }
 };
 

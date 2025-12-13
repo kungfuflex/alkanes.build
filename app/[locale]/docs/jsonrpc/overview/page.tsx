@@ -84,6 +84,129 @@ const content = {
     ],
     luaTitle: "在 Lua 脚本中使用",
     luaDesc: "所有 RPC 方法都可以通过 _RPC 全局表在 Lua 脚本中使用："
+  },
+  ms: {
+    title: "Gambaran Keseluruhan API JSON-RPC",
+    intro: "API Subfrost menggunakan JSON-RPC 2.0 sebagai protokol utamanya. Semua kaedah boleh diakses melalui endpoint bersatu dengan awalan ruang nama.",
+    endpointTitle: "Endpoint",
+    requestTitle: "Format Permintaan",
+    requestFields: [
+      { field: "jsonrpc", desc: "Mesti \"2.0\"" },
+      { field: "method", desc: "Nama kaedah dengan awalan ruang nama" },
+      { field: "params", desc: "Parameter kaedah (array)" },
+      { field: "id", desc: "Pengecam permintaan (nombor/string)" }
+    ],
+    responseTitle: "Format Respons",
+    namespacesTitle: "Ruang Nama",
+    namespaces: [
+      { ns: "esplora_*", desc: "API penjelajah blok Electrs (cth: esplora_address::utxo)" },
+      { ns: "ord_*", desc: "Protokol Ordinals (cth: ord_inscription)" },
+      { ns: "metashrew_*", desc: "Pengindeks Metashrew (cth: metashrew_view)" },
+      { ns: "alkanes_*", desc: "Protokol Alkanes (cth: alkanes_protorunesbyaddress)" },
+      { ns: "btc_*", desc: "Bitcoin Core RPC (cth: btc_getblockcount)" },
+      { ns: "lua_*", desc: "Pelaksanaan skrip Lua (cth: lua_evalscript)" }
+    ],
+    namingTitle: "Konvensyen Penamaan Kaedah",
+    namingDesc: "Kaedah menggunakan garis bawah dan dwi-titik untuk mewakili laluan REST:",
+    namingRules: [
+      "_ (garis bawah) - Pemisah ruang nama",
+      ":: (dwi-titik) - Pemegang tempat parameter laluan"
+    ],
+    batchTitle: "Permintaan Berkelompok",
+    batchDesc: "Hantar berbilang permintaan dalam satu panggilan HTTP:",
+    errorsTitle: "Kod Ralat",
+    errors: [
+      { code: "-32700", desc: "Ralat menghurai (JSON tidak sah)" },
+      { code: "-32600", desc: "Permintaan tidak sah (permintaan JSON-RPC tidak sah)" },
+      { code: "-32601", desc: "Kaedah tidak dijumpai (kaedah tidak dikenali)" },
+      { code: "-32602", desc: "Parameter tidak sah (parameter kaedah tidak sah)" },
+      { code: "-32603", desc: "Ralat dalaman (ralat pelayan)" },
+      { code: "-32000", desc: "Had kadar terlebih" }
+    ],
+    luaTitle: "Menggunakan dalam Skrip Lua",
+    luaDesc: "Semua kaedah RPC tersedia dalam skrip Lua melalui jadual global _RPC:"
+  },
+  vi: {
+    title: "Tổng quan API JSON-RPC",
+    intro: "API Subfrost sử dụng JSON-RPC 2.0 làm giao thức chính. Tất cả các phương thức có thể truy cập thông qua endpoint thống nhất với tiền tố namespace.",
+    endpointTitle: "Endpoint",
+    requestTitle: "Định dạng Yêu cầu",
+    requestFields: [
+      { field: "jsonrpc", desc: "Phải là \"2.0\"" },
+      { field: "method", desc: "Tên phương thức với tiền tố namespace" },
+      { field: "params", desc: "Tham số phương thức (mảng)" },
+      { field: "id", desc: "Định danh yêu cầu (số/chuỗi)" }
+    ],
+    responseTitle: "Định dạng Phản hồi",
+    namespacesTitle: "Namespaces",
+    namespaces: [
+      { ns: "esplora_*", desc: "API trình khám phá khối Electrs (vd: esplora_address::utxo)" },
+      { ns: "ord_*", desc: "Giao thức Ordinals (vd: ord_inscription)" },
+      { ns: "metashrew_*", desc: "Bộ lập chỉ mục Metashrew (vd: metashrew_view)" },
+      { ns: "alkanes_*", desc: "Giao thức Alkanes (vd: alkanes_protorunesbyaddress)" },
+      { ns: "btc_*", desc: "Bitcoin Core RPC (vd: btc_getblockcount)" },
+      { ns: "lua_*", desc: "Thực thi script Lua (vd: lua_evalscript)" }
+    ],
+    namingTitle: "Quy ước Đặt tên Phương thức",
+    namingDesc: "Phương thức sử dụng gạch dưới và hai dấu hai chấm để biểu thị đường dẫn REST:",
+    namingRules: [
+      "_ (gạch dưới) - Phân tách namespace",
+      ":: (hai dấu hai chấm) - Vị trí giữ chỗ tham số đường dẫn"
+    ],
+    batchTitle: "Yêu cầu Hàng loạt",
+    batchDesc: "Gửi nhiều yêu cầu trong một lần gọi HTTP:",
+    errorsTitle: "Mã Lỗi",
+    errors: [
+      { code: "-32700", desc: "Lỗi phân tích cú pháp (JSON không hợp lệ)" },
+      { code: "-32600", desc: "Yêu cầu không hợp lệ (yêu cầu JSON-RPC không hợp lệ)" },
+      { code: "-32601", desc: "Không tìm thấy phương thức (phương thức không xác định)" },
+      { code: "-32602", desc: "Tham số không hợp lệ (tham số phương thức không hợp lệ)" },
+      { code: "-32603", desc: "Lỗi nội bộ (lỗi máy chủ)" },
+      { code: "-32000", desc: "Vượt quá giới hạn tốc độ" }
+    ],
+    luaTitle: "Sử dụng trong Script Lua",
+    luaDesc: "Tất cả các phương thức RPC có sẵn trong script Lua thông qua bảng toàn cục _RPC:"
+  },
+  ko: {
+    title: "JSON-RPC API 개요",
+    intro: "Subfrost API는 JSON-RPC 2.0을 기본 프로토콜로 사용합니다. 모든 메서드는 네임스페이스 접두사가 있는 통합 엔드포인트를 통해 액세스할 수 있습니다.",
+    endpointTitle: "엔드포인트",
+    requestTitle: "요청 형식",
+    requestFields: [
+      { field: "jsonrpc", desc: "\"2.0\"이어야 함" },
+      { field: "method", desc: "네임스페이스 접두사가 있는 메서드 이름" },
+      { field: "params", desc: "메서드 매개변수 (배열)" },
+      { field: "id", desc: "요청 식별자 (숫자/문자열)" }
+    ],
+    responseTitle: "응답 형식",
+    namespacesTitle: "네임스페이스",
+    namespaces: [
+      { ns: "esplora_*", desc: "Electrs 블록 탐색기 API (예: esplora_address::utxo)" },
+      { ns: "ord_*", desc: "Ordinals 프로토콜 (예: ord_inscription)" },
+      { ns: "metashrew_*", desc: "Metashrew 인덱서 (예: metashrew_view)" },
+      { ns: "alkanes_*", desc: "Alkanes 프로토콜 (예: alkanes_protorunesbyaddress)" },
+      { ns: "btc_*", desc: "Bitcoin Core RPC (예: btc_getblockcount)" },
+      { ns: "lua_*", desc: "Lua 스크립트 실행 (예: lua_evalscript)" }
+    ],
+    namingTitle: "메서드 명명 규칙",
+    namingDesc: "메서드는 밑줄과 이중 콜론을 사용하여 REST 경로를 나타냅니다:",
+    namingRules: [
+      "_ (밑줄) - 네임스페이스 구분자",
+      ":: (이중 콜론) - 경로 매개변수 자리 표시자"
+    ],
+    batchTitle: "일괄 요청",
+    batchDesc: "단일 HTTP 호출로 여러 요청 전송:",
+    errorsTitle: "오류 코드",
+    errors: [
+      { code: "-32700", desc: "구문 분석 오류 (유효하지 않은 JSON)" },
+      { code: "-32600", desc: "유효하지 않은 요청 (유효하지 않은 JSON-RPC 요청)" },
+      { code: "-32601", desc: "메서드를 찾을 수 없음 (알 수 없는 메서드)" },
+      { code: "-32602", desc: "유효하지 않은 매개변수 (유효하지 않은 메서드 매개변수)" },
+      { code: "-32603", desc: "내부 오류 (서버 오류)" },
+      { code: "-32000", desc: "속도 제한 초과" }
+    ],
+    luaTitle: "Lua 스크립트에서 사용",
+    luaDesc: "모든 RPC 메서드는 _RPC 전역 테이블을 통해 Lua 스크립트에서 사용할 수 있습니다:"
   }
 };
 

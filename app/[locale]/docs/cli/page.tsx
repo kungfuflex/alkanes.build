@@ -85,6 +85,129 @@ const content = {
       { text: "Alkanes 命令", href: "/docs/cli/alkanes", desc: "协议操作" },
       { text: "DataAPI 命令", href: "/docs/cli/dataapi", desc: "高级查询" }
     ]
+  },
+  ms: {
+    title: "alkanes-cli & @alkanes/ts-sdk",
+    intro: "Alat baris arahan alkanes-cli dan perpustakaan TypeScript @alkanes/ts-sdk menyediakan akses menyeluruh kepada protokol Alkanes, blockchain Bitcoin, dan API SUBFROST.",
+    whatIsTitle: "Apakah alkanes-cli?",
+    whatIsIntro: "alkanes-cli ialah antara muka baris arahan yang berkuasa untuk:",
+    features: [
+      { title: "Pengurusan Dompet", desc: "Cipta, urus, dan tandatangan transaksi dengan dompet HD" },
+      { title: "Protokol Alkanes", desc: "Laksanakan kontrak, jalankan transaksi, dan tanya baki" },
+      { title: "AMM & Kecairan", desc: "Mulakan kolam, laksanakan pertukaran, dan urus kecairan" },
+      { title: "Operasi Bitcoin", desc: "Tanya blok, transaksi, UTXO, dan anggaran fi" },
+      { title: "Ordinals & Runes", desc: "Tanya inskripsi, rune, dan maklumat sat" }
+    ],
+    endpointsTitle: "Endpoint Rangkaian",
+    endpointsIntro: "CLI boleh disambungkan kepada API SUBFROST pada rangkaian yang berbeza:",
+    endpoints: [
+      { network: "Mainnet", jsonrpc: "https://mainnet.subfrost.io/v4/jsonrpc", dataapi: "https://mainnet.subfrost.io/v4/api" },
+      { network: "Signet", jsonrpc: "https://signet.subfrost.io/v4/jsonrpc", dataapi: "https://signet.subfrost.io/v4/api" },
+      { network: "Regtest", jsonrpc: "https://regtest.subfrost.io/v4/jsonrpc", dataapi: "https://regtest.subfrost.io/v4/api" }
+    ],
+    namespacesTitle: "Ruang Nama Arahan",
+    namespaces: [
+      { cmd: "wallet", desc: "Penciptaan dompet HD, alamat, tandatangan, dan transaksi" },
+      { cmd: "alkanes", desc: "Operasi protokol Alkanes (jalankan, simulasi, jejak, tukar)" },
+      { cmd: "ord", desc: "Pertanyaan protokol Ordinals (inskripsi, rune, sat)" },
+      { cmd: "esplora", desc: "Pertanyaan penjelajah blok (blok, transaksi, alamat)" },
+      { cmd: "dataapi", desc: "Pertanyaan data peringkat tinggi (alkanes, kolam, baki)" },
+      { cmd: "metashrew", desc: "Pertanyaan pengindeks peringkat rendah" },
+      { cmd: "bitcoind", desc: "Bitcoin Core RPC passthrough" },
+      { cmd: "lua", desc: "Pelaksanaan skrip Lua pelayan" }
+    ],
+    globalOptionsTitle: "Pilihan Global",
+    sdkTitle: "TypeScript SDK (@alkanes/ts-sdk)",
+    sdkIntro: "Fungsi yang sama tersedia dalam TypeScript:",
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Pemasangan", href: "/docs/cli/installation", desc: "Pasang CLI dan SDK" },
+      { text: "Arahan Dompet", href: "/docs/cli/wallet", desc: "Pengurusan dompet" },
+      { text: "Arahan Alkanes", href: "/docs/cli/alkanes", desc: "Operasi protokol" },
+      { text: "Arahan DataAPI", href: "/docs/cli/dataapi", desc: "Pertanyaan peringkat tinggi" }
+    ]
+  },
+  vi: {
+    title: "alkanes-cli & @alkanes/ts-sdk",
+    intro: "Công cụ dòng lệnh alkanes-cli và thư viện TypeScript @alkanes/ts-sdk cung cấp quyền truy cập toàn diện vào giao thức Alkanes, blockchain Bitcoin và các API SUBFROST.",
+    whatIsTitle: "alkanes-cli là gì?",
+    whatIsIntro: "alkanes-cli là giao diện dòng lệnh mạnh mẽ cho:",
+    features: [
+      { title: "Quản lý Ví", desc: "Tạo, quản lý và ký giao dịch với ví HD" },
+      { title: "Giao thức Alkanes", desc: "Triển khai hợp đồng, thực thi giao dịch và truy vấn số dư" },
+      { title: "AMM & Thanh khoản", desc: "Khởi tạo pool, thực hiện hoán đổi và quản lý thanh khoản" },
+      { title: "Thao tác Bitcoin", desc: "Truy vấn khối, giao dịch, UTXO và ước tính phí" },
+      { title: "Ordinals & Runes", desc: "Truy vấn inscription, rune và thông tin sat" }
+    ],
+    endpointsTitle: "Điểm cuối Mạng",
+    endpointsIntro: "CLI có thể kết nối với API SUBFROST trên các mạng khác nhau:",
+    endpoints: [
+      { network: "Mainnet", jsonrpc: "https://mainnet.subfrost.io/v4/jsonrpc", dataapi: "https://mainnet.subfrost.io/v4/api" },
+      { network: "Signet", jsonrpc: "https://signet.subfrost.io/v4/jsonrpc", dataapi: "https://signet.subfrost.io/v4/api" },
+      { network: "Regtest", jsonrpc: "https://regtest.subfrost.io/v4/jsonrpc", dataapi: "https://regtest.subfrost.io/v4/api" }
+    ],
+    namespacesTitle: "Không gian tên Lệnh",
+    namespaces: [
+      { cmd: "wallet", desc: "Tạo ví HD, địa chỉ, ký và giao dịch" },
+      { cmd: "alkanes", desc: "Thao tác giao thức Alkanes (thực thi, mô phỏng, theo dõi, hoán đổi)" },
+      { cmd: "ord", desc: "Truy vấn giao thức Ordinals (inscription, rune, sat)" },
+      { cmd: "esplora", desc: "Truy vấn trình khám phá khối (khối, giao dịch, địa chỉ)" },
+      { cmd: "dataapi", desc: "Truy vấn dữ liệu cấp cao (alkanes, pool, số dư)" },
+      { cmd: "metashrew", desc: "Truy vấn indexer cấp thấp" },
+      { cmd: "bitcoind", desc: "Chuyển tiếp RPC Bitcoin Core" },
+      { cmd: "lua", desc: "Thực thi script Lua phía máy chủ" }
+    ],
+    globalOptionsTitle: "Tùy chọn Toàn cục",
+    sdkTitle: "TypeScript SDK (@alkanes/ts-sdk)",
+    sdkIntro: "Chức năng tương tự có sẵn trong TypeScript:",
+    nextStepsTitle: "Bước tiếp theo",
+    nextSteps: [
+      { text: "Cài đặt", href: "/docs/cli/installation", desc: "Cài đặt CLI và SDK" },
+      { text: "Lệnh Ví", href: "/docs/cli/wallet", desc: "Quản lý ví" },
+      { text: "Lệnh Alkanes", href: "/docs/cli/alkanes", desc: "Thao tác giao thức" },
+      { text: "Lệnh DataAPI", href: "/docs/cli/dataapi", desc: "Truy vấn cấp cao" }
+    ]
+  },
+  ko: {
+    title: "alkanes-cli & @alkanes/ts-sdk",
+    intro: "alkanes-cli 명령줄 도구와 @alkanes/ts-sdk TypeScript 라이브러리는 Alkanes 프로토콜, 비트코인 블록체인 및 SUBFROST API에 대한 포괄적인 액세스를 제공합니다.",
+    whatIsTitle: "alkanes-cli란 무엇인가요?",
+    whatIsIntro: "alkanes-cli는 다음을 위한 강력한 명령줄 인터페이스입니다:",
+    features: [
+      { title: "지갑 관리", desc: "HD 지갑으로 생성, 관리 및 트랜잭션 서명" },
+      { title: "Alkanes 프로토콜", desc: "컨트랙트 배포, 트랜잭션 실행 및 잔액 조회" },
+      { title: "AMM & 유동성", desc: "풀 초기화, 스왑 실행 및 유동성 관리" },
+      { title: "비트코인 작업", desc: "블록, 트랜잭션, UTXO 및 수수료 추정 조회" },
+      { title: "Ordinals & Runes", desc: "인스크립션, 룬 및 sat 정보 조회" }
+    ],
+    endpointsTitle: "네트워크 엔드포인트",
+    endpointsIntro: "CLI는 다양한 네트워크의 SUBFROST API에 연결할 수 있습니다:",
+    endpoints: [
+      { network: "메인넷", jsonrpc: "https://mainnet.subfrost.io/v4/jsonrpc", dataapi: "https://mainnet.subfrost.io/v4/api" },
+      { network: "Signet", jsonrpc: "https://signet.subfrost.io/v4/jsonrpc", dataapi: "https://signet.subfrost.io/v4/api" },
+      { network: "Regtest", jsonrpc: "https://regtest.subfrost.io/v4/jsonrpc", dataapi: "https://regtest.subfrost.io/v4/api" }
+    ],
+    namespacesTitle: "명령 네임스페이스",
+    namespaces: [
+      { cmd: "wallet", desc: "HD 지갑 생성, 주소, 서명 및 트랜잭션" },
+      { cmd: "alkanes", desc: "Alkanes 프로토콜 작업 (실행, 시뮬레이션, 추적, 스왑)" },
+      { cmd: "ord", desc: "Ordinals 프로토콜 쿼리 (인스크립션, 룬, sat)" },
+      { cmd: "esplora", desc: "블록 탐색기 쿼리 (블록, 트랜잭션, 주소)" },
+      { cmd: "dataapi", desc: "고급 데이터 쿼리 (alkanes, 풀, 잔액)" },
+      { cmd: "metashrew", desc: "저수준 인덱서 쿼리" },
+      { cmd: "bitcoind", desc: "Bitcoin Core RPC 패스스루" },
+      { cmd: "lua", desc: "서버측 Lua 스크립트 실행" }
+    ],
+    globalOptionsTitle: "전역 옵션",
+    sdkTitle: "TypeScript SDK (@alkanes/ts-sdk)",
+    sdkIntro: "TypeScript에서 동일한 기능을 사용할 수 있습니다:",
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "설치", href: "/docs/cli/installation", desc: "CLI 및 SDK 설치" },
+      { text: "지갑 명령", href: "/docs/cli/wallet", desc: "지갑 관리" },
+      { text: "Alkanes 명령", href: "/docs/cli/alkanes", desc: "프로토콜 작업" },
+      { text: "DataAPI 명령", href: "/docs/cli/dataapi", desc: "고급 쿼리" }
+    ]
   }
 };
 

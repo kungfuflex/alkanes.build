@@ -128,6 +128,195 @@ const content = {
     ],
     healthTitle: "健康检查",
     exampleTitle: "JavaScript 示例"
+  },
+  ms: {
+    title: "Gambaran Keseluruhan REST API",
+    intro: "Subfrost REST API menyediakan endpoint peringkat tinggi untuk alkanes, kolam AMM, dan data blockchain. Endpoint ini adalah sebahagian daripada perkhidmatan alkanes-data-api.",
+    baseUrlsTitle: "URL Asas",
+    baseUrlsDesc: "Pilih rangkaian untuk aplikasi anda:",
+    networks: [
+      { name: "Mainnet", url: "https://mainnet.subfrost.io/v4/api" },
+      { name: "Signet", url: "https://signet.subfrost.io/v4/api" },
+      { name: "Regtest", url: "https://regtest.subfrost.io/v4/api" }
+    ],
+    authTitle: "Pengesahan",
+    authMethods: [
+      "Endpoint awam - /v4/api/{route} (dengan CORS dari domain berdaftar)",
+      "Kunci API dalam laluan - /v4/{api_key}/{route}",
+      "Header kunci API - /v4/api/{route} dengan header x-subfrost-api-key"
+    ],
+    requestFormatTitle: "Format Permintaan",
+    requestFormatDesc: "Semua endpoint menerima permintaan POST dengan badan JSON.",
+    responseFormatTitle: "Format Respons",
+    responseFormatDesc: "Semua respons mengikuti struktur ini:",
+    endpointCategoriesTitle: "Kategori Endpoint",
+    alkanesTitle: "Alkanes",
+    alkanesDesc: "Tanya token dan kontrak alkane.",
+    alkanesEndpoints: [
+      { endpoint: "POST /get-alkanes", desc: "Senaraikan semua alkanes" },
+      { endpoint: "POST /get-alkanes-by-address", desc: "Alkanes untuk alamat" },
+      { endpoint: "POST /get-alkane-details", desc: "Maklumat alkane tertentu" },
+      { endpoint: "POST /global-alkanes-search", desc: "Cari alkanes" }
+    ],
+    poolsTitle: "Kolam & AMM",
+    poolsDesc: "Kolam kecairan dan operasi AMM.",
+    poolsEndpoints: [
+      { endpoint: "POST /get-pools", desc: "Senaraikan semua kolam" },
+      { endpoint: "POST /get-pool-details", desc: "Butiran kolam" },
+      { endpoint: "POST /get-all-pools-details", desc: "Semua butiran kolam" },
+      { endpoint: "POST /address-positions", desc: "Kedudukan kecairan" }
+    ],
+    bitcoinTitle: "Bitcoin/UTXO",
+    bitcoinDesc: "Baki Bitcoin dan pertanyaan UTXO.",
+    bitcoinEndpoints: [
+      { endpoint: "POST /get-address-balance", desc: "Baki alamat" },
+      { endpoint: "POST /get-taproot-balance", desc: "Baki Taproot" },
+      { endpoint: "POST /get-address-utxos", desc: "UTXO alamat" },
+      { endpoint: "POST /get-account-utxos", desc: "UTXO akaun" }
+    ],
+    historyTitle: "Sejarah",
+    historyDesc: "Sejarah transaksi untuk operasi AMM.",
+    historyEndpoints: [
+      { endpoint: "POST /get-pool-swap-history", desc: "Sejarah pertukaran kolam" },
+      { endpoint: "POST /get-token-swap-history", desc: "Sejarah pertukaran token" },
+      { endpoint: "POST /get-pool-mint-history", desc: "Penambahan kecairan" },
+      { endpoint: "POST /get-pool-burn-history", desc: "Pengeluaran kecairan" }
+    ],
+    priceTitle: "Harga Bitcoin",
+    priceDesc: "Harga BTC masa nyata dari kolam Uniswap V3 WBTC/USDC.",
+    priceEndpoints: [
+      { endpoint: "POST /get-bitcoin-price", desc: "Harga BTC semasa dalam USD" },
+      { endpoint: "POST /get-bitcoin-market-chart", desc: "Data harga sejarah" },
+      { endpoint: "POST /get-bitcoin-market-weekly", desc: "Tinggi/rendah 52 minggu" }
+    ],
+    healthTitle: "Pemeriksaan Kesihatan",
+    exampleTitle: "Contoh JavaScript"
+  },
+  vi: {
+    title: "Tổng quan REST API",
+    intro: "Subfrost REST API cung cấp các endpoint cấp cao cho alkanes, pool AMM và dữ liệu blockchain. Các endpoint này là một phần của dịch vụ alkanes-data-api.",
+    baseUrlsTitle: "URL Cơ sở",
+    baseUrlsDesc: "Chọn mạng cho ứng dụng của bạn:",
+    networks: [
+      { name: "Mainnet", url: "https://mainnet.subfrost.io/v4/api" },
+      { name: "Signet", url: "https://signet.subfrost.io/v4/api" },
+      { name: "Regtest", url: "https://regtest.subfrost.io/v4/api" }
+    ],
+    authTitle: "Xác thực",
+    authMethods: [
+      "Endpoint công khai - /v4/api/{route} (với CORS từ domain đã đăng ký)",
+      "Khóa API trong đường dẫn - /v4/{api_key}/{route}",
+      "Header khóa API - /v4/api/{route} với header x-subfrost-api-key"
+    ],
+    requestFormatTitle: "Định dạng Yêu cầu",
+    requestFormatDesc: "Tất cả các endpoint chấp nhận yêu cầu POST với body JSON.",
+    responseFormatTitle: "Định dạng Phản hồi",
+    responseFormatDesc: "Tất cả các phản hồi tuân theo cấu trúc này:",
+    endpointCategoriesTitle: "Danh mục Endpoint",
+    alkanesTitle: "Alkanes",
+    alkanesDesc: "Truy vấn token và hợp đồng alkane.",
+    alkanesEndpoints: [
+      { endpoint: "POST /get-alkanes", desc: "Liệt kê tất cả alkanes" },
+      { endpoint: "POST /get-alkanes-by-address", desc: "Alkanes cho một địa chỉ" },
+      { endpoint: "POST /get-alkane-details", desc: "Thông tin alkane cụ thể" },
+      { endpoint: "POST /global-alkanes-search", desc: "Tìm kiếm alkanes" }
+    ],
+    poolsTitle: "Pool & AMM",
+    poolsDesc: "Các pool thanh khoản và hoạt động AMM.",
+    poolsEndpoints: [
+      { endpoint: "POST /get-pools", desc: "Liệt kê tất cả các pool" },
+      { endpoint: "POST /get-pool-details", desc: "Chi tiết pool" },
+      { endpoint: "POST /get-all-pools-details", desc: "Chi tiết tất cả các pool" },
+      { endpoint: "POST /address-positions", desc: "Vị trí thanh khoản" }
+    ],
+    bitcoinTitle: "Bitcoin/UTXO",
+    bitcoinDesc: "Số dư Bitcoin và truy vấn UTXO.",
+    bitcoinEndpoints: [
+      { endpoint: "POST /get-address-balance", desc: "Số dư địa chỉ" },
+      { endpoint: "POST /get-taproot-balance", desc: "Số dư Taproot" },
+      { endpoint: "POST /get-address-utxos", desc: "UTXO địa chỉ" },
+      { endpoint: "POST /get-account-utxos", desc: "UTXO tài khoản" }
+    ],
+    historyTitle: "Lịch sử",
+    historyDesc: "Lịch sử giao dịch cho các hoạt động AMM.",
+    historyEndpoints: [
+      { endpoint: "POST /get-pool-swap-history", desc: "Lịch sử hoán đổi pool" },
+      { endpoint: "POST /get-token-swap-history", desc: "Lịch sử hoán đổi token" },
+      { endpoint: "POST /get-pool-mint-history", desc: "Thêm thanh khoản" },
+      { endpoint: "POST /get-pool-burn-history", desc: "Loại bỏ thanh khoản" }
+    ],
+    priceTitle: "Giá Bitcoin",
+    priceDesc: "Giá BTC thời gian thực từ pool Uniswap V3 WBTC/USDC.",
+    priceEndpoints: [
+      { endpoint: "POST /get-bitcoin-price", desc: "Giá BTC hiện tại bằng USD" },
+      { endpoint: "POST /get-bitcoin-market-chart", desc: "Dữ liệu giá lịch sử" },
+      { endpoint: "POST /get-bitcoin-market-weekly", desc: "Cao/thấp 52 tuần" }
+    ],
+    healthTitle: "Kiểm tra Sức khỏe",
+    exampleTitle: "Ví dụ JavaScript"
+  },
+  ko: {
+    title: "REST API 개요",
+    intro: "Subfrost REST API는 alkanes, AMM 풀 및 블록체인 데이터에 대한 고급 엔드포인트를 제공합니다. 이러한 엔드포인트는 alkanes-data-api 서비스의 일부입니다.",
+    baseUrlsTitle: "기본 URL",
+    baseUrlsDesc: "애플리케이션의 네트워크를 선택하세요:",
+    networks: [
+      { name: "메인넷", url: "https://mainnet.subfrost.io/v4/api" },
+      { name: "Signet", url: "https://signet.subfrost.io/v4/api" },
+      { name: "Regtest", url: "https://regtest.subfrost.io/v4/api" }
+    ],
+    authTitle: "인증",
+    authMethods: [
+      "공개 엔드포인트 - /v4/api/{route} (등록된 도메인의 CORS 포함)",
+      "경로의 API 키 - /v4/{api_key}/{route}",
+      "API 키 헤더 - /v4/api/{route} 및 x-subfrost-api-key 헤더"
+    ],
+    requestFormatTitle: "요청 형식",
+    requestFormatDesc: "모든 엔드포인트는 JSON 본문이 있는 POST 요청을 허용합니다.",
+    responseFormatTitle: "응답 형식",
+    responseFormatDesc: "모든 응답은 다음 구조를 따릅니다:",
+    endpointCategoriesTitle: "엔드포인트 카테고리",
+    alkanesTitle: "Alkanes",
+    alkanesDesc: "alkane 토큰 및 계약을 쿼리합니다.",
+    alkanesEndpoints: [
+      { endpoint: "POST /get-alkanes", desc: "모든 alkanes 나열" },
+      { endpoint: "POST /get-alkanes-by-address", desc: "주소의 alkanes" },
+      { endpoint: "POST /get-alkane-details", desc: "특정 alkane 정보" },
+      { endpoint: "POST /global-alkanes-search", desc: "alkanes 검색" }
+    ],
+    poolsTitle: "풀 & AMM",
+    poolsDesc: "유동성 풀 및 AMM 운영.",
+    poolsEndpoints: [
+      { endpoint: "POST /get-pools", desc: "모든 풀 나열" },
+      { endpoint: "POST /get-pool-details", desc: "풀 세부 정보" },
+      { endpoint: "POST /get-all-pools-details", desc: "모든 풀 세부 정보" },
+      { endpoint: "POST /address-positions", desc: "유동성 포지션" }
+    ],
+    bitcoinTitle: "비트코인/UTXO",
+    bitcoinDesc: "비트코인 잔액 및 UTXO 쿼리.",
+    bitcoinEndpoints: [
+      { endpoint: "POST /get-address-balance", desc: "주소 잔액" },
+      { endpoint: "POST /get-taproot-balance", desc: "Taproot 잔액" },
+      { endpoint: "POST /get-address-utxos", desc: "주소 UTXO" },
+      { endpoint: "POST /get-account-utxos", desc: "계정 UTXO" }
+    ],
+    historyTitle: "히스토리",
+    historyDesc: "AMM 운영에 대한 거래 내역.",
+    historyEndpoints: [
+      { endpoint: "POST /get-pool-swap-history", desc: "풀 스왑 히스토리" },
+      { endpoint: "POST /get-token-swap-history", desc: "토큰 스왑 히스토리" },
+      { endpoint: "POST /get-pool-mint-history", desc: "유동성 추가" },
+      { endpoint: "POST /get-pool-burn-history", desc: "유동성 제거" }
+    ],
+    priceTitle: "비트코인 가격",
+    priceDesc: "Uniswap V3 WBTC/USDC 풀의 실시간 BTC 가격.",
+    priceEndpoints: [
+      { endpoint: "POST /get-bitcoin-price", desc: "현재 BTC USD 가격" },
+      { endpoint: "POST /get-bitcoin-market-chart", desc: "과거 가격 데이터" },
+      { endpoint: "POST /get-bitcoin-market-weekly", desc: "52주 최고/최저" }
+    ],
+    healthTitle: "상태 확인",
+    exampleTitle: "JavaScript 예제"
   }
 };
 

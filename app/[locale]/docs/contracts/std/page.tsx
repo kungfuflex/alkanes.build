@@ -273,6 +273,411 @@ const content = {
       { text: "部署指南", href: "/docs/contracts/deployment", desc: "部署到 regtest/主网" },
     ],
   },
+  ms: {
+    title: "Rujukan Pustaka alkanes-std",
+    subtitle: "Trait teras, makro, dan utiliti untuk membina kontrak pintar Alkanes",
+    intro: "Pustaka alkanes-std menyediakan blok binaan penting untuk kontrak pintar Alkanes. Rujukan ini merangkumi trait teras, corak storan, dan makro yang akan anda gunakan semasa membina kontrak.",
+
+    overviewTitle: "Gambaran Keseluruhan",
+    overviewDesc: "Runtime Alkanes dibahagikan kepada beberapa crate yang berfungsi bersama:",
+    overviewItems: [
+      { name: "alkanes-runtime", desc: "Runtime teras dengan trait AlkaneResponder, storan, dan panggilan luaran" },
+      { name: "alkanes-support", desc: "Jenis seperti Context, CallResponse, AlkaneId, dan Cellpack" },
+      { name: "alkanes-macros", desc: "Makro prosedural termasuk MessageDispatch dan declare_alkane!" },
+      { name: "alkanes-std-factory-support", desc: "Trait MintableToken untuk pelaksanaan token" },
+      { name: "metashrew-support", desc: "Utiliti storan tahap rendah seperti KeyValuePointer" },
+    ],
+
+    alkaneResponderTitle: "Trait AlkaneResponder",
+    alkaneResponderDesc: "Setiap kontrak mesti melaksanakan trait AlkaneResponder. Ia menyediakan akses kepada konteks, storan, dan panggilan luaran.",
+
+    responderMethodsTitle: "Kaedah Teras",
+    responderMethods: [
+      { name: "context()", returns: "Result<Context>", desc: "Dapatkan konteks pelaksanaan semasa (pemanggil, input, alkanes masuk)" },
+      { name: "observe_initialization()", returns: "Result<()>", desc: "Tandakan kontrak sebagai dimulakan (gagal jika sudah dimulakan)" },
+      { name: "height()", returns: "u64", desc: "Dapatkan ketinggian blockchain semasa" },
+      { name: "fuel()", returns: "u64", desc: "Dapatkan baki fuel/gas pelaksanaan" },
+      { name: "sequence()", returns: "u128", desc: "Dapatkan nombor urutan seterusnya untuk spawn kilang" },
+      { name: "balance(who, what)", returns: "u128", desc: "Pertanyaan baki alkane untuk alamat" },
+      { name: "transaction()", returns: "Vec<u8>", desc: "Dapatkan bait transaksi mentah" },
+      { name: "transaction_id()", returns: "Result<Txid>", desc: "Dapatkan ID transaksi semasa" },
+      { name: "block()", returns: "Vec<u8>", desc: "Dapatkan bait blok mentah" },
+    ],
+
+    extcallMethodsTitle: "Kaedah Panggilan Luaran",
+    extcallMethods: [
+      { name: "call(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "Panggil kontrak lain (perubahan keadaan kekal)" },
+      { name: "staticcall(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "Panggil tanpa perubahan keadaan (baca sahaja)" },
+      { name: "delegatecall(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "Panggil dengan konteks pemanggil (untuk proksi)" },
+    ],
+
+    storageMethodsTitle: "Kaedah Storan",
+    storageMethods: [
+      { name: "load(key)", returns: "Vec<u8>", desc: "Muatkan bait mentah dari storan" },
+      { name: "store(key, value)", returns: "()", desc: "Simpan bait mentah ke storan" },
+    ],
+
+    messageDispatchTitle: "Makro MessageDispatch",
+    messageDispatchDesc: "Makro #[derive(MessageDispatch)] menjana penghalaan opcode untuk mesej kontrak anda.",
+    messageDispatchAttrs: [
+      { attr: "#[opcode(N)]", desc: "Petakan varian ini ke opcode N (0-255)" },
+      { attr: "#[returns(Type)]", desc: "Tandakan opcode ini sebagai mengembalikan Type dalam data respons" },
+      { attr: "Variant { field: Type }", desc: "Parameter opcode dinyahkod dari input" },
+    ],
+
+    declareAlkaneTitle: "Makro declare_alkane!",
+    declareAlkaneDesc: "Makro declare_alkane! menjana titik masuk WASM yang menghubungkan kontrak anda ke runtime.",
+
+    contextTitle: "Struktur Context",
+    contextDesc: "Context menyediakan maklumat tentang pelaksanaan semasa:",
+    contextFields: [
+      { name: "myself", type: "AlkaneId", desc: "ID kontrak ini (format block:tx)" },
+      { name: "caller", type: "AlkaneId", desc: "ID kontrak pemanggil (atau 0:0 untuk EOA)" },
+      { name: "inputs", type: "Vec<u128>", desc: "Parameter input selepas opcode" },
+      { name: "incoming_alkanes", type: "AlkaneTransferParcel", desc: "Token yang dihantar dengan panggilan ini" },
+      { name: "vout", type: "u32", desc: "Indeks output dalam transaksi" },
+    ],
+
+    callResponseTitle: "Struktur CallResponse",
+    callResponseDesc: "Setiap pengendali opcode mengembalikan CallResponse:",
+    callResponseFields: [
+      { name: "data", type: "Vec<u8>", desc: "Data pulangan (digunakan untuk nilai #[returns(Type)])" },
+      { name: "alkanes", type: "AlkaneTransferParcel", desc: "Token untuk dihantar kembali kepada pemanggil" },
+    ],
+
+    storagePointerTitle: "StoragePointer",
+    storagePointerDesc: "StoragePointer menyediakan cara mudah untuk mengurus storan kontrak:",
+    storagePointerMethods: [
+      { method: "from_keyword(\"/path\")", desc: "Cipta penunjuk dari laluan rentetan" },
+      { method: ".select(&key)", desc: "Cipta sub-penunjuk dengan menambah bait kunci" },
+      { method: ".get()", desc: "Muatkan nilai sebagai Arc<Vec<u8>>" },
+      { method: ".set(Arc::new(value))", desc: "Simpan nilai" },
+      { method: ".get_value::<T>()", desc: "Muatkan dan nyahserialisasi sebagai jenis T" },
+      { method: ".set_value::<T>(v)", desc: "Serialisasi dan simpan jenis T" },
+    ],
+
+    authenticatedTitle: "Trait AuthenticatedResponder",
+    authenticatedDesc: "Untuk kontrak yang memerlukan fungsi pemilik sahaja, laksanakan AuthenticatedResponder:",
+    authenticatedMethods: [
+      { name: "deploy_auth_token(units)", desc: "Deploy token auth semasa permulaan" },
+      { name: "only_owner()", desc: "Memerlukan token auth dalam incoming_alkanes (revert jika tiada)" },
+      { name: "auth_token()", desc: "Dapatkan AlkaneId token auth" },
+      { name: "set_auth_token(id)", desc: "Tetapkan token auth (biasanya dilakukan secara automatik)" },
+    ],
+
+    mintableTokenTitle: "Trait MintableToken",
+    mintableTokenDesc: "Untuk kontrak token, MintableToken menyediakan fungsi token standard:",
+    mintableTokenMethods: [
+      { name: "name() / symbol()", desc: "Dapatkan nama dan simbol token dari storan" },
+      { name: "set_name_and_symbol_str(name, symbol)", desc: "Tetapkan nama dan simbol semasa init" },
+      { name: "total_supply()", desc: "Dapatkan jumlah bekalan semasa" },
+      { name: "increase_total_supply(v) / decrease_total_supply(v)", desc: "Ubah jumlah bekalan (untuk mint/burn)" },
+      { name: "mint(context, value)", desc: "Cipta pemindahan mint" },
+    ],
+
+    cellpackTitle: "Struktur Cellpack",
+    cellpackDesc: "Cellpack mewakili panggilan ke kontrak lain:",
+
+    alkaneIdTitle: "Struktur AlkaneId",
+    alkaneIdDesc: "Setiap kontrak mempunyai AlkaneId unik dengan komponen block dan tx:",
+    alkaneIdTypes: [
+      { range: "[2, N]", desc: "Kontrak yang dideploy biasa (berasaskan urutan)" },
+      { range: "[4, N]", desc: "Templat kilang yang dideploy pada tx tertentu" },
+      { range: "[6, N]", desc: "Operasi klon dari templat N" },
+      { range: "[3, N]", desc: "Deploy kontrak baru dari tx N" },
+    ],
+
+    standardOpcodesTitle: "Opcode Standard",
+    standardOpcodesDesc: "Konvensyen opcode biasa merentasi kontrak Alkanes:",
+    standardOpcodes: [
+      { opcode: "0", name: "Initialize", desc: "Permulaan kontrak (biasanya dipanggil sekali)" },
+      { opcode: "77", name: "Mint", desc: "Mint token baru (jika berkenaan)" },
+      { opcode: "88", name: "Burn", desc: "Bakar token" },
+      { opcode: "99", name: "GetName", desc: "Kembalikan nama token/kontrak" },
+      { opcode: "100", name: "GetSymbol", desc: "Kembalikan simbol token" },
+      { opcode: "101", name: "GetTotalSupply", desc: "Kembalikan jumlah bekalan" },
+    ],
+
+    exampleContractTitle: "Contoh Lengkap",
+    exampleContractDesc: "Kontrak token minimum menggunakan semua corak utama:",
+
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Storan & Keadaan", href: "/docs/contracts/storage", desc: "Mendalami corak storan" },
+      { text: "Bina Token", href: "/docs/tutorials/token", desc: "Tutorial token langkah demi langkah" },
+      { text: "Panduan Deployment", href: "/docs/contracts/deployment", desc: "Deploy ke regtest/mainnet" },
+    ],
+  },
+  vi: {
+    title: "Tham chiếu Thư viện alkanes-std",
+    subtitle: "Các trait cốt lõi, macro và tiện ích để xây dựng hợp đồng thông minh Alkanes",
+    intro: "Thư viện alkanes-std cung cấp các khối xây dựng thiết yếu cho hợp đồng thông minh Alkanes. Tài liệu tham khảo này bao gồm các trait cốt lõi, mẫu lưu trữ và macro bạn sẽ sử dụng khi xây dựng hợp đồng.",
+
+    overviewTitle: "Tổng quan",
+    overviewDesc: "Runtime Alkanes được chia thành nhiều crate hoạt động cùng nhau:",
+    overviewItems: [
+      { name: "alkanes-runtime", desc: "Runtime cốt lõi với trait AlkaneResponder, lưu trữ và gọi ngoài" },
+      { name: "alkanes-support", desc: "Các kiểu như Context, CallResponse, AlkaneId và Cellpack" },
+      { name: "alkanes-macros", desc: "Macro thủ tục bao gồm MessageDispatch và declare_alkane!" },
+      { name: "alkanes-std-factory-support", desc: "Trait MintableToken cho triển khai token" },
+      { name: "metashrew-support", desc: "Tiện ích lưu trữ cấp thấp như KeyValuePointer" },
+    ],
+
+    alkaneResponderTitle: "Trait AlkaneResponder",
+    alkaneResponderDesc: "Mọi hợp đồng phải triển khai trait AlkaneResponder. Nó cung cấp quyền truy cập vào ngữ cảnh, lưu trữ và gọi ngoài.",
+
+    responderMethodsTitle: "Phương thức Cốt lõi",
+    responderMethods: [
+      { name: "context()", returns: "Result<Context>", desc: "Lấy ngữ cảnh thực thi hiện tại (người gọi, đầu vào, alkanes đến)" },
+      { name: "observe_initialization()", returns: "Result<()>", desc: "Đánh dấu hợp đồng đã khởi tạo (thất bại nếu đã khởi tạo)" },
+      { name: "height()", returns: "u64", desc: "Lấy chiều cao blockchain hiện tại" },
+      { name: "fuel()", returns: "u64", desc: "Lấy fuel/gas thực thi còn lại" },
+      { name: "sequence()", returns: "u128", desc: "Lấy số thứ tự tiếp theo cho spawn factory" },
+      { name: "balance(who, what)", returns: "u128", desc: "Truy vấn số dư alkane cho địa chỉ" },
+      { name: "transaction()", returns: "Vec<u8>", desc: "Lấy byte giao dịch thô" },
+      { name: "transaction_id()", returns: "Result<Txid>", desc: "Lấy ID giao dịch hiện tại" },
+      { name: "block()", returns: "Vec<u8>", desc: "Lấy byte block thô" },
+    ],
+
+    extcallMethodsTitle: "Phương thức Gọi Ngoài",
+    extcallMethods: [
+      { name: "call(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "Gọi hợp đồng khác (thay đổi trạng thái được lưu)" },
+      { name: "staticcall(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "Gọi không thay đổi trạng thái (chỉ đọc)" },
+      { name: "delegatecall(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "Gọi với ngữ cảnh người gọi (cho proxy)" },
+    ],
+
+    storageMethodsTitle: "Phương thức Lưu trữ",
+    storageMethods: [
+      { name: "load(key)", returns: "Vec<u8>", desc: "Tải byte thô từ lưu trữ" },
+      { name: "store(key, value)", returns: "()", desc: "Lưu byte thô vào lưu trữ" },
+    ],
+
+    messageDispatchTitle: "Macro MessageDispatch",
+    messageDispatchDesc: "Macro #[derive(MessageDispatch)] tạo routing opcode cho các message của hợp đồng.",
+    messageDispatchAttrs: [
+      { attr: "#[opcode(N)]", desc: "Ánh xạ variant này tới opcode N (0-255)" },
+      { attr: "#[returns(Type)]", desc: "Đánh dấu opcode này trả về Type trong dữ liệu phản hồi" },
+      { attr: "Variant { field: Type }", desc: "Tham số opcode được giải mã từ đầu vào" },
+    ],
+
+    declareAlkaneTitle: "Macro declare_alkane!",
+    declareAlkaneDesc: "Macro declare_alkane! tạo điểm nhập WASM kết nối hợp đồng với runtime.",
+
+    contextTitle: "Cấu trúc Context",
+    contextDesc: "Context cung cấp thông tin về thực thi hiện tại:",
+    contextFields: [
+      { name: "myself", type: "AlkaneId", desc: "ID của hợp đồng này (định dạng block:tx)" },
+      { name: "caller", type: "AlkaneId", desc: "ID của hợp đồng gọi (hoặc 0:0 cho EOA)" },
+      { name: "inputs", type: "Vec<u128>", desc: "Tham số đầu vào sau opcode" },
+      { name: "incoming_alkanes", type: "AlkaneTransferParcel", desc: "Token gửi kèm cuộc gọi này" },
+      { name: "vout", type: "u32", desc: "Chỉ số output trong giao dịch" },
+    ],
+
+    callResponseTitle: "Cấu trúc CallResponse",
+    callResponseDesc: "Mỗi handler opcode trả về CallResponse:",
+    callResponseFields: [
+      { name: "data", type: "Vec<u8>", desc: "Dữ liệu trả về (dùng cho giá trị #[returns(Type)])" },
+      { name: "alkanes", type: "AlkaneTransferParcel", desc: "Token gửi lại cho người gọi" },
+    ],
+
+    storagePointerTitle: "StoragePointer",
+    storagePointerDesc: "StoragePointer cung cấp cách thuận tiện để quản lý lưu trữ hợp đồng:",
+    storagePointerMethods: [
+      { method: "from_keyword(\"/path\")", desc: "Tạo pointer từ đường dẫn chuỗi" },
+      { method: ".select(&key)", desc: "Tạo sub-pointer bằng cách thêm byte key" },
+      { method: ".get()", desc: "Tải giá trị dạng Arc<Vec<u8>>" },
+      { method: ".set(Arc::new(value))", desc: "Lưu giá trị" },
+      { method: ".get_value::<T>()", desc: "Tải và deserialize thành kiểu T" },
+      { method: ".set_value::<T>(v)", desc: "Serialize và lưu kiểu T" },
+    ],
+
+    authenticatedTitle: "Trait AuthenticatedResponder",
+    authenticatedDesc: "Cho hợp đồng cần hàm chỉ chủ sở hữu, triển khai AuthenticatedResponder:",
+    authenticatedMethods: [
+      { name: "deploy_auth_token(units)", desc: "Deploy auth token trong quá trình khởi tạo" },
+      { name: "only_owner()", desc: "Yêu cầu auth token trong incoming_alkanes (revert nếu không có)" },
+      { name: "auth_token()", desc: "Lấy AlkaneId của auth token" },
+      { name: "set_auth_token(id)", desc: "Đặt auth token (thường tự động)" },
+    ],
+
+    mintableTokenTitle: "Trait MintableToken",
+    mintableTokenDesc: "Cho hợp đồng token, MintableToken cung cấp chức năng token tiêu chuẩn:",
+    mintableTokenMethods: [
+      { name: "name() / symbol()", desc: "Lấy tên và ký hiệu token từ lưu trữ" },
+      { name: "set_name_and_symbol_str(name, symbol)", desc: "Đặt tên và ký hiệu khi init" },
+      { name: "total_supply()", desc: "Lấy tổng cung hiện tại" },
+      { name: "increase_total_supply(v) / decrease_total_supply(v)", desc: "Sửa đổi tổng cung (cho mint/burn)" },
+      { name: "mint(context, value)", desc: "Tạo chuyển khoản mint" },
+    ],
+
+    cellpackTitle: "Cấu trúc Cellpack",
+    cellpackDesc: "Cellpack đại diện cho cuộc gọi đến hợp đồng khác:",
+
+    alkaneIdTitle: "Cấu trúc AlkaneId",
+    alkaneIdDesc: "Mỗi hợp đồng có AlkaneId duy nhất với thành phần block và tx:",
+    alkaneIdTypes: [
+      { range: "[2, N]", desc: "Hợp đồng deploy thông thường (dựa trên sequence)" },
+      { range: "[4, N]", desc: "Template factory deploy tại tx cụ thể" },
+      { range: "[6, N]", desc: "Thao tác clone từ template N" },
+      { range: "[3, N]", desc: "Deploy hợp đồng mới từ tx N" },
+    ],
+
+    standardOpcodesTitle: "Opcode Tiêu chuẩn",
+    standardOpcodesDesc: "Quy ước opcode phổ biến trong các hợp đồng Alkanes:",
+    standardOpcodes: [
+      { opcode: "0", name: "Initialize", desc: "Khởi tạo hợp đồng (thường gọi một lần)" },
+      { opcode: "77", name: "Mint", desc: "Mint token mới (nếu có)" },
+      { opcode: "88", name: "Burn", desc: "Đốt token" },
+      { opcode: "99", name: "GetName", desc: "Trả về tên token/hợp đồng" },
+      { opcode: "100", name: "GetSymbol", desc: "Trả về ký hiệu token" },
+      { opcode: "101", name: "GetTotalSupply", desc: "Trả về tổng cung" },
+    ],
+
+    exampleContractTitle: "Ví dụ Hoàn chỉnh",
+    exampleContractDesc: "Hợp đồng token tối thiểu sử dụng tất cả các mẫu chính:",
+
+    nextStepsTitle: "Bước Tiếp theo",
+    nextSteps: [
+      { text: "Lưu trữ & Trạng thái", href: "/docs/contracts/storage", desc: "Đi sâu vào mẫu lưu trữ" },
+      { text: "Xây dựng Token", href: "/docs/tutorials/token", desc: "Hướng dẫn token từng bước" },
+      { text: "Hướng dẫn Triển khai", href: "/docs/contracts/deployment", desc: "Deploy lên regtest/mainnet" },
+    ],
+  },
+  ko: {
+    title: "alkanes-std 라이브러리 레퍼런스",
+    subtitle: "Alkanes 스마트 컨트랙트 구축을 위한 핵심 trait, 매크로 및 유틸리티",
+    intro: "alkanes-std 라이브러리는 Alkanes 스마트 컨트랙트의 필수 구성 요소를 제공합니다. 이 레퍼런스는 컨트랙트 구축 시 사용할 핵심 trait, 스토리지 패턴 및 매크로를 다룹니다.",
+
+    overviewTitle: "개요",
+    overviewDesc: "Alkanes 런타임은 함께 작동하는 여러 crate로 나뉩니다:",
+    overviewItems: [
+      { name: "alkanes-runtime", desc: "AlkaneResponder trait, 스토리지, 외부 호출을 포함한 코어 런타임" },
+      { name: "alkanes-support", desc: "Context, CallResponse, AlkaneId, Cellpack 같은 타입" },
+      { name: "alkanes-macros", desc: "MessageDispatch와 declare_alkane!을 포함한 절차적 매크로" },
+      { name: "alkanes-std-factory-support", desc: "토큰 구현을 위한 MintableToken trait" },
+      { name: "metashrew-support", desc: "KeyValuePointer 같은 저수준 스토리지 유틸리티" },
+    ],
+
+    alkaneResponderTitle: "AlkaneResponder Trait",
+    alkaneResponderDesc: "모든 컨트랙트는 AlkaneResponder trait을 구현해야 합니다. 컨텍스트, 스토리지, 외부 호출에 대한 접근을 제공합니다.",
+
+    responderMethodsTitle: "핵심 메서드",
+    responderMethods: [
+      { name: "context()", returns: "Result<Context>", desc: "현재 실행 컨텍스트 가져오기 (호출자, 입력, 수신 alkanes)" },
+      { name: "observe_initialization()", returns: "Result<()>", desc: "컨트랙트를 초기화됨으로 표시 (이미 초기화되었으면 실패)" },
+      { name: "height()", returns: "u64", desc: "현재 블록체인 높이 가져오기" },
+      { name: "fuel()", returns: "u64", desc: "남은 실행 fuel/gas 가져오기" },
+      { name: "sequence()", returns: "u128", desc: "팩토리 스폰을 위한 다음 시퀀스 번호 가져오기" },
+      { name: "balance(who, what)", returns: "u128", desc: "주소의 alkane 잔액 조회" },
+      { name: "transaction()", returns: "Vec<u8>", desc: "원시 트랜잭션 바이트 가져오기" },
+      { name: "transaction_id()", returns: "Result<Txid>", desc: "현재 트랜잭션 ID 가져오기" },
+      { name: "block()", returns: "Vec<u8>", desc: "원시 블록 바이트 가져오기" },
+    ],
+
+    extcallMethodsTitle: "외부 호출 메서드",
+    extcallMethods: [
+      { name: "call(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "다른 컨트랙트 호출 (상태 변경 유지)" },
+      { name: "staticcall(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "상태 변경 없이 호출 (읽기 전용)" },
+      { name: "delegatecall(cellpack, alkanes, fuel)", returns: "Result<CallResponse>", desc: "호출자 컨텍스트로 호출 (프록시용)" },
+    ],
+
+    storageMethodsTitle: "스토리지 메서드",
+    storageMethods: [
+      { name: "load(key)", returns: "Vec<u8>", desc: "스토리지에서 원시 바이트 로드" },
+      { name: "store(key, value)", returns: "()", desc: "스토리지에 원시 바이트 저장" },
+    ],
+
+    messageDispatchTitle: "MessageDispatch 매크로",
+    messageDispatchDesc: "#[derive(MessageDispatch)] 매크로는 컨트랙트 메시지에 대한 opcode 라우팅을 생성합니다.",
+    messageDispatchAttrs: [
+      { attr: "#[opcode(N)]", desc: "이 variant를 opcode N (0-255)에 매핑" },
+      { attr: "#[returns(Type)]", desc: "이 opcode가 응답 데이터에서 Type을 반환함을 표시" },
+      { attr: "Variant { field: Type }", desc: "opcode 매개변수는 입력에서 디코딩됨" },
+    ],
+
+    declareAlkaneTitle: "declare_alkane! 매크로",
+    declareAlkaneDesc: "declare_alkane! 매크로는 컨트랙트를 런타임에 연결하는 WASM 진입점을 생성합니다.",
+
+    contextTitle: "Context 구조체",
+    contextDesc: "Context는 현재 실행에 대한 정보를 제공합니다:",
+    contextFields: [
+      { name: "myself", type: "AlkaneId", desc: "이 컨트랙트의 ID (block:tx 형식)" },
+      { name: "caller", type: "AlkaneId", desc: "호출 컨트랙트의 ID (EOA는 0:0)" },
+      { name: "inputs", type: "Vec<u128>", desc: "opcode 이후의 입력 매개변수" },
+      { name: "incoming_alkanes", type: "AlkaneTransferParcel", desc: "이 호출과 함께 전송된 토큰" },
+      { name: "vout", type: "u32", desc: "트랜잭션의 출력 인덱스" },
+    ],
+
+    callResponseTitle: "CallResponse 구조체",
+    callResponseDesc: "모든 opcode 핸들러는 CallResponse를 반환합니다:",
+    callResponseFields: [
+      { name: "data", type: "Vec<u8>", desc: "반환 데이터 (#[returns(Type)] 값에 사용)" },
+      { name: "alkanes", type: "AlkaneTransferParcel", desc: "호출자에게 돌려보낼 토큰" },
+    ],
+
+    storagePointerTitle: "StoragePointer",
+    storagePointerDesc: "StoragePointer는 컨트랙트 스토리지를 관리하는 편리한 방법을 제공합니다:",
+    storagePointerMethods: [
+      { method: "from_keyword(\"/path\")", desc: "문자열 경로에서 포인터 생성" },
+      { method: ".select(&key)", desc: "키 바이트를 추가하여 서브 포인터 생성" },
+      { method: ".get()", desc: "Arc<Vec<u8>>로 값 로드" },
+      { method: ".set(Arc::new(value))", desc: "값 저장" },
+      { method: ".get_value::<T>()", desc: "타입 T로 로드 및 역직렬화" },
+      { method: ".set_value::<T>(v)", desc: "타입 T를 직렬화하고 저장" },
+    ],
+
+    authenticatedTitle: "AuthenticatedResponder Trait",
+    authenticatedDesc: "소유자 전용 함수가 필요한 컨트랙트의 경우 AuthenticatedResponder를 구현하세요:",
+    authenticatedMethods: [
+      { name: "deploy_auth_token(units)", desc: "초기화 중 인증 토큰 배포" },
+      { name: "only_owner()", desc: "incoming_alkanes에 인증 토큰 필요 (없으면 revert)" },
+      { name: "auth_token()", desc: "인증 토큰 AlkaneId 가져오기" },
+      { name: "set_auth_token(id)", desc: "인증 토큰 설정 (보통 자동으로 수행)" },
+    ],
+
+    mintableTokenTitle: "MintableToken Trait",
+    mintableTokenDesc: "토큰 컨트랙트의 경우 MintableToken이 표준 토큰 기능을 제공합니다:",
+    mintableTokenMethods: [
+      { name: "name() / symbol()", desc: "스토리지에서 토큰 이름과 심볼 가져오기" },
+      { name: "set_name_and_symbol_str(name, symbol)", desc: "초기화 중 이름과 심볼 설정" },
+      { name: "total_supply()", desc: "현재 총 공급량 가져오기" },
+      { name: "increase_total_supply(v) / decrease_total_supply(v)", desc: "총 공급량 수정 (mint/burn용)" },
+      { name: "mint(context, value)", desc: "민트 전송 생성" },
+    ],
+
+    cellpackTitle: "Cellpack 구조체",
+    cellpackDesc: "Cellpack은 다른 컨트랙트에 대한 호출을 나타냅니다:",
+
+    alkaneIdTitle: "AlkaneId 구조체",
+    alkaneIdDesc: "모든 컨트랙트는 block과 tx 컴포넌트를 가진 고유한 AlkaneId를 갖습니다:",
+    alkaneIdTypes: [
+      { range: "[2, N]", desc: "일반 배포 컨트랙트 (시퀀스 기반)" },
+      { range: "[4, N]", desc: "특정 tx에 배포된 팩토리 템플릿" },
+      { range: "[6, N]", desc: "템플릿 N에서 클론 작업" },
+      { range: "[3, N]", desc: "tx N에서 새 컨트랙트 배포" },
+    ],
+
+    standardOpcodesTitle: "표준 Opcode",
+    standardOpcodesDesc: "Alkanes 컨트랙트 전반의 일반적인 opcode 규칙:",
+    standardOpcodes: [
+      { opcode: "0", name: "Initialize", desc: "컨트랙트 초기화 (보통 한 번만 호출)" },
+      { opcode: "77", name: "Mint", desc: "새 토큰 발행 (해당되는 경우)" },
+      { opcode: "88", name: "Burn", desc: "토큰 소각" },
+      { opcode: "99", name: "GetName", desc: "토큰/컨트랙트 이름 반환" },
+      { opcode: "100", name: "GetSymbol", desc: "토큰 심볼 반환" },
+      { opcode: "101", name: "GetTotalSupply", desc: "총 공급량 반환" },
+    ],
+
+    exampleContractTitle: "완전한 예제",
+    exampleContractDesc: "모든 핵심 패턴을 사용한 최소한의 토큰 컨트랙트:",
+
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "스토리지 & 상태", href: "/docs/contracts/storage", desc: "스토리지 패턴 심층 분석" },
+      { text: "토큰 만들기", href: "/docs/tutorials/token", desc: "단계별 토큰 튜토리얼" },
+      { text: "배포 가이드", href: "/docs/contracts/deployment", desc: "regtest/mainnet에 배포" },
+    ],
+  },
 };
 
 function CodeBlock({ children, title, language = "rust" }: { children: string; title?: string; language?: string }) {

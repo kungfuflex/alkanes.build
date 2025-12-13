@@ -98,6 +98,150 @@ const content = {
     mempoolDesc: "获取内存池统计信息。",
     feeEstimatesTitle: "esplora_fee-estimates",
     feeEstimatesDesc: "获取不同确认目标的费用估算。"
+  },
+  ms: {
+    title: "Kaedah esplora_*",
+    intro: "Ruang nama esplora_* menyediakan akses kepada fungsi penjelajah blok Electrs/Esplora. Kaedah-kaedah ini sepadan dengan Esplora REST API.",
+    addressMethodsTitle: "Kaedah Alamat",
+    addressMethods: [
+      { name: "esplora_address", desc: "Dapatkan maklumat alamat termasuk statistik rantaian" },
+      { name: "esplora_address::utxo", desc: "Dapatkan output transaksi yang belum dibelanjakan untuk alamat" },
+      { name: "esplora_address::txs", desc: "Dapatkan sejarah transaksi untuk alamat" }
+    ],
+    txMethodsTitle: "Kaedah Transaksi",
+    txMethods: [
+      { name: "esplora_tx", desc: "Dapatkan butiran transaksi lengkap" },
+      { name: "esplora_tx::status", desc: "Dapatkan status pengesahan transaksi" },
+      { name: "esplora_tx::hex", desc: "Dapatkan heksadesimal transaksi mentah" },
+      { name: "esplora_tx::outspends", desc: "Dapatkan status perbelanjaan untuk semua output" }
+    ],
+    blockMethodsTitle: "Kaedah Blok",
+    blockMethods: [
+      { name: "esplora_block", desc: "Dapatkan butiran blok mengikut hash" },
+      { name: "esplora_block-height", desc: "Dapatkan hash blok pada ketinggian tertentu" },
+      { name: "esplora_block::txids", desc: "Dapatkan semua ID transaksi dalam blok" }
+    ],
+    mempoolMethodsTitle: "Kaedah Mempool",
+    mempoolMethods: [
+      { name: "esplora_mempool", desc: "Dapatkan statistik mempool" },
+      { name: "esplora_mempool::recent", desc: "Dapatkan transaksi mempool terkini" }
+    ],
+    feeMethodsTitle: "Anggaran Bayaran",
+    feeMethods: [
+      { name: "esplora_fee-estimates", desc: "Dapatkan anggaran bayaran untuk sasaran pengesahan berbeza" }
+    ],
+    addressTitle: "esplora_address",
+    addressDesc: "Dapatkan maklumat alamat termasuk statistik rantaian.",
+    utxoTitle: "esplora_address::utxo",
+    utxoDesc: "Dapatkan output transaksi yang belum dibelanjakan untuk alamat.",
+    txTitle: "esplora_tx",
+    txDesc: "Dapatkan butiran transaksi lengkap.",
+    txStatusTitle: "esplora_tx::status",
+    txStatusDesc: "Dapatkan status pengesahan transaksi.",
+    blockTitle: "esplora_block",
+    blockDesc: "Dapatkan butiran blok mengikut hash.",
+    blockHeightTitle: "esplora_block-height",
+    blockHeightDesc: "Dapatkan hash blok pada ketinggian tertentu.",
+    mempoolTitle: "esplora_mempool",
+    mempoolDesc: "Dapatkan statistik mempool.",
+    feeEstimatesTitle: "esplora_fee-estimates",
+    feeEstimatesDesc: "Dapatkan anggaran bayaran untuk sasaran pengesahan berbeza."
+  },
+  vi: {
+    title: "Các phương thức esplora_*",
+    intro: "Namespace esplora_* cung cấp quyền truy cập vào chức năng trình khám phá khối Electrs/Esplora. Các phương thức này tương ứng với Esplora REST API.",
+    addressMethodsTitle: "Phương thức Địa chỉ",
+    addressMethods: [
+      { name: "esplora_address", desc: "Lấy thông tin địa chỉ bao gồm thống kê chuỗi" },
+      { name: "esplora_address::utxo", desc: "Lấy các đầu ra giao dịch chưa chi tiêu cho một địa chỉ" },
+      { name: "esplora_address::txs", desc: "Lấy lịch sử giao dịch cho một địa chỉ" }
+    ],
+    txMethodsTitle: "Phương thức Giao dịch",
+    txMethods: [
+      { name: "esplora_tx", desc: "Lấy chi tiết giao dịch đầy đủ" },
+      { name: "esplora_tx::status", desc: "Lấy trạng thái xác nhận giao dịch" },
+      { name: "esplora_tx::hex", desc: "Lấy hex giao dịch thô" },
+      { name: "esplora_tx::outspends", desc: "Lấy trạng thái chi tiêu cho tất cả các đầu ra" }
+    ],
+    blockMethodsTitle: "Phương thức Khối",
+    blockMethods: [
+      { name: "esplora_block", desc: "Lấy chi tiết khối theo hash" },
+      { name: "esplora_block-height", desc: "Lấy hash khối tại một chiều cao cụ thể" },
+      { name: "esplora_block::txids", desc: "Lấy tất cả ID giao dịch trong một khối" }
+    ],
+    mempoolMethodsTitle: "Phương thức Mempool",
+    mempoolMethods: [
+      { name: "esplora_mempool", desc: "Lấy thống kê mempool" },
+      { name: "esplora_mempool::recent", desc: "Lấy các giao dịch mempool gần đây" }
+    ],
+    feeMethodsTitle: "Ước tính Phí",
+    feeMethods: [
+      { name: "esplora_fee-estimates", desc: "Lấy ước tính phí cho các mục tiêu xác nhận khác nhau" }
+    ],
+    addressTitle: "esplora_address",
+    addressDesc: "Lấy thông tin địa chỉ bao gồm thống kê chuỗi.",
+    utxoTitle: "esplora_address::utxo",
+    utxoDesc: "Lấy các đầu ra giao dịch chưa chi tiêu cho một địa chỉ.",
+    txTitle: "esplora_tx",
+    txDesc: "Lấy chi tiết giao dịch đầy đủ.",
+    txStatusTitle: "esplora_tx::status",
+    txStatusDesc: "Lấy trạng thái xác nhận giao dịch.",
+    blockTitle: "esplora_block",
+    blockDesc: "Lấy chi tiết khối theo hash.",
+    blockHeightTitle: "esplora_block-height",
+    blockHeightDesc: "Lấy hash khối tại một chiều cao cụ thể.",
+    mempoolTitle: "esplora_mempool",
+    mempoolDesc: "Lấy thống kê mempool.",
+    feeEstimatesTitle: "esplora_fee-estimates",
+    feeEstimatesDesc: "Lấy ước tính phí cho các mục tiêu xác nhận khác nhau."
+  },
+  ko: {
+    title: "esplora_* 메서드",
+    intro: "esplora_* 네임스페이스는 Electrs/Esplora 블록 탐색기 기능에 대한 액세스를 제공합니다. 이러한 메서드는 Esplora REST API와 일치합니다.",
+    addressMethodsTitle: "주소 메서드",
+    addressMethods: [
+      { name: "esplora_address", desc: "체인 통계를 포함한 주소 정보 가져오기" },
+      { name: "esplora_address::utxo", desc: "주소의 미사용 거래 출력 가져오기" },
+      { name: "esplora_address::txs", desc: "주소의 거래 내역 가져오기" }
+    ],
+    txMethodsTitle: "거래 메서드",
+    txMethods: [
+      { name: "esplora_tx", desc: "전체 거래 세부 정보 가져오기" },
+      { name: "esplora_tx::status", desc: "거래 확인 상태 가져오기" },
+      { name: "esplora_tx::hex", desc: "원시 거래 hex 가져오기" },
+      { name: "esplora_tx::outspends", desc: "모든 출력에 대한 지출 상태 가져오기" }
+    ],
+    blockMethodsTitle: "블록 메서드",
+    blockMethods: [
+      { name: "esplora_block", desc: "해시로 블록 세부 정보 가져오기" },
+      { name: "esplora_block-height", desc: "특정 높이의 블록 해시 가져오기" },
+      { name: "esplora_block::txids", desc: "블록의 모든 거래 ID 가져오기" }
+    ],
+    mempoolMethodsTitle: "멤풀 메서드",
+    mempoolMethods: [
+      { name: "esplora_mempool", desc: "멤풀 통계 가져오기" },
+      { name: "esplora_mempool::recent", desc: "최근 멤풀 거래 가져오기" }
+    ],
+    feeMethodsTitle: "수수료 추정",
+    feeMethods: [
+      { name: "esplora_fee-estimates", desc: "다른 확인 목표에 대한 수수료 추정 가져오기" }
+    ],
+    addressTitle: "esplora_address",
+    addressDesc: "체인 통계를 포함한 주소 정보를 가져옵니다.",
+    utxoTitle: "esplora_address::utxo",
+    utxoDesc: "주소의 미사용 거래 출력을 가져옵니다.",
+    txTitle: "esplora_tx",
+    txDesc: "전체 거래 세부 정보를 가져옵니다.",
+    txStatusTitle: "esplora_tx::status",
+    txStatusDesc: "거래 확인 상태를 가져옵니다.",
+    blockTitle: "esplora_block",
+    blockDesc: "해시로 블록 세부 정보를 가져옵니다.",
+    blockHeightTitle: "esplora_block-height",
+    blockHeightDesc: "특정 높이의 블록 해시를 가져옵니다.",
+    mempoolTitle: "esplora_mempool",
+    mempoolDesc: "멤풀 통계를 가져옵니다.",
+    feeEstimatesTitle: "esplora_fee-estimates",
+    feeEstimatesDesc: "다른 확인 목표에 대한 수수료 추정을 가져옵니다."
   }
 };
 

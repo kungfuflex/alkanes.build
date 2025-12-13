@@ -122,6 +122,186 @@ const content = {
     healthDesc: "检查 Data API 是否健康。",
     restTitle: "REST API 对应端点",
     restDesc: "这些 DataAPI 命令对应以下 REST 端点："
+  },
+  ms: {
+    title: "Arahan DataAPI",
+    intro: "Ruang nama dataapi menyediakan pertanyaan peringkat tinggi untuk token Alkanes, kolam AMM, baki, dan data pasaran melalui SUBFROST Data API.",
+    configTitle: "Konfigurasi",
+    configDesc: "Data API menggunakan endpoint berasingan dari JSON-RPC:",
+    alkanesQueriesTitle: "Pertanyaan Alkanes",
+    alkanesQueries: [
+      { cmd: "get-alkanes", desc: "Dapatkan semua token alkanes" },
+      { cmd: "get-alkanes-by-address", desc: "Dapatkan alkanes untuk alamat" },
+      { cmd: "get-alkane-details", desc: "Dapatkan butiran untuk alkane tertentu" }
+    ],
+    poolTitle: "Kolam & AMM",
+    poolCommands: [
+      { cmd: "get-pools", desc: "Dapatkan semua kolam kecairan" },
+      { cmd: "get-pool-by-id", desc: "Dapatkan butiran kolam mengikut ID" },
+      { cmd: "get-pool-history", desc: "Dapatkan data kolam sejarah" },
+      { cmd: "get-swap-history", desc: "Dapatkan sejarah pertukaran" }
+    ],
+    balancesTitle: "Baki",
+    balanceCommands: [
+      { cmd: "get-address-balances", desc: "Dapatkan baki alkane untuk alamat (dengan penjejakan UTXO)" },
+      { cmd: "get-outpoint-balances", desc: "Dapatkan baki alkane untuk outpoint tertentu" },
+      { cmd: "get-holders", desc: "Dapatkan pemegang token alkane" },
+      { cmd: "get-holder-count", desc: "Dapatkan kiraan pemegang untuk alkane" }
+    ],
+    marketTitle: "Data Pasaran",
+    marketCommands: [
+      { cmd: "get-bitcoin-price", desc: "Dapatkan harga Bitcoin semasa" },
+      { cmd: "get-market-chart", desc: "Dapatkan carta pasaran Bitcoin" }
+    ],
+    indexerTitle: "Status Pengindeks",
+    indexerCommands: [
+      { cmd: "get-block-height", desc: "Dapatkan ketinggian blok terkini yang diproses" },
+      { cmd: "get-block-hash", desc: "Dapatkan hash blok terkini yang diproses" },
+      { cmd: "get-indexer-position", desc: "Dapatkan kedudukan pengindeks (ketinggian + hash)" },
+      { cmd: "health", desc: "Pemeriksaan kesihatan" }
+    ],
+    getAlkanesTitle: "dataapi get-alkanes",
+    getAlkanesDesc: "Dapatkan semua token alkanes yang diindeks oleh sistem.",
+    getAlkanesByAddrTitle: "dataapi get-alkanes-by-address",
+    getAlkanesByAddrDesc: "Dapatkan token alkanes yang dipegang oleh alamat tertentu.",
+    getPoolsTitle: "dataapi get-pools",
+    getPoolsDesc: "Dapatkan semua kolam kecairan dari kilang AMM.",
+    getPoolByIdTitle: "dataapi get-pool-by-id",
+    getPoolByIdDesc: "Dapatkan butiran untuk kolam kecairan tertentu.",
+    getAddressBalancesTitle: "dataapi get-address-balances",
+    getAddressBalancesDesc: "Dapatkan baki alkane untuk alamat dengan penjejakan UTXO.",
+    getHoldersTitle: "dataapi get-holders",
+    getHoldersDesc: "Dapatkan semua pemegang token alkane tertentu.",
+    getHolderCountTitle: "dataapi get-holder-count",
+    getHolderCountDesc: "Dapatkan bilangan pemegang unik untuk token alkane.",
+    getBitcoinPriceTitle: "dataapi get-bitcoin-price",
+    getBitcoinPriceDesc: "Dapatkan harga Bitcoin semasa.",
+    getBlockHeightTitle: "dataapi get-block-height",
+    getBlockHeightDesc: "Dapatkan ketinggian blok terkini yang diproses oleh pengindeks.",
+    healthTitle: "dataapi health",
+    healthDesc: "Semak sama ada Data API sihat.",
+    restTitle: "Setara REST API",
+    restDesc: "Arahan DataAPI ini sepadan dengan endpoint REST:"
+  },
+  vi: {
+    title: "Lệnh DataAPI",
+    intro: "Không gian tên dataapi cung cấp các truy vấn cấp cao cho token Alkanes, pool AMM, số dư và dữ liệu thị trường qua SUBFROST Data API.",
+    configTitle: "Cấu hình",
+    configDesc: "Data API sử dụng điểm cuối riêng với JSON-RPC:",
+    alkanesQueriesTitle: "Truy vấn Alkanes",
+    alkanesQueries: [
+      { cmd: "get-alkanes", desc: "Lấy tất cả token alkanes" },
+      { cmd: "get-alkanes-by-address", desc: "Lấy alkanes cho địa chỉ" },
+      { cmd: "get-alkane-details", desc: "Lấy chi tiết cho alkane cụ thể" }
+    ],
+    poolTitle: "Pool & AMM",
+    poolCommands: [
+      { cmd: "get-pools", desc: "Lấy tất cả pool thanh khoản" },
+      { cmd: "get-pool-by-id", desc: "Lấy chi tiết pool theo ID" },
+      { cmd: "get-pool-history", desc: "Lấy dữ liệu pool lịch sử" },
+      { cmd: "get-swap-history", desc: "Lấy lịch sử hoán đổi" }
+    ],
+    balancesTitle: "Số dư",
+    balanceCommands: [
+      { cmd: "get-address-balances", desc: "Lấy số dư alkane cho địa chỉ (với theo dõi UTXO)" },
+      { cmd: "get-outpoint-balances", desc: "Lấy số dư alkane cho outpoint cụ thể" },
+      { cmd: "get-holders", desc: "Lấy người nắm giữ token alkane" },
+      { cmd: "get-holder-count", desc: "Lấy số lượng người nắm giữ cho alkane" }
+    ],
+    marketTitle: "Dữ liệu Thị trường",
+    marketCommands: [
+      { cmd: "get-bitcoin-price", desc: "Lấy giá Bitcoin hiện tại" },
+      { cmd: "get-market-chart", desc: "Lấy biểu đồ thị trường Bitcoin" }
+    ],
+    indexerTitle: "Trạng thái Indexer",
+    indexerCommands: [
+      { cmd: "get-block-height", desc: "Lấy chiều cao khối được xử lý mới nhất" },
+      { cmd: "get-block-hash", desc: "Lấy hash khối được xử lý mới nhất" },
+      { cmd: "get-indexer-position", desc: "Lấy vị trí indexer (chiều cao + hash)" },
+      { cmd: "health", desc: "Kiểm tra sức khỏe" }
+    ],
+    getAlkanesTitle: "dataapi get-alkanes",
+    getAlkanesDesc: "Lấy tất cả token alkanes được lập chỉ mục bởi hệ thống.",
+    getAlkanesByAddrTitle: "dataapi get-alkanes-by-address",
+    getAlkanesByAddrDesc: "Lấy token alkanes được giữ bởi một địa chỉ cụ thể.",
+    getPoolsTitle: "dataapi get-pools",
+    getPoolsDesc: "Lấy tất cả pool thanh khoản từ factory AMM.",
+    getPoolByIdTitle: "dataapi get-pool-by-id",
+    getPoolByIdDesc: "Lấy chi tiết cho một pool thanh khoản cụ thể.",
+    getAddressBalancesTitle: "dataapi get-address-balances",
+    getAddressBalancesDesc: "Lấy số dư alkane cho địa chỉ với theo dõi UTXO.",
+    getHoldersTitle: "dataapi get-holders",
+    getHoldersDesc: "Lấy tất cả người nắm giữ của token alkane cụ thể.",
+    getHolderCountTitle: "dataapi get-holder-count",
+    getHolderCountDesc: "Lấy số lượng người nắm giữ duy nhất cho token alkane.",
+    getBitcoinPriceTitle: "dataapi get-bitcoin-price",
+    getBitcoinPriceDesc: "Lấy giá Bitcoin hiện tại.",
+    getBlockHeightTitle: "dataapi get-block-height",
+    getBlockHeightDesc: "Lấy chiều cao khối mới nhất được xử lý bởi indexer.",
+    healthTitle: "dataapi health",
+    healthDesc: "Kiểm tra xem Data API có khỏe mạnh không.",
+    restTitle: "Tương đương REST API",
+    restDesc: "Các lệnh DataAPI này tương ứng với các điểm cuối REST:"
+  },
+  ko: {
+    title: "DataAPI 명령",
+    intro: "dataapi 네임스페이스는 SUBFROST Data API를 통해 Alkanes 토큰, AMM 풀, 잔액 및 시장 데이터에 대한 고급 쿼리를 제공합니다.",
+    configTitle: "구성",
+    configDesc: "Data API는 JSON-RPC와 별도의 엔드포인트를 사용합니다:",
+    alkanesQueriesTitle: "Alkanes 쿼리",
+    alkanesQueries: [
+      { cmd: "get-alkanes", desc: "모든 alkanes 토큰 가져오기" },
+      { cmd: "get-alkanes-by-address", desc: "주소의 alkanes 가져오기" },
+      { cmd: "get-alkane-details", desc: "특정 alkane의 세부 정보 가져오기" }
+    ],
+    poolTitle: "풀 & AMM",
+    poolCommands: [
+      { cmd: "get-pools", desc: "모든 유동성 풀 가져오기" },
+      { cmd: "get-pool-by-id", desc: "ID로 풀 세부 정보 가져오기" },
+      { cmd: "get-pool-history", desc: "과거 풀 데이터 가져오기" },
+      { cmd: "get-swap-history", desc: "스왑 기록 가져오기" }
+    ],
+    balancesTitle: "잔액",
+    balanceCommands: [
+      { cmd: "get-address-balances", desc: "주소의 alkane 잔액 가져오기 (UTXO 추적 포함)" },
+      { cmd: "get-outpoint-balances", desc: "특정 출력점의 alkane 잔액 가져오기" },
+      { cmd: "get-holders", desc: "alkane 토큰 보유자 가져오기" },
+      { cmd: "get-holder-count", desc: "alkane의 보유자 수 가져오기" }
+    ],
+    marketTitle: "시장 데이터",
+    marketCommands: [
+      { cmd: "get-bitcoin-price", desc: "현재 비트코인 가격 가져오기" },
+      { cmd: "get-market-chart", desc: "비트코인 시장 차트 가져오기" }
+    ],
+    indexerTitle: "인덱서 상태",
+    indexerCommands: [
+      { cmd: "get-block-height", desc: "처리된 최신 블록 높이 가져오기" },
+      { cmd: "get-block-hash", desc: "처리된 최신 블록 해시 가져오기" },
+      { cmd: "get-indexer-position", desc: "인덱서 위치 가져오기 (높이 + 해시)" },
+      { cmd: "health", desc: "상태 확인" }
+    ],
+    getAlkanesTitle: "dataapi get-alkanes",
+    getAlkanesDesc: "시스템에서 인덱싱한 모든 alkanes 토큰을 가져옵니다.",
+    getAlkanesByAddrTitle: "dataapi get-alkanes-by-address",
+    getAlkanesByAddrDesc: "특정 주소가 보유한 alkanes 토큰을 가져옵니다.",
+    getPoolsTitle: "dataapi get-pools",
+    getPoolsDesc: "AMM 팩토리에서 모든 유동성 풀을 가져옵니다.",
+    getPoolByIdTitle: "dataapi get-pool-by-id",
+    getPoolByIdDesc: "특정 유동성 풀의 세부 정보를 가져옵니다.",
+    getAddressBalancesTitle: "dataapi get-address-balances",
+    getAddressBalancesDesc: "UTXO 추적과 함께 주소의 alkane 잔액을 가져옵니다.",
+    getHoldersTitle: "dataapi get-holders",
+    getHoldersDesc: "특정 alkane 토큰의 모든 보유자를 가져옵니다.",
+    getHolderCountTitle: "dataapi get-holder-count",
+    getHolderCountDesc: "alkane 토큰의 고유 보유자 수를 가져옵니다.",
+    getBitcoinPriceTitle: "dataapi get-bitcoin-price",
+    getBitcoinPriceDesc: "현재 비트코인 가격을 가져옵니다.",
+    getBlockHeightTitle: "dataapi get-block-height",
+    getBlockHeightDesc: "인덱서가 처리한 최신 블록 높이를 가져옵니다.",
+    healthTitle: "dataapi health",
+    healthDesc: "Data API가 정상인지 확인합니다.",
+    restTitle: "REST API 등가물",
+    restDesc: "이러한 DataAPI 명령은 REST 엔드포인트에 해당합니다:"
   }
 };
 

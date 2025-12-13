@@ -214,6 +214,324 @@ const content = {
       { text: "存储和状态", href: "/docs/contracts/storage", desc: "理解合约存储" },
       { text: "构建代币", href: "/docs/tutorials/token", desc: "完整代币教程" }
     ]
+  },
+  ms: {
+    title: "Menguji Kontrak",
+    subtitle: "Uji kontrak pintar Alkanes anda sebelum penempatan",
+    intro: "Menguji kontrak Alkanes melibatkan ujian unit dalam Rust dan ujian integrasi menggunakan simulator CLI. Panduan ini merangkumi strategi ujian, utiliti ujian, dan amalan terbaik.",
+
+    approachesTitle: "Pendekatan Ujian",
+    approachesDesc: "Terdapat tiga pendekatan utama untuk menguji kontrak Alkanes:",
+    approaches: [
+      {
+        title: "Simulasi CLI",
+        desc: "Gunakan alkanes-cli simulate untuk menguji panggilan kontrak tanpa penempatan. Gelung maklum balas pantas untuk menguji opcode dan perubahan keadaan."
+      },
+      {
+        title: "Integrasi Regtest",
+        desc: "Tempatkan ke persekitaran regtest tempatan dan uji tingkah laku on-chain sebenar. Diperlukan untuk menguji aliran transaksi dan pemindahan token."
+      },
+      {
+        title: "Ujian Unit",
+        desc: "Uji fungsi individu secara berasingan menggunakan rangka kerja #[test] Rust. Baik untuk menguji logik tulen dan kes sempadan."
+      }
+    ],
+
+    simulatorTitle: "Menggunakan Simulator CLI",
+    simulatorDesc: "Arahan alkanes-cli simulate membolehkan anda menguji panggilan kontrak tanpa mencipta transaksi:",
+
+    simulatorExamplesTitle: "Contoh Simulasi",
+    simulatorExamples: [
+      { desc: "Tanya nama token (opcode 99):", cmd: 'alkanes-cli -p regtest simulate 2:100:99' },
+      { desc: "Tanya baki token untuk alamat:", cmd: 'alkanes-cli -p regtest simulate 2:100:103 --args "bcrt1q..."' },
+      { desc: "Simulasi dengan jejak untuk nyahpepijat:", cmd: 'alkanes-cli -p regtest simulate 2:100:99 --trace' },
+      { desc: "Uji alkane genesis (kunci awam subfrost):", cmd: 'alkanes-cli -p regtest simulate 32:0:103' }
+    ],
+
+    regtestTitle: "Ujian Integrasi Regtest",
+    regtestDesc: "Untuk ujian integrasi penuh, tempatkan kontrak ke regtest dan laksanakan transaksi sebenar:",
+
+    traceTitle: "Nyahpepijat dengan Jejak",
+    traceDesc: "Bendera --trace menyediakan jejak pelaksanaan terperinci untuk nyahpepijat:",
+    traceFeatures: [
+      "Tindanan panggilan yang menunjukkan panggilan kontrak ke kontrak",
+      "Penggunaan gas pada setiap langkah",
+      "Bacaan dan penulisan penyimpanan",
+      "Nilai pulangan dan mesej ralat"
+    ],
+
+    unitTestsTitle: "Ujian Unit Rust",
+    unitTestsDesc: "Uji fungsi tulen dan logik secara berasingan menggunakan ujian Rust standard:",
+
+    testUtilsTitle: "Utiliti Ujian",
+    testUtilsDesc: "Kod asas alkanes-rs menyediakan pembantu ujian dalam crates/alkanes/src/tests/helpers.rs:",
+    testUtils: [
+      { name: "init_with_multiple_cellpacks", desc: "Cipta blok ujian dengan pelbagai penempatan kontrak" },
+      { name: "create_cellpack_with_witness", desc: "Bina transaksi dengan muatan WASM" },
+      { name: "assert_binary_deployed_to_id", desc: "Sahkan kontrak telah ditempatkan ke AlkaneId yang dijangka" },
+      { name: "get_sheet_for_outpoint", desc: "Dapatkan helaian baki untuk UTXO tertentu" },
+      { name: "assert_return_context", desc: "Tegaskan kontrak mengembalikan data yang dijangka" },
+      { name: "assert_revert_context", desc: "Tegaskan kontrak dikembalikan dengan ralat yang dijangka" }
+    ],
+
+    mockProviderTitle: "Mock Provider untuk Ujian CLI",
+    mockProviderDesc: "Untuk menguji operasi CLI tanpa nod langsung, gunakan MockProvider:",
+
+    balanceTestTitle: "Menguji Baki Token",
+    balanceTestDesc: "Sahkan baki token selepas transaksi:",
+
+    traceTestTitle: "Menguji dengan Acara Jejak",
+    traceTestDesc: "Tegaskan pada acara jejak tertentu untuk pengesahan terperinci:",
+
+    ciTitle: "Integrasi CI/CD",
+    ciDesc: "Jalankan ujian dalam pipeline CI anda:",
+
+    bestPracticesTitle: "Amalan Terbaik Ujian",
+    bestPractices: [
+      {
+        title: "Uji kes sempadan",
+        desc: "Uji jumlah sifar, nilai maksimum, string kosong, pemanggil tidak dibenarkan"
+      },
+      {
+        title: "Uji laluan ralat",
+        desc: "Sahkan kontrak anda dikembalikan dengan mesej yang sesuai untuk input tidak sah"
+      },
+      {
+        title: "Uji kebenaran",
+        desc: "Pastikan hanya pemanggil yang dibenarkan boleh melaksanakan operasi istimewa"
+      },
+      {
+        title: "Uji had penyimpanan",
+        desc: "Sahkan tingkah laku semasa menghampiri had penyimpanan atau dengan data besar"
+      },
+      {
+        title: "Gunakan simulasi dahulu",
+        desc: "Uji dengan simulate sebelum penempatan untuk menangkap ralat awal"
+      },
+      {
+        title: "Uji urutan panggilan berbilang",
+        desc: "Sahkan keadaan konsisten merentasi pelbagai panggilan kontrak"
+      }
+    ],
+
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Panduan Penempatan", href: "/docs/contracts/deployment", desc: "Tempatkan ke regtest atau mainnet" },
+      { text: "Penyimpanan & Keadaan", href: "/docs/contracts/storage", desc: "Fahami penyimpanan kontrak" },
+      { text: "Bina Token", href: "/docs/tutorials/token", desc: "Tutorial token penuh" }
+    ]
+  },
+  vi: {
+    title: "Kiểm Thử Hợp Đồng",
+    subtitle: "Kiểm thử hợp đồng thông minh Alkanes của bạn trước khi triển khai",
+    intro: "Kiểm thử hợp đồng Alkanes bao gồm cả kiểm thử đơn vị trong Rust và kiểm thử tích hợp sử dụng trình mô phỏng CLI. Hướng dẫn này bao gồm các chiến lược kiểm thử, tiện ích kiểm thử và thực hành tốt nhất.",
+
+    approachesTitle: "Các Phương Pháp Kiểm Thử",
+    approachesDesc: "Có ba phương pháp chính để kiểm thử hợp đồng Alkanes:",
+    approaches: [
+      {
+        title: "Mô Phỏng CLI",
+        desc: "Sử dụng alkanes-cli simulate để kiểm thử các lời gọi hợp đồng mà không cần triển khai. Vòng phản hồi nhanh để kiểm thử opcode và thay đổi trạng thái."
+      },
+      {
+        title: "Tích Hợp Regtest",
+        desc: "Triển khai lên môi trường regtest cục bộ và kiểm thử hành vi on-chain thực tế. Cần thiết để kiểm thử luồng giao dịch và chuyển token."
+      },
+      {
+        title: "Kiểm Thử Đơn Vị",
+        desc: "Kiểm thử các hàm riêng lẻ độc lập bằng framework #[test] của Rust. Tốt để kiểm thử logic thuần và các trường hợp biên."
+      }
+    ],
+
+    simulatorTitle: "Sử Dụng Trình Mô Phỏng CLI",
+    simulatorDesc: "Lệnh alkanes-cli simulate cho phép bạn kiểm thử các lời gọi hợp đồng mà không tạo giao dịch:",
+
+    simulatorExamplesTitle: "Ví Dụ Mô Phỏng",
+    simulatorExamples: [
+      { desc: "Truy vấn tên token (opcode 99):", cmd: 'alkanes-cli -p regtest simulate 2:100:99' },
+      { desc: "Truy vấn số dư token cho một địa chỉ:", cmd: 'alkanes-cli -p regtest simulate 2:100:103 --args "bcrt1q..."' },
+      { desc: "Mô phỏng với trace để gỡ lỗi:", cmd: 'alkanes-cli -p regtest simulate 2:100:99 --trace' },
+      { desc: "Kiểm thử alkane genesis (khóa công khai subfrost):", cmd: 'alkanes-cli -p regtest simulate 32:0:103' }
+    ],
+
+    regtestTitle: "Kiểm Thử Tích Hợp Regtest",
+    regtestDesc: "Để kiểm thử tích hợp đầy đủ, triển khai hợp đồng lên regtest và thực thi các giao dịch thực:",
+
+    traceTitle: "Gỡ Lỗi Với Trace",
+    traceDesc: "Flag --trace cung cấp trace thực thi chi tiết để gỡ lỗi:",
+    traceFeatures: [
+      "Call stack hiển thị các lời gọi hợp đồng-đến-hợp đồng",
+      "Tiêu thụ gas tại mỗi bước",
+      "Đọc và ghi storage",
+      "Giá trị trả về và thông báo lỗi"
+    ],
+
+    unitTestsTitle: "Kiểm Thử Đơn Vị Rust",
+    unitTestsDesc: "Kiểm thử các hàm thuần và logic độc lập bằng kiểm thử Rust chuẩn:",
+
+    testUtilsTitle: "Tiện Ích Kiểm Thử",
+    testUtilsDesc: "Codebase alkanes-rs cung cấp các helper kiểm thử trong crates/alkanes/src/tests/helpers.rs:",
+    testUtils: [
+      { name: "init_with_multiple_cellpacks", desc: "Tạo khối kiểm thử với nhiều triển khai hợp đồng" },
+      { name: "create_cellpack_with_witness", desc: "Xây dựng giao dịch với payload WASM" },
+      { name: "assert_binary_deployed_to_id", desc: "Xác minh hợp đồng đã được triển khai đến AlkaneId mong đợi" },
+      { name: "get_sheet_for_outpoint", desc: "Lấy bảng cân đối cho UTXO cụ thể" },
+      { name: "assert_return_context", desc: "Khẳng định hợp đồng trả về dữ liệu mong đợi" },
+      { name: "assert_revert_context", desc: "Khẳng định hợp đồng hoàn nguyên với lỗi mong đợi" }
+    ],
+
+    mockProviderTitle: "Mock Provider Cho Kiểm Thử CLI",
+    mockProviderDesc: "Để kiểm thử các hoạt động CLI mà không cần node trực tiếp, sử dụng MockProvider:",
+
+    balanceTestTitle: "Kiểm Thử Số Dư Token",
+    balanceTestDesc: "Xác minh số dư token sau giao dịch:",
+
+    traceTestTitle: "Kiểm Thử Với Sự Kiện Trace",
+    traceTestDesc: "Khẳng định trên các sự kiện trace cụ thể để xác minh chi tiết:",
+
+    ciTitle: "Tích Hợp CI/CD",
+    ciDesc: "Chạy kiểm thử trong pipeline CI của bạn:",
+
+    bestPracticesTitle: "Thực Hành Tốt Nhất Về Kiểm Thử",
+    bestPractices: [
+      {
+        title: "Kiểm thử các trường hợp biên",
+        desc: "Kiểm thử số lượng bằng 0, giá trị tối đa, chuỗi rỗng, người gọi không được ủy quyền"
+      },
+      {
+        title: "Kiểm thử các đường dẫn lỗi",
+        desc: "Xác minh hợp đồng của bạn hoàn nguyên với thông báo phù hợp cho đầu vào không hợp lệ"
+      },
+      {
+        title: "Kiểm thử ủy quyền",
+        desc: "Đảm bảo chỉ người gọi được ủy quyền mới có thể thực thi các hoạt động đặc quyền"
+      },
+      {
+        title: "Kiểm thử giới hạn storage",
+        desc: "Xác minh hành vi khi gần đến giới hạn storage hoặc với dữ liệu lớn"
+      },
+      {
+        title: "Sử dụng mô phỏng trước",
+        desc: "Kiểm thử với simulate trước khi triển khai để phát hiện lỗi sớm"
+      },
+      {
+        title: "Kiểm thử chuỗi đa lời gọi",
+        desc: "Xác minh trạng thái nhất quán qua nhiều lời gọi hợp đồng"
+      }
+    ],
+
+    nextStepsTitle: "Các Bước Tiếp Theo",
+    nextSteps: [
+      { text: "Hướng Dẫn Triển Khai", href: "/docs/contracts/deployment", desc: "Triển khai lên regtest hoặc mainnet" },
+      { text: "Lưu Trữ & Trạng Thái", href: "/docs/contracts/storage", desc: "Hiểu storage của hợp đồng" },
+      { text: "Xây Dựng Token", href: "/docs/tutorials/token", desc: "Hướng dẫn token đầy đủ" }
+    ]
+  },
+  ko: {
+    title: "컨트랙트 테스트",
+    subtitle: "배포 전에 Alkanes 스마트 컨트랙트 테스트하기",
+    intro: "Alkanes 컨트랙트 테스트는 Rust의 단위 테스트와 CLI 시뮬레이터를 사용한 통합 테스트를 모두 포함합니다. 이 가이드는 테스트 전략, 테스트 유틸리티 및 모범 사례를 다룹니다.",
+
+    approachesTitle: "테스트 접근법",
+    approachesDesc: "Alkanes 컨트랙트를 테스트하는 세 가지 주요 접근법이 있습니다:",
+    approaches: [
+      {
+        title: "CLI 시뮬레이션",
+        desc: "alkanes-cli simulate를 사용하여 배포 없이 컨트랙트 호출을 테스트합니다. opcode 및 상태 변경을 테스트하기 위한 빠른 피드백 루프."
+      },
+      {
+        title: "Regtest 통합",
+        desc: "로컬 regtest 환경에 배포하고 실제 온체인 동작을 테스트합니다. 트랜잭션 플로우 및 토큰 전송 테스트에 필요."
+      },
+      {
+        title: "단위 테스트",
+        desc: "Rust의 #[test] 프레임워크를 사용하여 개별 함수를 독립적으로 테스트합니다. 순수 로직 및 엣지 케이스 테스트에 적합."
+      }
+    ],
+
+    simulatorTitle: "CLI 시뮬레이터 사용",
+    simulatorDesc: "alkanes-cli simulate 명령을 사용하면 트랜잭션을 생성하지 않고 컨트랙트 호출을 테스트할 수 있습니다:",
+
+    simulatorExamplesTitle: "시뮬레이션 예제",
+    simulatorExamples: [
+      { desc: "토큰 이름 조회 (opcode 99):", cmd: 'alkanes-cli -p regtest simulate 2:100:99' },
+      { desc: "주소의 토큰 잔액 조회:", cmd: 'alkanes-cli -p regtest simulate 2:100:103 --args "bcrt1q..."' },
+      { desc: "디버깅을 위한 trace와 함께 시뮬레이션:", cmd: 'alkanes-cli -p regtest simulate 2:100:99 --trace' },
+      { desc: "제네시스 alkane 테스트 (subfrost 공개키):", cmd: 'alkanes-cli -p regtest simulate 32:0:103' }
+    ],
+
+    regtestTitle: "Regtest 통합 테스트",
+    regtestDesc: "전체 통합 테스트를 위해 컨트랙트를 regtest에 배포하고 실제 트랜잭션을 실행합니다:",
+
+    traceTitle: "Trace로 디버깅",
+    traceDesc: "--trace 플래그는 디버깅을 위한 상세한 실행 추적을 제공합니다:",
+    traceFeatures: [
+      "컨트랙트 간 호출을 보여주는 호출 스택",
+      "각 단계의 가스 소비",
+      "스토리지 읽기 및 쓰기",
+      "반환 값 및 오류 메시지"
+    ],
+
+    unitTestsTitle: "Rust 단위 테스트",
+    unitTestsDesc: "표준 Rust 테스트를 사용하여 순수 함수와 로직을 독립적으로 테스트:",
+
+    testUtilsTitle: "테스트 유틸리티",
+    testUtilsDesc: "alkanes-rs 코드베이스는 crates/alkanes/src/tests/helpers.rs에 테스트 헬퍼를 제공합니다:",
+    testUtils: [
+      { name: "init_with_multiple_cellpacks", desc: "여러 컨트랙트 배포가 포함된 테스트 블록 생성" },
+      { name: "create_cellpack_with_witness", desc: "WASM 페이로드가 포함된 트랜잭션 구축" },
+      { name: "assert_binary_deployed_to_id", desc: "예상된 AlkaneId로 컨트랙트가 배포되었는지 검증" },
+      { name: "get_sheet_for_outpoint", desc: "특정 UTXO의 잔액 시트 가져오기" },
+      { name: "assert_return_context", desc: "컨트랙트가 예상 데이터를 반환했는지 단언" },
+      { name: "assert_revert_context", desc: "컨트랙트가 예상 오류로 되돌려졌는지 단언" }
+    ],
+
+    mockProviderTitle: "CLI 테스트를 위한 Mock Provider",
+    mockProviderDesc: "라이브 노드 없이 CLI 작업을 테스트하려면 MockProvider를 사용하세요:",
+
+    balanceTestTitle: "토큰 잔액 테스트",
+    balanceTestDesc: "트랜잭션 후 토큰 잔액 확인:",
+
+    traceTestTitle: "Trace 이벤트로 테스트",
+    traceTestDesc: "상세한 검증을 위해 특정 trace 이벤트에 대해 단언:",
+
+    ciTitle: "CI/CD 통합",
+    ciDesc: "CI 파이프라인에서 테스트 실행:",
+
+    bestPracticesTitle: "테스트 모범 사례",
+    bestPractices: [
+      {
+        title: "엣지 케이스 테스트",
+        desc: "0 값, 최대값, 빈 문자열, 권한 없는 호출자 테스트"
+      },
+      {
+        title: "오류 경로 테스트",
+        desc: "잘못된 입력에 대해 컨트랙트가 적절한 메시지로 되돌려지는지 확인"
+      },
+      {
+        title: "권한 테스트",
+        desc: "권한이 있는 호출자만 특권 작업을 실행할 수 있는지 확인"
+      },
+      {
+        title: "스토리지 제한 테스트",
+        desc: "스토리지 제한에 가까워지거나 큰 데이터로 작업할 때의 동작 확인"
+      },
+      {
+        title: "시뮬레이션 먼저 사용",
+        desc: "배포 전에 simulate로 테스트하여 오류를 조기에 포착"
+      },
+      {
+        title: "다중 호출 시퀀스 테스트",
+        desc: "여러 컨트랙트 호출에 걸쳐 상태가 일관된지 확인"
+      }
+    ],
+
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "배포 가이드", href: "/docs/contracts/deployment", desc: "regtest 또는 메인넷에 배포" },
+      { text: "스토리지 및 상태", href: "/docs/contracts/storage", desc: "컨트랙트 스토리지 이해" },
+      { text: "토큰 구축", href: "/docs/tutorials/token", desc: "전체 토큰 튜토리얼" }
+    ]
   }
 };
 

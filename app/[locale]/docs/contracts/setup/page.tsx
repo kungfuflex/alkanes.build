@@ -90,6 +90,138 @@ const content = {
       { text: "构建代币", href: "/docs/tutorials/token", desc: "代币教程" },
       { text: "部署指南", href: "/docs/contracts/deployment", desc: "部署到 regtest/主网" }
     ]
+  },
+  ms: {
+    title: "Persediaan Projek",
+    subtitle: "Sediakan persekitaran pembangunan untuk membina kontrak pintar Alkanes",
+    intro: "Kontrak pintar Alkanes ditulis dalam Rust dan dikompil kepada WebAssembly (WASM). Panduan ini akan membimbing anda menyediakan persekitaran pembangunan yang lengkap.",
+
+    prerequisitesTitle: "Prasyarat",
+    prerequisites: [
+      "Rantaian alat Rust (rustup, cargo)",
+      "Sasaran wasm32-unknown-unknown",
+      "Docker (untuk persekitaran regtest tempatan)",
+      "alkanes-cli (untuk penempatan dan interaksi)"
+    ],
+
+    rustSetupTitle: "1. Pasang Rust & Sasaran WASM",
+    rustSetupDesc: "Pasang Rust menggunakan rustup dan tambah sasaran WebAssembly:",
+
+    projectStructureTitle: "2. Struktur Projek",
+    projectStructureDesc: "Projek kontrak Alkanes biasa mempunyai struktur ini:",
+
+    cargoTomlTitle: "3. Konfigurasi Cargo.toml",
+    cargoTomlDesc: "Konfigurasikan kebergantungan kontrak anda:",
+
+    libRsTitle: "4. Templat Kontrak Asas",
+    libRsDesc: "Cipta titik masuk kontrak anda dalam src/lib.rs:",
+
+    buildTitle: "5. Bina Kontrak Anda",
+    buildDesc: "Kompil kepada WebAssembly:",
+
+    regtestTitle: "6. Persekitaran Pembangunan Tempatan",
+    regtestDesc: "Sediakan persekitaran regtest tempatan untuk ujian:",
+
+    cliSetupTitle: "7. Pasang alkanes-cli",
+    cliSetupDesc: "Bina dan pasang CLI untuk penempatan:",
+
+    walletSetupTitle: "8. Cipta Dompet",
+    walletSetupDesc: "Cipta dompet untuk penempatan regtest:",
+
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Ketahui tentang alkanes-std", href: "/docs/contracts/std", desc: "Perpustakaan teras dan traits" },
+      { text: "Bina Token", href: "/docs/tutorials/token", desc: "Tutorial token langkah demi langkah" },
+      { text: "Panduan Penempatan", href: "/docs/contracts/deployment", desc: "Tempatkan ke regtest/mainnet" }
+    ]
+  },
+  vi: {
+    title: "Thiết Lập Dự Án",
+    subtitle: "Thiết lập môi trường phát triển để xây dựng hợp đồng thông minh Alkanes",
+    intro: "Hợp đồng thông minh Alkanes được viết bằng Rust và biên dịch sang WebAssembly (WASM). Hướng dẫn này sẽ dẫn bạn qua việc thiết lập môi trường phát triển hoàn chỉnh.",
+
+    prerequisitesTitle: "Điều Kiện Tiên Quyết",
+    prerequisites: [
+      "Bộ công cụ Rust (rustup, cargo)",
+      "Target wasm32-unknown-unknown",
+      "Docker (cho môi trường regtest cục bộ)",
+      "alkanes-cli (cho triển khai và tương tác)"
+    ],
+
+    rustSetupTitle: "1. Cài Đặt Rust & Target WASM",
+    rustSetupDesc: "Cài đặt Rust bằng rustup và thêm target WebAssembly:",
+
+    projectStructureTitle: "2. Cấu Trúc Dự Án",
+    projectStructureDesc: "Một dự án hợp đồng Alkanes điển hình có cấu trúc như sau:",
+
+    cargoTomlTitle: "3. Cấu Hình Cargo.toml",
+    cargoTomlDesc: "Cấu hình các phụ thuộc của hợp đồng:",
+
+    libRsTitle: "4. Mẫu Hợp Đồng Cơ Bản",
+    libRsDesc: "Tạo điểm vào hợp đồng trong src/lib.rs:",
+
+    buildTitle: "5. Xây Dựng Hợp Đồng",
+    buildDesc: "Biên dịch sang WebAssembly:",
+
+    regtestTitle: "6. Môi Trường Phát Triển Cục Bộ",
+    regtestDesc: "Thiết lập môi trường regtest cục bộ để kiểm thử:",
+
+    cliSetupTitle: "7. Cài Đặt alkanes-cli",
+    cliSetupDesc: "Xây dựng và cài đặt CLI cho triển khai:",
+
+    walletSetupTitle: "8. Tạo Ví",
+    walletSetupDesc: "Tạo ví để triển khai regtest:",
+
+    nextStepsTitle: "Các Bước Tiếp Theo",
+    nextSteps: [
+      { text: "Tìm hiểu về alkanes-std", href: "/docs/contracts/std", desc: "Thư viện cốt lõi và traits" },
+      { text: "Xây Dựng Token", href: "/docs/tutorials/token", desc: "Hướng dẫn token từng bước" },
+      { text: "Hướng Dẫn Triển Khai", href: "/docs/contracts/deployment", desc: "Triển khai lên regtest/mainnet" }
+    ]
+  },
+  ko: {
+    title: "프로젝트 설정",
+    subtitle: "Alkanes 스마트 컨트랙트 구축을 위한 개발 환경 설정",
+    intro: "Alkanes 스마트 컨트랙트는 Rust로 작성되고 WebAssembly(WASM)로 컴파일됩니다. 이 가이드는 완전한 개발 환경을 설정하는 과정을 안내합니다.",
+
+    prerequisitesTitle: "전제 조건",
+    prerequisites: [
+      "Rust 툴체인 (rustup, cargo)",
+      "wasm32-unknown-unknown 타겟",
+      "Docker (로컬 regtest 환경용)",
+      "alkanes-cli (배포 및 상호작용용)"
+    ],
+
+    rustSetupTitle: "1. Rust 및 WASM 타겟 설치",
+    rustSetupDesc: "rustup을 사용하여 Rust를 설치하고 WebAssembly 타겟을 추가합니다:",
+
+    projectStructureTitle: "2. 프로젝트 구조",
+    projectStructureDesc: "일반적인 Alkanes 컨트랙트 프로젝트의 구조:",
+
+    cargoTomlTitle: "3. Cargo.toml 구성",
+    cargoTomlDesc: "컨트랙트의 의존성을 구성합니다:",
+
+    libRsTitle: "4. 기본 컨트랙트 템플릿",
+    libRsDesc: "src/lib.rs에 컨트랙트 진입점을 생성합니다:",
+
+    buildTitle: "5. 컨트랙트 빌드",
+    buildDesc: "WebAssembly로 컴파일:",
+
+    regtestTitle: "6. 로컬 개발 환경",
+    regtestDesc: "테스트를 위한 로컬 regtest 환경 설정:",
+
+    cliSetupTitle: "7. alkanes-cli 설치",
+    cliSetupDesc: "배포를 위한 CLI 빌드 및 설치:",
+
+    walletSetupTitle: "8. 지갑 생성",
+    walletSetupDesc: "regtest 배포를 위한 지갑 생성:",
+
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "alkanes-std 알아보기", href: "/docs/contracts/std", desc: "핵심 라이브러리 및 traits" },
+      { text: "토큰 구축", href: "/docs/tutorials/token", desc: "단계별 토큰 튜토리얼" },
+      { text: "배포 가이드", href: "/docs/contracts/deployment", desc: "regtest/메인넷에 배포" }
+    ]
   }
 };
 

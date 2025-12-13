@@ -54,6 +54,84 @@ const content = {
     identifiersExplain: "这表示创建 alkane 的区块高度和该区块内的交易索引。字符串格式：840000:1",
     protocolTagTitle: "协议标签",
     protocolTagDesc: "对于 Alkanes，协议标签始终为 \"1\"："
+  },
+  ms: {
+    title: "Kaedah alkanes_*",
+    intro: "Ruang nama alkanes_* menyediakan akses kepada protokol Alkanes, sistem kontrak pintar metaprotokol L1 yang dibina di atas Bitcoin. Alkanes adalah varian protorunes, dan oleh itu subprotokol protokol runes pada Bitcoin L1.",
+    overviewTitle: "Gambaran Keseluruhan",
+    overviewDesc: "Alkanes adalah kontrak pintar yang berjalan di Bitcoin, diindeks melalui Metashrew. Kaedah alkanes_* adalah pembungkus mudah untuk panggilan metashrew_view.",
+    methodsTitle: "Kaedah",
+    methods: [
+      { name: "alkanes_protorunesbyaddress", desc: "Dapatkan semua token alkane yang dipegang oleh alamat" },
+      { name: "alkanes_getbytecode", desc: "Dapatkan bytecode kontrak alkane" },
+      { name: "alkanes_simulate", desc: "Simulasikan transaksi alkane" },
+      { name: "alkanes_meta", desc: "Dapatkan metadata tentang kontrak alkane" }
+    ],
+    protorunesTitle: "alkanes_protorunesbyaddress",
+    protorunesDesc: "Dapatkan semua token alkane yang dipegang oleh alamat.",
+    bytecodeTitle: "alkanes_getbytecode",
+    bytecodeDesc: "Dapatkan bytecode kontrak alkane.",
+    simulateTitle: "alkanes_simulate",
+    simulateDesc: "Simulasikan transaksi alkane.",
+    metaTitle: "alkanes_meta",
+    metaDesc: "Dapatkan metadata tentang kontrak alkane.",
+    identifiersTitle: "Pengecam Alkane",
+    identifiersDesc: "Alkanes dikenalpasti oleh lokasi pencatatannya:",
+    identifiersExplain: "Ini mewakili ketinggian blok di mana alkane dicipta dan indeks transaksi dalam blok tersebut. Format string: 840000:1",
+    protocolTagTitle: "Tag Protokol",
+    protocolTagDesc: "Untuk Alkanes, tag protokol sentiasa \"1\":"
+  },
+  vi: {
+    title: "Các phương thức alkanes_*",
+    intro: "Namespace alkanes_* cung cấp quyền truy cập vào giao thức Alkanes, một hệ thống hợp đồng thông minh metaprotocol L1 được xây dựng trên Bitcoin. Alkanes là một biến thể của protorunes, và do đó là giao thức con của giao thức runes trên Bitcoin L1.",
+    overviewTitle: "Tổng quan",
+    overviewDesc: "Alkanes là các hợp đồng thông minh chạy trên Bitcoin, được lập chỉ mục qua Metashrew. Các phương thức alkanes_* là các wrapper tiện lợi cho các lời gọi metashrew_view.",
+    methodsTitle: "Phương thức",
+    methods: [
+      { name: "alkanes_protorunesbyaddress", desc: "Lấy tất cả token alkane được giữ bởi một địa chỉ" },
+      { name: "alkanes_getbytecode", desc: "Lấy bytecode của hợp đồng alkane" },
+      { name: "alkanes_simulate", desc: "Mô phỏng giao dịch alkane" },
+      { name: "alkanes_meta", desc: "Lấy metadata về hợp đồng alkane" }
+    ],
+    protorunesTitle: "alkanes_protorunesbyaddress",
+    protorunesDesc: "Lấy tất cả token alkane được giữ bởi một địa chỉ.",
+    bytecodeTitle: "alkanes_getbytecode",
+    bytecodeDesc: "Lấy bytecode của hợp đồng alkane.",
+    simulateTitle: "alkanes_simulate",
+    simulateDesc: "Mô phỏng giao dịch alkane.",
+    metaTitle: "alkanes_meta",
+    metaDesc: "Lấy metadata về hợp đồng alkane.",
+    identifiersTitle: "Định danh Alkane",
+    identifiersDesc: "Alkanes được xác định bởi vị trí khắc của chúng:",
+    identifiersExplain: "Điều này đại diện cho chiều cao khối nơi alkane được tạo và chỉ số giao dịch trong khối đó. Định dạng chuỗi: 840000:1",
+    protocolTagTitle: "Thẻ Giao thức",
+    protocolTagDesc: "Đối với Alkanes, thẻ giao thức luôn là \"1\":"
+  },
+  ko: {
+    title: "alkanes_* 메서드",
+    intro: "alkanes_* 네임스페이스는 Bitcoin에 구축된 L1 메타프로토콜 스마트 계약 시스템인 Alkanes 프로토콜에 대한 액세스를 제공합니다. Alkanes는 protorunes의 변형이며, 따라서 Bitcoin L1의 runes 프로토콜의 하위 프로토콜입니다.",
+    overviewTitle: "개요",
+    overviewDesc: "Alkanes는 Bitcoin에서 실행되는 스마트 계약으로, Metashrew를 통해 인덱싱됩니다. alkanes_* 메서드는 metashrew_view 호출에 대한 편리한 래퍼입니다.",
+    methodsTitle: "메서드",
+    methods: [
+      { name: "alkanes_protorunesbyaddress", desc: "주소가 보유한 모든 alkane 토큰 가져오기" },
+      { name: "alkanes_getbytecode", desc: "alkane 계약의 바이트코드 가져오기" },
+      { name: "alkanes_simulate", desc: "alkane 거래 시뮬레이션" },
+      { name: "alkanes_meta", desc: "alkane 계약에 대한 메타데이터 가져오기" }
+    ],
+    protorunesTitle: "alkanes_protorunesbyaddress",
+    protorunesDesc: "주소가 보유한 모든 alkane 토큰을 가져옵니다.",
+    bytecodeTitle: "alkanes_getbytecode",
+    bytecodeDesc: "alkane 계약의 바이트코드를 가져옵니다.",
+    simulateTitle: "alkanes_simulate",
+    simulateDesc: "alkane 거래를 시뮬레이션합니다.",
+    metaTitle: "alkanes_meta",
+    metaDesc: "alkane 계약에 대한 메타데이터를 가져옵니다.",
+    identifiersTitle: "Alkane 식별자",
+    identifiersDesc: "Alkanes는 에칭 위치로 식별됩니다:",
+    identifiersExplain: "이는 alkane이 생성된 블록 높이와 해당 블록 내의 거래 인덱스를 나타냅니다. 문자열 형식: 840000:1",
+    protocolTagTitle: "프로토콜 태그",
+    protocolTagDesc: "Alkanes의 경우 프로토콜 태그는 항상 \"1\"입니다:"
   }
 };
 

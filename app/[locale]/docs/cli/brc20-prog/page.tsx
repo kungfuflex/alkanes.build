@@ -128,6 +128,195 @@ const content = {
     rpcTitle: "JSON-RPC 方法",
     rpcDesc: "BRC20-Prog 支持标准以太坊 JSON-RPC 方法：",
     rpcSpecificTitle: "BRC20-Prog 特定方法"
+  },
+  ms: {
+    title: "Arahan BRC20-Prog",
+    intro: "Ruang nama brc20-prog menyediakan operasi untuk BRC20-Prog, lapisan kontrak pintar yang serasi dengan EVM pada Bitcoin. Ini membolehkan penyebaran dan interaksi kontrak gaya Ethereum.",
+    endpointTitle: "Konfigurasi Endpoint",
+    endpointDesc: "BRC20-Prog menggunakan endpoint JSON-RPC berasingan:",
+    contractOpsTitle: "Operasi Kontrak",
+    contractOps: [
+      { cmd: "deploy-contract", desc: "Laksanakan kontrak dari JSON pembinaan Foundry" },
+      { cmd: "transact", desc: "Panggil fungsi kontrak (perubahan keadaan)" },
+      { cmd: "call", desc: "Panggil fungsi kontrak (baca sahaja, eth_call)" },
+      { cmd: "wrap-btc", desc: "Balut BTC ke frBTC dan laksanakan dalam brc20-prog" }
+    ],
+    contractQueriesTitle: "Pertanyaan Kontrak",
+    contractQueries: [
+      { cmd: "get-code", desc: "Dapatkan bytecode kontrak (eth_getCode)" },
+      { cmd: "get-contract-deploys", desc: "Dapatkan penyebaran kontrak mengikut alamat" },
+      { cmd: "get-storage-at", desc: "Dapatkan storan pada lokasi (eth_getStorageAt)" }
+    ],
+    balanceTitle: "Baki & Akaun",
+    balanceCommands: [
+      { cmd: "get-balance", desc: "Dapatkan baki frBTC (eth_getBalance)" },
+      { cmd: "brc20-balance", desc: "Dapatkan baki BRC20 (brc20_balance)" },
+      { cmd: "get-transaction-count", desc: "Dapatkan nonce (eth_getTransactionCount)" }
+    ],
+    txQueriesTitle: "Pertanyaan Transaksi",
+    txQueries: [
+      { cmd: "get-transaction", desc: "Dapatkan transaksi mengikut hash" },
+      { cmd: "get-transaction-receipt", desc: "Dapatkan resit transaksi" },
+      { cmd: "get-receipt-by-inscription", desc: "Dapatkan resit mengikut ID inskripsi" },
+      { cmd: "trace-transaction", desc: "Dapatkan jejak transaksi" }
+    ],
+    blockQueriesTitle: "Pertanyaan Blok",
+    blockQueries: [
+      { cmd: "block-number", desc: "Dapatkan nombor blok semasa" },
+      { cmd: "get-block-by-number", desc: "Dapatkan blok mengikut nombor" },
+      { cmd: "get-block-by-hash", desc: "Dapatkan blok mengikut hash" }
+    ],
+    otherTitle: "Arahan Lain",
+    otherCommands: [
+      { cmd: "estimate-gas", desc: "Anggaran gas (eth_estimateGas)" },
+      { cmd: "chain-id", desc: "Dapatkan ID rantai (eth_chainId)" },
+      { cmd: "gas-price", desc: "Dapatkan harga gas (eth_gasPrice)" },
+      { cmd: "get-logs", desc: "Dapatkan log (eth_getLogs)" },
+      { cmd: "unwrap", desc: "Dapatkan unwrap tertunda dari kontrak FrBTC" }
+    ],
+    deployTitle: "brc20-prog deploy-contract",
+    deployDesc: "Laksanakan kontrak Solidity dari output pembinaan Foundry.",
+    transactTitle: "brc20-prog transact",
+    transactDesc: "Panggil fungsi perubahan keadaan pada kontrak BRC20-prog.",
+    wrapBtcTitle: "brc20-prog wrap-btc",
+    wrapBtcDesc: "Balut BTC ke frBTC dan laksanakan fungsi pada kontrak sasaran.",
+    callTitle: "brc20-prog call",
+    callDesc: "Buat panggilan baca sahaja kepada kontrak (setara eth_call).",
+    getBalanceTitle: "brc20-prog get-balance",
+    getBalanceDesc: "Dapatkan baki frBTC alamat.",
+    blockNumberTitle: "brc20-prog block-number",
+    blockNumberDesc: "Dapatkan nombor blok semasa.",
+    getLogsTitle: "brc20-prog get-logs",
+    getLogsDesc: "Dapatkan log peristiwa yang sepadan dengan kriteria penapis.",
+    rpcTitle: "Kaedah JSON-RPC",
+    rpcDesc: "BRC20-Prog menyokong kaedah JSON-RPC Ethereum standard:",
+    rpcSpecificTitle: "Kaedah Khusus BRC20-Prog"
+  },
+  vi: {
+    title: "Lệnh BRC20-Prog",
+    intro: "Không gian tên brc20-prog cung cấp các thao tác cho BRC20-Prog, lớp hợp đồng thông minh tương thích EVM trên Bitcoin. Điều này cho phép triển khai và tương tác hợp đồng theo kiểu Ethereum.",
+    endpointTitle: "Cấu hình Điểm cuối",
+    endpointDesc: "BRC20-Prog sử dụng điểm cuối JSON-RPC riêng:",
+    contractOpsTitle: "Thao tác Hợp đồng",
+    contractOps: [
+      { cmd: "deploy-contract", desc: "Triển khai hợp đồng từ JSON build Foundry" },
+      { cmd: "transact", desc: "Gọi hàm hợp đồng (thay đổi trạng thái)" },
+      { cmd: "call", desc: "Gọi hàm hợp đồng (chỉ đọc, eth_call)" },
+      { cmd: "wrap-btc", desc: "Gói BTC thành frBTC và thực thi trong brc20-prog" }
+    ],
+    contractQueriesTitle: "Truy vấn Hợp đồng",
+    contractQueries: [
+      { cmd: "get-code", desc: "Lấy bytecode hợp đồng (eth_getCode)" },
+      { cmd: "get-contract-deploys", desc: "Lấy triển khai hợp đồng theo địa chỉ" },
+      { cmd: "get-storage-at", desc: "Lấy storage tại vị trí (eth_getStorageAt)" }
+    ],
+    balanceTitle: "Số dư & Tài khoản",
+    balanceCommands: [
+      { cmd: "get-balance", desc: "Lấy số dư frBTC (eth_getBalance)" },
+      { cmd: "brc20-balance", desc: "Lấy số dư BRC20 (brc20_balance)" },
+      { cmd: "get-transaction-count", desc: "Lấy nonce (eth_getTransactionCount)" }
+    ],
+    txQueriesTitle: "Truy vấn Giao dịch",
+    txQueries: [
+      { cmd: "get-transaction", desc: "Lấy giao dịch theo hash" },
+      { cmd: "get-transaction-receipt", desc: "Lấy biên lai giao dịch" },
+      { cmd: "get-receipt-by-inscription", desc: "Lấy biên lai theo ID inscription" },
+      { cmd: "trace-transaction", desc: "Lấy trace giao dịch" }
+    ],
+    blockQueriesTitle: "Truy vấn Khối",
+    blockQueries: [
+      { cmd: "block-number", desc: "Lấy số khối hiện tại" },
+      { cmd: "get-block-by-number", desc: "Lấy khối theo số" },
+      { cmd: "get-block-by-hash", desc: "Lấy khối theo hash" }
+    ],
+    otherTitle: "Lệnh Khác",
+    otherCommands: [
+      { cmd: "estimate-gas", desc: "Ước tính gas (eth_estimateGas)" },
+      { cmd: "chain-id", desc: "Lấy ID chuỗi (eth_chainId)" },
+      { cmd: "gas-price", desc: "Lấy giá gas (eth_gasPrice)" },
+      { cmd: "get-logs", desc: "Lấy logs (eth_getLogs)" },
+      { cmd: "unwrap", desc: "Lấy unwrap đang chờ từ hợp đồng FrBTC" }
+    ],
+    deployTitle: "brc20-prog deploy-contract",
+    deployDesc: "Triển khai hợp đồng Solidity từ đầu ra build Foundry.",
+    transactTitle: "brc20-prog transact",
+    transactDesc: "Gọi hàm thay đổi trạng thái trên hợp đồng BRC20-prog.",
+    wrapBtcTitle: "brc20-prog wrap-btc",
+    wrapBtcDesc: "Gói BTC thành frBTC và thực thi hàm trên hợp đồng mục tiêu.",
+    callTitle: "brc20-prog call",
+    callDesc: "Thực hiện lời gọi chỉ đọc đến hợp đồng (tương đương eth_call).",
+    getBalanceTitle: "brc20-prog get-balance",
+    getBalanceDesc: "Lấy số dư frBTC của một địa chỉ.",
+    blockNumberTitle: "brc20-prog block-number",
+    blockNumberDesc: "Lấy số khối hiện tại.",
+    getLogsTitle: "brc20-prog get-logs",
+    getLogsDesc: "Lấy log sự kiện khớp với tiêu chí lọc.",
+    rpcTitle: "Phương thức JSON-RPC",
+    rpcDesc: "BRC20-Prog hỗ trợ các phương thức JSON-RPC Ethereum tiêu chuẩn:",
+    rpcSpecificTitle: "Phương thức Đặc thù BRC20-Prog"
+  },
+  ko: {
+    title: "BRC20-Prog 명령",
+    intro: "brc20-prog 네임스페이스는 비트코인의 EVM 호환 스마트 컨트랙트 레이어인 BRC20-Prog에 대한 작업을 제공합니다. 이를 통해 이더리움 스타일의 컨트랙트 배포 및 상호작용이 가능합니다.",
+    endpointTitle: "엔드포인트 구성",
+    endpointDesc: "BRC20-Prog는 별도의 JSON-RPC 엔드포인트를 사용합니다:",
+    contractOpsTitle: "컨트랙트 작업",
+    contractOps: [
+      { cmd: "deploy-contract", desc: "Foundry 빌드 JSON에서 컨트랙트 배포" },
+      { cmd: "transact", desc: "컨트랙트 함수 호출 (상태 변경)" },
+      { cmd: "call", desc: "컨트랙트 함수 호출 (읽기 전용, eth_call)" },
+      { cmd: "wrap-btc", desc: "BTC를 frBTC로 랩핑하고 brc20-prog에서 실행" }
+    ],
+    contractQueriesTitle: "컨트랙트 쿼리",
+    contractQueries: [
+      { cmd: "get-code", desc: "컨트랙트 바이트코드 가져오기 (eth_getCode)" },
+      { cmd: "get-contract-deploys", desc: "주소별 컨트랙트 배포 가져오기" },
+      { cmd: "get-storage-at", desc: "위치의 스토리지 가져오기 (eth_getStorageAt)" }
+    ],
+    balanceTitle: "잔액 & 계정",
+    balanceCommands: [
+      { cmd: "get-balance", desc: "frBTC 잔액 가져오기 (eth_getBalance)" },
+      { cmd: "brc20-balance", desc: "BRC20 잔액 가져오기 (brc20_balance)" },
+      { cmd: "get-transaction-count", desc: "nonce 가져오기 (eth_getTransactionCount)" }
+    ],
+    txQueriesTitle: "트랜잭션 쿼리",
+    txQueries: [
+      { cmd: "get-transaction", desc: "해시로 트랜잭션 가져오기" },
+      { cmd: "get-transaction-receipt", desc: "트랜잭션 영수증 가져오기" },
+      { cmd: "get-receipt-by-inscription", desc: "인스크립션 ID로 영수증 가져오기" },
+      { cmd: "trace-transaction", desc: "트랜잭션 추적 가져오기" }
+    ],
+    blockQueriesTitle: "블록 쿼리",
+    blockQueries: [
+      { cmd: "block-number", desc: "현재 블록 번호 가져오기" },
+      { cmd: "get-block-by-number", desc: "번호로 블록 가져오기" },
+      { cmd: "get-block-by-hash", desc: "해시로 블록 가져오기" }
+    ],
+    otherTitle: "기타 명령",
+    otherCommands: [
+      { cmd: "estimate-gas", desc: "가스 추정 (eth_estimateGas)" },
+      { cmd: "chain-id", desc: "체인 ID 가져오기 (eth_chainId)" },
+      { cmd: "gas-price", desc: "가스 가격 가져오기 (eth_gasPrice)" },
+      { cmd: "get-logs", desc: "로그 가져오기 (eth_getLogs)" },
+      { cmd: "unwrap", desc: "FrBTC 컨트랙트에서 보류 중인 언랩 가져오기" }
+    ],
+    deployTitle: "brc20-prog deploy-contract",
+    deployDesc: "Foundry 빌드 출력에서 Solidity 컨트랙트를 배포합니다.",
+    transactTitle: "brc20-prog transact",
+    transactDesc: "BRC20-prog 컨트랙트에서 상태 변경 함수를 호출합니다.",
+    wrapBtcTitle: "brc20-prog wrap-btc",
+    wrapBtcDesc: "BTC를 frBTC로 랩핑하고 대상 컨트랙트에서 함수를 실행합니다.",
+    callTitle: "brc20-prog call",
+    callDesc: "컨트랙트에 읽기 전용 호출을 수행합니다 (eth_call 등가).",
+    getBalanceTitle: "brc20-prog get-balance",
+    getBalanceDesc: "주소의 frBTC 잔액을 가져옵니다.",
+    blockNumberTitle: "brc20-prog block-number",
+    blockNumberDesc: "현재 블록 번호를 가져옵니다.",
+    getLogsTitle: "brc20-prog get-logs",
+    getLogsDesc: "필터 기준과 일치하는 이벤트 로그를 가져옵니다.",
+    rpcTitle: "JSON-RPC 메서드",
+    rpcDesc: "BRC20-Prog는 표준 이더리움 JSON-RPC 메서드를 지원합니다:",
+    rpcSpecificTitle: "BRC20-Prog 특정 메서드"
   }
 };
 

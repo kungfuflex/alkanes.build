@@ -96,6 +96,147 @@ const content = {
       { text: "CLI 命令", href: "/docs/cli", desc: "部署和交互" },
       { text: "API", href: "/docs/api", desc: "程序化访问" }
     ]
+  },
+  ms: {
+    title: "Kontrak Alkanes",
+    intro: "Kontrak Alkanes adalah kontrak pintar yang berjalan di Bitcoin, membolehkan fungsi boleh atur cara yang serupa dengan kontrak pintar Ethereum. Mereka membenarkan pembangun mencipta aplikasi terdesentralisasi (dApps) secara langsung di blockchain L1 Bitcoin, tanpa memerlukan lapisan tambahan atau sidechain.",
+    featuresTitle: "Ciri-ciri Utama",
+    features: [
+      { title: "Integrasi Bitcoin Asli", desc: "Kontrak berinteraksi secara langsung dengan transaksi Bitcoin dan UTXO" },
+      { title: "Pengurusan Keadaan", desc: "Mengekalkan keadaan kontrak antara interaksi" },
+      { title: "Kebolehkomponan", desc: "Kontrak boleh berinteraksi antara satu sama lain" },
+      { title: "Runtime WASM", desc: "Ditulis dalam Rust, dikompilasi kepada WebAssembly" }
+    ],
+    structureTitle: "Struktur Kontrak",
+    structureIntro: "Kontrak Alkanes biasanya terdiri daripada:",
+    structure: [
+      "Penyimpanan Keadaan - Penyimpanan nilai-kunci untuk mengekalkan data kontrak",
+      "Opcode - Fungsi bernombor yang menentukan tindakan kontrak",
+      "Pengendalian Respons - Logik untuk mengembalikan data dan mengurus aset",
+      "Pengurusan Aset - Keupayaan untuk mengendalikan Bitcoin dan token Alkanes"
+    ],
+    tokensTitle: "Token Alkanes",
+    tokensIntro: "Kontrak token Alkanes adalah corak pelaksanaan piawai yang mewakili token boleh kulat - aset digital di mana setiap unit adalah sama dan boleh ditukar ganti.",
+    tokensContent: "Pada terasnya, kontrak token Alkanes mengekalkan pemetaan alamat kepada lembaran imbangan, menjejaki pemilikan token melalui penyimpanan keadaan nilai-kunci. Operasi kritikal adalah pemindahan (memindahkan token antara alamat) dan kelulusan (membenarkan alamat lain memindahkan token bagi pihak anda).",
+    tokenFeaturesTitle: "Ciri-ciri Token",
+    tokenFeatures: [
+      "Keupayaan mencetak dan membakar (sering dengan kawalan akses)",
+      "Metadata token (nama, simbol, perpuluhan)",
+      "Hook pemindahan untuk logik tambahan",
+      "Had bekalan atau dasar monetari lain",
+      "Fungsi snapshot untuk tadbir urus"
+    ],
+    factoryTitle: "Kontrak Kilang",
+    factoryIntro: "Kontrak kilang Alkanes adalah corak reka bentuk yang membolehkan pengklonan programatik kontrak asas. Sebagai contoh, anda mungkin mahu melebarkan kontrak kilang tunggal yang menentukan logik untuk pencetakan dan pengedaran token dan kemudian menggunakan klon kontrak tersebut untuk mencipta token individu yang mewarisi logik tersebut.",
+    factoryContent: "Kontrak kilang menggunakan opcode FACTORYRESERVED Alkanes untuk melebarkan instance kontrak baharu, biasanya mengambil parameter seperti nama token, simbol, jumlah bekalan, dan parameter pencetakan.",
+    factoryUseCasesTitle: "Kes Penggunaan Kilang",
+    factoryUseCases: [
+      "Lebarkan pasangan token untuk AMM",
+      "Cipta token aset terbungkus",
+      "Cetak token tadbir urus untuk projek baharu",
+      "Pelebaran token piawai dan cekap gas"
+    ],
+    exampleTitle: "Contoh Kontrak",
+    nextStepsTitle: "Langkah Seterusnya",
+    nextSteps: [
+      { text: "Panduan Mula Pantas", href: "/docs/quickstart", desc: "Lebarkan kontrak pertama anda" },
+      { text: "Arahan CLI", href: "/docs/cli", desc: "Pelebaran dan interaksi" },
+      { text: "API", href: "/docs/api", desc: "Akses programatik" }
+    ]
+  },
+  vi: {
+    title: "Hợp Đồng Alkanes",
+    intro: "Hợp đồng Alkanes là các hợp đồng thông minh chạy trên Bitcoin, cho phép chức năng có thể lập trình tương tự như hợp đồng thông minh Ethereum. Chúng cho phép các nhà phát triển tạo ứng dụng phi tập trung (dApps) trực tiếp trên blockchain L1 Bitcoin, mà không cần các lớp bổ sung hoặc sidechain.",
+    featuresTitle: "Tính Năng Chính",
+    features: [
+      { title: "Tích Hợp Bitcoin Gốc", desc: "Hợp đồng tương tác trực tiếp với giao dịch Bitcoin và UTXO" },
+      { title: "Quản Lý Trạng Thái", desc: "Duy trì trạng thái hợp đồng giữa các tương tác" },
+      { title: "Khả Năng Kết Hợp", desc: "Hợp đồng có thể tương tác với nhau" },
+      { title: "Runtime WASM", desc: "Được viết bằng Rust, biên dịch sang WebAssembly" }
+    ],
+    structureTitle: "Cấu Trúc Hợp Đồng",
+    structureIntro: "Hợp đồng Alkanes thường bao gồm:",
+    structure: [
+      "Lưu Trữ Trạng Thái - Lưu trữ key-value để duy trì dữ liệu hợp đồng",
+      "Opcode - Các hàm được đánh số xác định hành động hợp đồng",
+      "Xử Lý Phản Hồi - Logic để trả về dữ liệu và quản lý tài sản",
+      "Quản Lý Tài Sản - Khả năng xử lý Bitcoin và token Alkanes"
+    ],
+    tokensTitle: "Token Alkanes",
+    tokensIntro: "Hợp đồng token Alkanes là mô hình triển khai tiêu chuẩn đại diện cho token có thể thay thế - tài sản kỹ thuật số mà mỗi đơn vị giống hệt nhau và có thể hoán đổi cho nhau.",
+    tokensContent: "Về cốt lõi, hợp đồng token Alkanes duy trì ánh xạ địa chỉ tới bảng cân đối, theo dõi quyền sở hữu token thông qua lưu trữ trạng thái key-value. Các hoạt động quan trọng là chuyển (di chuyển token giữa các địa chỉ) và phê duyệt (cho phép địa chỉ khác chuyển token thay mặt bạn).",
+    tokenFeaturesTitle: "Tính Năng Token",
+    tokenFeatures: [
+      "Khả năng đúc và đốt (thường có kiểm soát truy cập)",
+      "Metadata token (tên, ký hiệu, số thập phân)",
+      "Hook chuyển cho logic bổ sung",
+      "Giới hạn cung cấp hoặc chính sách tiền tệ khác",
+      "Chức năng snapshot cho quản trị"
+    ],
+    factoryTitle: "Hợp Đồng Factory",
+    factoryIntro: "Hợp đồng factory Alkanes là một mô hình thiết kế cho phép sao chép có lập trình hợp đồng cơ sở. Ví dụ, bạn có thể muốn triển khai một hợp đồng factory duy nhất xác định logic cho việc đúc và phân phối token, sau đó sử dụng các bản sao của hợp đồng đó để tạo các token riêng lẻ kế thừa logic đó.",
+    factoryContent: "Hợp đồng factory sử dụng opcode FACTORYRESERVED của Alkanes để triển khai các instance hợp đồng mới, thường nhận các tham số như tên token, ký hiệu, tổng cung cấp và các tham số đúc.",
+    factoryUseCasesTitle: "Trường Hợp Sử Dụng Factory",
+    factoryUseCases: [
+      "Triển khai các cặp token cho AMM",
+      "Tạo token tài sản được bao bọc",
+      "Đúc token quản trị cho các dự án mới",
+      "Triển khai token tiêu chuẩn, hiệu quả gas"
+    ],
+    exampleTitle: "Hợp Đồng Ví Dụ",
+    nextStepsTitle: "Các Bước Tiếp Theo",
+    nextSteps: [
+      { text: "Hướng dẫn Khởi Động Nhanh", href: "/docs/quickstart", desc: "Triển khai hợp đồng đầu tiên của bạn" },
+      { text: "Lệnh CLI", href: "/docs/cli", desc: "Triển khai và tương tác" },
+      { text: "API", href: "/docs/api", desc: "Truy cập có lập trình" }
+    ]
+  },
+  ko: {
+    title: "Alkanes 계약",
+    intro: "Alkanes 계약은 Bitcoin에서 실행되는 스마트 계약으로, Ethereum 스마트 계약과 유사한 프로그래밍 가능한 기능을 제공합니다. 추가 레이어나 사이드체인 없이 Bitcoin L1 블록체인에서 직접 탈중앙화 애플리케이션(dApps)을 생성할 수 있습니다.",
+    featuresTitle: "핵심 기능",
+    features: [
+      { title: "네이티브 Bitcoin 통합", desc: "계약은 Bitcoin 트랜잭션 및 UTXO와 직접 상호작용" },
+      { title: "상태 관리", desc: "상호작용 간 계약 상태 유지" },
+      { title: "구성 가능성", desc: "계약은 서로 상호작용 가능" },
+      { title: "WASM 런타임", desc: "Rust로 작성, WebAssembly로 컴파일" }
+    ],
+    structureTitle: "계약 구조",
+    structureIntro: "Alkanes 계약은 일반적으로 다음으로 구성됩니다:",
+    structure: [
+      "상태 스토리지 - 계약 데이터 유지를 위한 키-값 스토리지",
+      "Opcode - 계약 작업을 정의하는 번호가 매겨진 함수",
+      "응답 처리 - 데이터 반환 및 자산 관리 로직",
+      "자산 관리 - Bitcoin 및 Alkanes 토큰 처리 기능"
+    ],
+    tokensTitle: "Alkanes 토큰",
+    tokensIntro: "Alkanes 토큰 계약은 대체 가능한 토큰을 나타내는 표준화된 구현 패턴입니다 - 각 단위가 동일하고 상호 교환 가능한 디지털 자산입니다.",
+    tokensContent: "핵심적으로 Alkanes 토큰 계약은 키-값 상태 스토리지를 통해 토큰 소유권을 추적하며, 주소에서 잔액 시트로의 매핑을 유지합니다. 중요한 작업은 전송(주소 간 토큰 이동)과 승인(다른 주소가 귀하를 대신하여 토큰을 전송할 수 있도록 허용)입니다.",
+    tokenFeaturesTitle: "토큰 기능",
+    tokenFeatures: [
+      "발행 및 소각 기능 (종종 접근 제어 포함)",
+      "토큰 메타데이터 (이름, 기호, 소수점)",
+      "추가 로직을 위한 전송 후크",
+      "공급 한도 또는 기타 통화 정책",
+      "거버넌스를 위한 스냅샷 기능"
+    ],
+    factoryTitle: "Factory 계약",
+    factoryIntro: "Alkanes factory 계약은 기본 계약의 프로그래밍 방식 복제를 가능하게 하는 디자인 패턴입니다. 예를 들어, 토큰 발행 및 배포 로직을 정의하는 단일 factory 계약을 배포한 다음 해당 계약의 복제본을 사용하여 해당 로직을 상속하는 개별 토큰을 생성할 수 있습니다.",
+    factoryContent: "Factory 계약은 Alkanes의 FACTORYRESERVED opcode를 사용하여 새 계약 인스턴스를 배포하며, 일반적으로 토큰 이름, 기호, 총 공급량 및 발행 매개변수와 같은 매개변수를 사용합니다.",
+    factoryUseCasesTitle: "Factory 사용 사례",
+    factoryUseCases: [
+      "AMM용 토큰 쌍 배포",
+      "래핑된 자산 토큰 생성",
+      "새 프로젝트를 위한 거버넌스 토큰 발행",
+      "표준화되고 가스 효율적인 토큰 배포"
+    ],
+    exampleTitle: "예제 계약",
+    nextStepsTitle: "다음 단계",
+    nextSteps: [
+      { text: "빠른 시작 가이드", href: "/docs/quickstart", desc: "첫 번째 계약 배포" },
+      { text: "CLI 명령", href: "/docs/cli", desc: "배포 및 상호작용" },
+      { text: "API", href: "/docs/api", desc: "프로그래밍 방식 접근" }
+    ]
   }
 };
 
