@@ -230,6 +230,8 @@
   },
   "docs": {
     "nav": {
+      "menu": "Menu",
+      "title": "Documentation",
       "gettingStarted": {
         "title": "Getting Started",
         "introduction": "Introduction",

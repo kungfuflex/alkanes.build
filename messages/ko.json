@@ -230,6 +230,8 @@
   },
   "docs": {
     "nav": {
+      "menu": "메뉴",
+      "title": "문서",
       "gettingStarted": {
         "title": "시작하기",
         "introduction": "소개",

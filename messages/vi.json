@@ -230,6 +230,8 @@
   },
   "docs": {
     "nav": {
+      "menu": "Menu",
+      "title": "Tài liệu",
       "gettingStarted": {
         "title": "Bắt đầu",
         "introduction": "Giới thiệu",

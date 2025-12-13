@@ -230,6 +230,8 @@
   },
   "docs": {
     "nav": {
+      "menu": "Menu",
+      "title": "Dokumentasi",
       "gettingStarted": {
         "title": "Bermula",
         "introduction": "Pengenalan",
