@@ -60,6 +60,24 @@ export default function DocsLayout({
       ],
     },
     {
+      titleKey: "contracts.title",
+      items: [
+        { titleKey: "contracts.setup", href: "/docs/contracts/setup" },
+        { titleKey: "contracts.std", href: "/docs/contracts/std" },
+        { titleKey: "contracts.storage", href: "/docs/contracts/storage" },
+        { titleKey: "contracts.testing", href: "/docs/contracts/testing" },
+        { titleKey: "contracts.deployment", href: "/docs/contracts/deployment" },
+      ],
+    },
+    {
+      titleKey: "tutorials.title",
+      items: [
+        { titleKey: "tutorials.token", href: "/docs/tutorials/token" },
+        { titleKey: "tutorials.amm", href: "/docs/tutorials/amm" },
+        { titleKey: "tutorials.wrapBtc", href: "/docs/tutorials/wrap-btc" },
+      ],
+    },
+    {
       titleKey: "integration.title",
       items: [
         { titleKey: "integration.tsSdk", href: "/docs/guides/ts-sdk" },
