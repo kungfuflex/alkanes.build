@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { marked } from "marked";
+import { serializeBigInt } from "@/lib/serialize";
 
 function generateSlug(title: string): string {
   return title
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      proposals,
+      proposals: serializeBigInt(proposals),
       pagination: {
         page,
         limit,
@@ -236,7 +237,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ proposal: fullProposal }, { status: 201 });
+    return NextResponse.json({ proposal: serializeBigInt(fullProposal) }, { status: 201 });
   } catch (error) {
     console.error("Error creating proposal:", error);
     return NextResponse.json(

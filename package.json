@@ -5,8 +5,9 @@
   "packageManager": "pnpm@9.0.0",
   "sdkBranch": "develop",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbopack",
+    "dev:full": "pnpm setup:local && pnpm dev",
     "build": "pnpm build:docs && next build --webpack",
     "build:docs": "node scripts/build-docs.js",
     "build:external": "node build-external.js",
@@ -21,15 +22,20 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma db push --force-reset && pnpm db:seed",
     "db:studio": "prisma studio",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "setup": "pnpm docker:up && pnpm db:push && pnpm build:external",
-    "setup:local": "pnpm docker:up && sleep 3 && pnpm db:push",
+    "setup:local": "pnpm docker:up && sleep 3 && pnpm db:push && pnpm db:seed",
     "gcp:setup": "bash ./gcp/setup.sh",
     "gcp:deploy": "bash ./gcp/deploy.sh",
     "gcp:setup-wif": "bash ./gcp/setup-github-wif.sh",
     "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "optionalDependencies": {
     "@alkanes/ts-sdk": "file:./ts-sdk"
@@ -99,6 +105,7 @@
     "postcss": "^8.4.47",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.14",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0",

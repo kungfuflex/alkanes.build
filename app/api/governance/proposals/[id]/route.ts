@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serializeBigInt } from "@/lib/serialize";
 
 /**
  * GET /api/governance/proposals/[id]
@@ -51,7 +52,7 @@ export async function GET(
       proposal.state = updatedState;
     }
 
-    return NextResponse.json({ proposal });
+    return NextResponse.json({ proposal: serializeBigInt(proposal) });
   } catch (error) {
     console.error("Error fetching proposal:", error);
     return NextResponse.json(

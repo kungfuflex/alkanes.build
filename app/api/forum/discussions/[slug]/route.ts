@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serializeBigInt } from "@/lib/serialize";
 
 /**
  * GET /api/forum/discussions/[slug]
@@ -131,7 +132,7 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({
+    return NextResponse.json(serializeBigInt({
       discussion: {
         ...discussion,
         tags: discussion.tags.map((t) => t.tag),
@@ -149,7 +150,7 @@ export async function GET(
             notificationLevel: viewerParticipant.notificationLevel,
           }
         : null,
-    });
+    }));
   } catch (error) {
     console.error("Error fetching discussion:", error);
     return NextResponse.json(

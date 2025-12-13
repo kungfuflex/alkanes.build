@@ -74,6 +74,15 @@
     "title": "DIESEL Governance",
     "subtitle": "Vote on proposals to shape the future of Alkanes",
     "createProposal": "Create Proposal",
+    "backToProposals": "Back to Proposals",
+    "proposalNotFound": "Proposal Not Found",
+    "proposalNotFoundDesc": "The proposal you're looking for doesn't exist or has been removed.",
+    "connectToVote": "Connect Wallet to Vote",
+    "castVote": "Cast Vote",
+    "voting": "Voting...",
+    "youVoted": "You voted for",
+    "posts": "posts",
+    "views": "views",
     "filters": {
       "all": "All",
       "active": "Active",
@@ -87,7 +96,15 @@
       "starts": "Starts",
       "diesel": "{amount} DIESEL",
       "for": "For",
-      "against": "Against"
+      "against": "Against",
+      "description": "Description",
+      "results": "Current Results",
+      "recentVotes": "Recent Votes",
+      "discussion": "Discussion",
+      "info": "Information",
+      "snapshot": "Snapshot",
+      "startDate": "Start Date",
+      "endDate": "End Date"
     },
     "states": {
       "ACTIVE": "Active",
