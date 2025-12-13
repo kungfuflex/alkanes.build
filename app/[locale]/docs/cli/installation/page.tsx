@@ -18,7 +18,7 @@ const content = {
     addressIntro: "This shows addresses for all supported types:",
     addressTypes: ["P2TR (Taproot) - Recommended for Alkanes", "P2WPKH (Native SegWit)", "P2SH (SegWit-compatible)", "P2PKH (Legacy)"],
     sdkTitle: "Installing @alkanes/ts-sdk",
-    npmTitle: "From npm",
+    npmTitle: "Using Package Manager",
     sourceTitle: "From Source",
     linkTitle: "Link for Local Development",
     usageTitle: "TypeScript SDK Usage",
@@ -48,7 +48,7 @@ const content = {
     addressIntro: "显示所有支持类型的地址：",
     addressTypes: ["P2TR (Taproot) - Alkanes 推荐使用", "P2WPKH (原生隔离见证)", "P2SH (兼容隔离见证)", "P2PKH (传统)"],
     sdkTitle: "安装 @alkanes/ts-sdk",
-    npmTitle: "从 npm 安装",
+    npmTitle: "使用包管理器",
     sourceTitle: "从源码安装",
     linkTitle: "本地开发链接",
     usageTitle: "TypeScript SDK 使用",
@@ -78,7 +78,7 @@ const content = {
     addressIntro: "Ini menunjukkan alamat untuk semua jenis yang disokong:",
     addressTypes: ["P2TR (Taproot) - Disyorkan untuk Alkanes", "P2WPKH (Native SegWit)", "P2SH (SegWit-compatible)", "P2PKH (Legacy)"],
     sdkTitle: "Memasang @alkanes/ts-sdk",
-    npmTitle: "Dari npm",
+    npmTitle: "Menggunakan Pengurus Pakej",
     sourceTitle: "Dari Sumber",
     linkTitle: "Pautan untuk Pembangunan Tempatan",
     usageTitle: "Penggunaan TypeScript SDK",
@@ -108,7 +108,7 @@ const content = {
     addressIntro: "Điều này hiển thị địa chỉ cho tất cả các loại được hỗ trợ:",
     addressTypes: ["P2TR (Taproot) - Được khuyên dùng cho Alkanes", "P2WPKH (Native SegWit)", "P2SH (Tương thích SegWit)", "P2PKH (Legacy)"],
     sdkTitle: "Cài đặt @alkanes/ts-sdk",
-    npmTitle: "Từ npm",
+    npmTitle: "Sử dụng Trình quản lý Gói",
     sourceTitle: "Từ Mã nguồn",
     linkTitle: "Liên kết cho Phát triển Cục bộ",
     usageTitle: "Sử dụng TypeScript SDK",
@@ -138,7 +138,7 @@ const content = {
     addressIntro: "지원되는 모든 유형의 주소를 표시합니다:",
     addressTypes: ["P2TR (Taproot) - Alkanes에 권장", "P2WPKH (Native SegWit)", "P2SH (SegWit 호환)", "P2PKH (레거시)"],
     sdkTitle: "@alkanes/ts-sdk 설치",
-    npmTitle: "npm에서 설치",
+    npmTitle: "패키지 관리자 사용",
     sourceTitle: "소스에서 설치",
     linkTitle: "로컬 개발용 링크",
     usageTitle: "TypeScript SDK 사용",
@@ -234,11 +234,12 @@ alkanes-cli wallet create --passphrase "your-passphrase" \\
         <h2 className="text-2xl font-semibold mb-4">{t.sdkTitle}</h2>
 
         <h3 className="text-xl font-medium mb-2">{t.npmTitle}</h3>
-        <CodeBlock>{`npm install @alkanes/ts-sdk
+        <CodeBlock>{`# The SDK is served from alkanes.build (not published to npm)
+npm install "https://alkanes.build/api/pkg/@alkanes/ts-sdk"
 # or
-yarn add @alkanes/ts-sdk
+yarn add "https://alkanes.build/api/pkg/@alkanes/ts-sdk"
 # or
-pnpm add @alkanes/ts-sdk`}</CodeBlock>
+pnpm add "https://alkanes.build/api/pkg/@alkanes/ts-sdk"`}</CodeBlock>
 
         <h3 className="text-xl font-medium mb-2">{t.sourceTitle}</h3>
         <CodeBlock>{`# Clone the repository

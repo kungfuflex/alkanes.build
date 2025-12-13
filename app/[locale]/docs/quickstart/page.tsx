@@ -14,8 +14,8 @@ const content = {
       "Node.js (18 or later) - For the CLI and tooling"
     ],
     step1Title: "Step 1: Install the CLI",
-    step1Intro: "Clone and build from source:",
-    step1Alt: "Or install via npm:",
+    step1Intro: "Clone and build from source (develop branch):",
+    step1Note: "Note: The CLI is not published to npm. Build from source is the only installation method.",
     step2Title: "Step 2: Create a Wallet",
     step3Title: "Step 3: Create Your Contract",
     step3Intro: "Create a new Rust project:",
@@ -49,8 +49,8 @@ const content = {
       "Node.js（18 或更高版本）- 用于 CLI 和工具"
     ],
     step1Title: "步骤 1：安装 CLI",
-    step1Intro: "从源码克隆并构建：",
-    step1Alt: "或通过 npm 安装：",
+    step1Intro: "从源码克隆并构建（develop 分支）：",
+    step1Note: "注意：CLI 未发布到 npm。从源码构建是唯一的安装方法。",
     step2Title: "步骤 2：创建钱包",
     step3Title: "步骤 3：创建合约",
     step3Intro: "创建新的 Rust 项目：",
@@ -84,8 +84,8 @@ const content = {
       "Node.js (18 atau lebih baru) - Untuk CLI dan tooling"
     ],
     step1Title: "Langkah 1: Pasang CLI",
-    step1Intro: "Klon dan bina dari sumber:",
-    step1Alt: "Atau pasang melalui npm:",
+    step1Intro: "Klon dan bina dari sumber (cawangan develop):",
+    step1Note: "Nota: CLI tidak diterbitkan ke npm. Bina dari sumber adalah satu-satunya kaedah pemasangan.",
     step2Title: "Langkah 2: Cipta Wallet",
     step3Title: "Langkah 3: Cipta Kontrak Anda",
     step3Intro: "Cipta projek Rust baharu:",
@@ -119,8 +119,8 @@ const content = {
       "Node.js (18 hoặc mới hơn) - Cho CLI và công cụ"
     ],
     step1Title: "Bước 1: Cài Đặt CLI",
-    step1Intro: "Sao chép và xây dựng từ nguồn:",
-    step1Alt: "Hoặc cài đặt qua npm:",
+    step1Intro: "Sao chép và xây dựng từ nguồn (nhánh develop):",
+    step1Note: "Lưu ý: CLI không được xuất bản lên npm. Xây dựng từ nguồn là phương pháp cài đặt duy nhất.",
     step2Title: "Bước 2: Tạo Ví",
     step3Title: "Bước 3: Tạo Hợp Đồng Của Bạn",
     step3Intro: "Tạo dự án Rust mới:",
@@ -154,8 +154,8 @@ const content = {
       "Node.js (18 이상) - CLI 및 도구용"
     ],
     step1Title: "단계 1: CLI 설치",
-    step1Intro: "소스에서 복제 및 빌드:",
-    step1Alt: "또는 npm을 통해 설치:",
+    step1Intro: "소스에서 복제 및 빌드 (develop 브랜치):",
+    step1Note: "참고: CLI는 npm에 게시되지 않았습니다. 소스에서 빌드가 유일한 설치 방법입니다.",
     step2Title: "단계 2: 지갑 생성",
     step3Title: "단계 3: 계약 생성",
     step3Intro: "새 Rust 프로젝트 생성:",
@@ -212,8 +212,8 @@ export default function QuickStartPage() {
       <div>
         <h2 className="text-2xl font-semibold mb-3">{t.step1Title}</h2>
         <p>{t.step1Intro}</p>
-        <CodeBlock>{`# Clone alkanes-rs
-git clone https://github.com/kungfuflex/alkanes-rs.git
+        <CodeBlock>{`# Clone alkanes-rs (develop branch)
+git clone https://github.com/kungfuflex/alkanes-rs.git -b develop
 cd alkanes-rs
 
 # Build the CLI
@@ -221,8 +221,7 @@ cargo build --release -p alkanes-cli
 
 # Add to PATH (optional)
 export PATH="$PWD/target/release:$PATH"`}</CodeBlock>
-        <p>{t.step1Alt}</p>
-        <CodeBlock>{`npm install -g @alkanes/cli`}</CodeBlock>
+        <p className="text-sm text-[color:var(--sf-muted)] italic mt-2">{t.step1Note}</p>
       </div>
 
       <div>
