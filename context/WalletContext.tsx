@@ -215,15 +215,15 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
 
       return {
         nativeSegwit: {
-          address: segwitInfo.address,
-          pubkey: segwitInfo.publicKey,
-          hdPath: segwitInfo.path,
+          address: segwitInfo?.address || '',
+          pubkey: segwitInfo?.publicKey || '',
+          hdPath: segwitInfo?.path || '',
         },
         taproot: {
-          address: taprootInfo.address,
-          pubkey: taprootInfo.publicKey,
-          pubKeyXOnly: taprootInfo.publicKey.slice(2),
-          hdPath: taprootInfo.path,
+          address: taprootInfo?.address || '',
+          pubkey: taprootInfo?.publicKey || '',
+          pubKeyXOnly: taprootInfo?.publicKey?.slice(2) || '',
+          hdPath: taprootInfo?.path || '',
         },
       };
     }
