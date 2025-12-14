@@ -1,41 +1,87 @@
-// Re-export the wasm-pack generated module
-import initWasm, * as wasmModule from "./alkanes_web_sys.js";
+/**
+ * Cross-platform WASM loader for alkanes-web-sys
+ *
+ * This module provides automatic environment detection and loads the WASM
+ * module appropriately for Node.js (CommonJS/ESM) or browser environments.
+ */
 
-export * from "./alkanes_web_sys.js";
-
-let initialized = false;
+let wasmModule = null;
 let initPromise = null;
 
-// Provide an init function that actually initializes the WASM module
+/**
+ * Detect if we're running in Node.js
+ */
+function isNode() {
+  return typeof process !== 'undefined' &&
+         process.versions != null &&
+         process.versions.node != null;
+}
+
+/**
+ * Initialize the WASM module for Node.js
+ */
+async function initNode() {
+  const path = await import('path');
+  const { fileURLToPath } = await import('url');
+  const fs = await import('fs');
+
+  // Get the directory of this file
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
+  // Read the WASM file
+  const wasmPath = path.join(__dirname, 'alkanes_web_sys_bg.wasm');
+  const wasmBuffer = fs.readFileSync(wasmPath);
+
+  // Import the JS bindings
+  const wasm = await import('./alkanes_web_sys_bg.js');
+
+  // Compile and instantiate the WASM module
+  const wasmInstance = await WebAssembly.instantiate(wasmBuffer, {
+    './alkanes_web_sys_bg.js': wasm,
+  });
+
+  // Set the WASM instance
+  wasm.__wbg_set_wasm(wasmInstance.instance.exports);
+
+  // Initialize
+  wasmInstance.instance.exports.__wbindgen_start();
+
+  return wasm;
+}
+
+/**
+ * Initialize the WASM module for browser
+ */
+async function initBrowser() {
+  // In browser, we can use the standard web loader
+  const wasm = await import('./alkanes_web_sys.js');
+  return wasm;
+}
+
+/**
+ * Initialize and return the WASM module
+ * This is idempotent - subsequent calls return the cached module
+ */
 export async function init() {
-  if (initialized) return;
-  if (initPromise) return initPromise;
+  if (wasmModule) return wasmModule;
 
-  initPromise = (async () => {
-    // Check if we're in Node.js (even if DOM is emulated like in happy-dom/jsdom)
-    // process.versions.node exists only in actual Node.js environment
-    const isNodeJs = typeof process !== 'undefined' && process.versions && process.versions.node;
-
-    if (isNodeJs) {
-      // For Node.js (including happy-dom/vitest), read the wasm file from disk
-      const fs = await import('fs');
-      const path = await import('path');
-      const url = await import('url');
-
-      const __filename = url.fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
-      const wasmPath = path.join(__dirname, 'alkanes_web_sys_bg.wasm');
-      const wasmBytes = fs.readFileSync(wasmPath);
-      await initWasm(wasmBytes);
-    } else {
-      // For browser, use the default fetch-based initialization
-      await initWasm();
-    }
-    initialized = true;
-  })();
+  if (!initPromise) {
+    initPromise = (async () => {
+      if (isNode()) {
+        wasmModule = await initNode();
+      } else {
+        wasmModule = await initBrowser();
+      }
+      return wasmModule;
+    })();
+  }
 
   return initPromise;
 }
 
-// Auto-initialize for convenience (returns a promise)
-export const ready = init();
+// Re-export everything from the bindings after initialization
+export * from './alkanes_web_sys_bg.js';
+
+// Default export is the init function
+export default init;
