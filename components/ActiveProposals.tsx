@@ -154,7 +154,9 @@ function ProposalCard({
   stateLabel: string;
 }) {
   // Calculate vote percentages from scores (assumes first choice is "For", second is "Against")
-  const scores = proposal.scores.map((s) => BigInt(s || "0"));
+  // Defensive check - scores might be undefined/null from API
+  const scoresArray = Array.isArray(proposal.scores) ? proposal.scores : [];
+  const scores = scoresArray.map((s) => BigInt(s || "0"));
   const totalVotes = BigInt(proposal.totalVotes || "0");
 
   let forPercentage = 50;

@@ -163,7 +163,8 @@ function ProposalCard({
   stateLabels: Record<string, string>;
 }) {
   const totalVotes = BigInt(proposal.totalVotes || "0");
-  const scores = proposal.scores.map((s) => BigInt(s || "0"));
+  const scoresArray = Array.isArray(proposal.scores) ? proposal.scores : [];
+  const scores = scoresArray.map((s) => BigInt(s || "0"));
   const maxScore = scores.reduce((a, b) => (a > b ? a : b), BigInt(0));
 
   const stateClass = {
@@ -197,15 +198,15 @@ function ProposalCard({
         </div>
 
         {/* Results Preview */}
-        {totalVotes > 0 && (
+        {totalVotes > BigInt(0) && (
           <div className="space-y-2 mb-4">
             {proposal.choices.map((choice, index) => {
-              const score = scores[index];
+              const score = scores[index] || BigInt(0);
               const percentage =
-                totalVotes > 0
+                totalVotes > BigInt(0)
                   ? Number((score * BigInt(100)) / totalVotes)
                   : 0;
-              const isWinning = score === maxScore && maxScore > 0;
+              const isWinning = score === maxScore && maxScore > BigInt(0);
 
               return (
                 <div key={index} className="relative">

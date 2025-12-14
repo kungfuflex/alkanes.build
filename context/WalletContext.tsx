@@ -25,6 +25,7 @@ import {
   createKeystore,
   unlockKeystore,
   KeystoreStorage,
+  getWalletById,
   type BrowserWalletInfo,
   type UTXO,
 } from '@alkanes/ts-sdk';
@@ -178,6 +179,11 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
           const newClient = await sdkConnectWallet(browserWalletId, sdkNetwork);
           setClient(newClient);
           setWalletType('browser');
+          // Restore wallet info from ID
+          const walletInfo = getWalletById(browserWalletId);
+          if (walletInfo) {
+            setConnectedWalletInfo(walletInfo);
+          }
         } catch (error) {
           console.error('Failed to reconnect browser wallet:', error);
           sessionStorage.removeItem(STORAGE_KEYS.BROWSER_WALLET);
@@ -232,6 +238,9 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
 
   // Track browser wallet address separately
   const [browserAddress, setBrowserAddress] = useState<{ address: string; publicKey: string }>({ address: '', publicKey: '' });
+
+  // Track connected browser wallet info
+  const [connectedWalletInfo, setConnectedWalletInfo] = useState<BrowserWalletInfo | null>(null);
 
   useEffect(() => {
     if (client && walletType === 'browser') {
@@ -390,6 +399,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     setClient(newClient);
     setWalletType('browser');
     setCurrentMnemonic(null);
+    setConnectedWalletInfo(walletInfo);
 
     // Store that we're using a browser wallet
     sessionStorage.setItem(STORAGE_KEYS.BROWSER_WALLET, walletInfo.id);
@@ -408,6 +418,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     setClient(null);
     setWalletType(null);
     setCurrentMnemonic(null);
+    setConnectedWalletInfo(null);
     setIsConnectModalOpen(false);
   }, [client]);
 
@@ -526,10 +537,11 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
         address: browserAddress.address,
         publicKey: browserAddress.publicKey,
         getNetwork: () => network,
+        info: connectedWalletInfo,
       };
     }
     return null;
-  }, [client, walletType, browserAddress, network]);
+  }, [client, walletType, browserAddress, network, connectedWalletInfo]);
 
   // Build context value
   const contextValue = useMemo<WalletContextType>(

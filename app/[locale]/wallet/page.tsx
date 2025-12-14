@@ -193,7 +193,7 @@ export default function WalletDashboardPage() {
               <AddressAvatar address={address} size={64} />
               <div>
                 <div className="text-lg font-semibold text-[color:var(--sf-text)]">
-                  {isBrowserWallet ? browserWallet.info.name : "Keystore Wallet"}
+                  {isBrowserWallet ? (browserWallet?.info?.name || "Browser Wallet") : "Keystore Wallet"}
                 </div>
                 <div className="text-sm text-[color:var(--sf-muted)]">
                   Network: <span className="capitalize">{network}</span>
@@ -201,10 +201,10 @@ export default function WalletDashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {isBrowserWallet && browserWallet.info.icon && (
+              {isBrowserWallet && browserWallet?.info?.icon && (
                 <img
                   src={browserWallet.info.icon}
-                  alt={browserWallet.info.name}
+                  alt={browserWallet.info.name || "Wallet"}
                   className="w-8 h-8"
                 />
               )}
@@ -538,17 +538,17 @@ export default function WalletDashboardPage() {
             </h2>
             <div className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]">
               <p className="text-sm text-[color:var(--sf-muted)]">
-                Connected via <strong>{browserWallet.info.name}</strong> browser extension.
+                Connected via <strong>{browserWallet?.info?.name || "Browser Wallet"}</strong> browser extension.
                 Your keys are managed by the extension wallet.
               </p>
-              {browserWallet.info.website && (
+              {browserWallet?.info?.website && (
                 <a
                   href={browserWallet.info.website}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 mt-2 text-sm text-[color:var(--sf-primary)] hover:underline"
                 >
-                  Visit {browserWallet.info.name} <ExternalLink size={14} />
+                  Visit {browserWallet.info.name || "wallet"} <ExternalLink size={14} />
                 </a>
               )}
             </div>

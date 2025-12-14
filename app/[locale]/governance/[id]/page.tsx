@@ -130,7 +130,8 @@ export default function ProposalDetailPage() {
   };
 
   // Calculate totals
-  const scores = proposal?.scores?.map((s) => BigInt(s || "0")) || [];
+  const scoresArray = Array.isArray(proposal?.scores) ? proposal.scores : [];
+  const scores = scoresArray.map((s) => BigInt(s || "0"));
   const totalVotes = scores.reduce((a, b) => a + b, BigInt(0));
   const maxScore = scores.reduce((a, b) => (a > b ? a : b), BigInt(0));
 
@@ -286,10 +287,10 @@ export default function ProposalDetailPage() {
                 {proposal.choices.map((choice, index) => {
                   const score = scores[index] || BigInt(0);
                   const percentage =
-                    totalVotes > 0
+                    totalVotes > BigInt(0)
                       ? Number((score * BigInt(10000)) / totalVotes) / 100
                       : 0;
-                  const isWinning = score === maxScore && maxScore > 0;
+                  const isWinning = score === maxScore && maxScore > BigInt(0);
                   const isSelected = selectedChoice === index;
                   const isUserChoice = userVote?.choice === index;
 
