@@ -1,12 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
-export function analyze_psbt(psbt_base64: string, network_str: string): string;
-export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
-export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
 /**
  * Asynchronously encrypts data using the Web Crypto API.
  */
 export function encryptMnemonic(mnemonic: string, passphrase: string): Promise<any>;
+export function analyze_psbt(psbt_base64: string, network_str: string): string;
+export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
+export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
 export interface PoolWithDetails {
     pool_id_block: number;
     pool_id_tx: number;
@@ -192,8 +192,12 @@ export class WebProvider {
   broadcastTransaction(tx_hex: string): Promise<any>;
   /**
    * Get address transactions with complete runestone traces (CLI: esplora address-txs --runestone-trace)
+   * Parameters:
+   * - address: Bitcoin address to query
+   * - exclude_coinbase: Skip coinbase transactions
+   * - from_block_height: Only process transactions at or above this block height (0 = all)
    */
-  getAddressTxsWithTraces(address: string, exclude_coinbase?: boolean | null): Promise<any>;
+  getAddressTxsWithTraces(address: string, exclude_coinbase?: boolean | null, from_block_height?: number | null): Promise<any>;
   ordInscription(inscription_id: string): Promise<any>;
   ordInscriptions(page?: number | null): Promise<any>;
   ordOutputs(address: string): Promise<any>;

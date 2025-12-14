@@ -313,7 +313,7 @@ export default function ConnectWalletModal() {
       // Convert WalletOption to BrowserWalletInfo if needed
       const walletInfo: BrowserWalletInfo = 'injectionKey' in wallet
         ? wallet
-        : BROWSER_WALLETS.find(w => w.id === wallet.id) || {
+        : BROWSER_WALLETS.find((w: BrowserWalletInfo) => w.id === wallet.id) || {
             id: wallet.id,
             name: wallet.name,
             icon: wallet.icon,
@@ -772,7 +772,7 @@ export default function ConnectWalletModal() {
                 <div className="max-h-80 overflow-y-auto space-y-2">
                   {installedWallets.map((wallet) => {
                     // Get additional info from BROWSER_WALLETS if available
-                    const fullInfo = BROWSER_WALLETS.find(w => w.id === wallet.id);
+                    const fullInfo = BROWSER_WALLETS.find((w: BrowserWalletInfo) => w.id === wallet.id);
                     return (
                       <button
                         key={wallet.id}
@@ -801,7 +801,7 @@ export default function ConnectWalletModal() {
                   <div className="text-sm text-white/50 mb-4">Install one of these wallets:</div>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {allWallets.filter(w => !w.installed).slice(0, 5).map((wallet) => {
-                      const fullInfo = BROWSER_WALLETS.find(w => w.id === wallet.id);
+                      const fullInfo = BROWSER_WALLETS.find((w: BrowserWalletInfo) => w.id === wallet.id);
                       return (
                         <a
                           key={wallet.id}

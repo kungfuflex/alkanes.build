@@ -258,21 +258,30 @@ export class KeystoreSigner extends AlkanesSigner {
   }
 
   /**
-   * Get full address information including public key and derivation path
+   * Get full address info including path
    */
   getAddressInfo(
-    addressType: AddressType = AddressType.P2WPKH,
+    type: 'p2wpkh' | 'p2tr' | 'p2pkh' | 'p2sh',
     index: number = 0,
     change: number = 0
-  ): { address: string; publicKey: string; path: string; addressType: string } {
+  ): { address: string; publicKey: string; path: string } | null {
+    const addressTypeMap: Record<string, AddressType> = {
+      'p2wpkh': AddressType.P2WPKH,
+      'p2tr': AddressType.P2TR,
+      'p2pkh': AddressType.P2PKH,
+      'p2sh': AddressType.P2SH,
+    };
+    const addressType = addressTypeMap[type];
+    if (!addressType) return null;
+
     const info = this.deriveAddressInfo(addressType, index, change);
     const basePath = this.getDerivationPath(addressType);
-    const path = `${basePath}/${change}/${index}`;
+    const fullPath = `${basePath}/${change}/${index}`;
+
     return {
       address: info.address,
       publicKey: info.publicKey,
-      path,
-      addressType: info.addressType,
+      path: fullPath,
     };
   }
 

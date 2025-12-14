@@ -46352,6 +46352,16 @@ var init_provider = __esm({
       async broadcastTx(txHex) {
         return this.provider.esploraBroadcastTx(txHex);
       }
+      /**
+       * Get address transactions with complete runestone traces
+       * CLI equivalent: alkanes-cli esplora address-txs --runestone-trace <address>
+       * @param address Bitcoin address to query
+       * @param excludeCoinbase Skip coinbase transactions (default: false)
+       * @param fromBlockHeight Only process transactions at or above this block height (0 = all)
+       */
+      async getAddressTxsWithTraces(address2, excludeCoinbase, fromBlockHeight) {
+        return this.provider.getAddressTxsWithTraces(address2, excludeCoinbase ?? false, fromBlockHeight ?? 0);
+      }
     };
     AlkanesRpcClient = class {
       constructor(provider) {
@@ -46720,10 +46730,13 @@ var init_provider = __esm({
       }
       /**
        * Get address history with alkane traces
+       * @param address Bitcoin address to query
+       * @param excludeCoinbase Skip coinbase transactions (default: false)
+       * @param fromBlockHeight Only process transactions at or above this block height (0 = all)
        */
-      async getAddressHistoryWithTraces(address2, excludeCoinbase) {
+      async getAddressHistoryWithTraces(address2, excludeCoinbase, fromBlockHeight) {
         const provider = await this.getProvider();
-        return provider.getAddressTxsWithTraces(address2, excludeCoinbase);
+        return provider.getAddressTxsWithTraces(address2, excludeCoinbase, fromBlockHeight);
       }
       /**
        * Get current block height
@@ -48515,17 +48528,24 @@ var KeystoreSigner = class _KeystoreSigner extends AlkanesSigner {
     return this.deriveAddressInfo(addressType, index, change).address;
   }
   /**
-   * Get full address information including public key and derivation path
+   * Get full address info including path
    */
-  getAddressInfo(addressType = "p2wpkh" /* P2WPKH */, index = 0, change = 0) {
+  getAddressInfo(type, index = 0, change = 0) {
+    const addressTypeMap = {
+      "p2wpkh": "p2wpkh" /* P2WPKH */,
+      "p2tr": "p2tr" /* P2TR */,
+      "p2pkh": "p2pkh" /* P2PKH */,
+      "p2sh": "p2sh" /* P2SH */
+    };
+    const addressType = addressTypeMap[type];
+    if (!addressType) return null;
     const info = this.deriveAddressInfo(addressType, index, change);
     const basePath = this.getDerivationPath(addressType);
-    const path = `${basePath}/${change}/${index}`;
+    const fullPath = `${basePath}/${change}/${index}`;
     return {
       address: info.address,
       publicKey: info.publicKey,
-      path,
-      addressType: info.addressType
+      path: fullPath
     };
   }
   /**

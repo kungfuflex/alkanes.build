@@ -515,7 +515,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
       // Return a proxy object that mimics the old AlkanesWallet interface
       const signer = client.signer as KeystoreSigner;
       return {
-        signPsbt: (psbt: string) => client.signPsbt(psbt).then(r => r.psbtHex),
+        signPsbt: (psbt: string) => client.signPsbt(psbt).then((r: { psbtHex: string }) => r.psbtHex),
         signMessage: (msg: string, index: number) => client.signMessage(msg),
         deriveAddress: (type: any, account: number, index: number) => {
           return signer.deriveAddress(type, index);
@@ -531,7 +531,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     if (walletType === 'browser' && client) {
       // Return a proxy object that mimics the old ConnectedWallet interface
       return {
-        signPsbt: (psbtHex: string) => client.signPsbt(psbtHex).then(r => r.psbtHex),
+        signPsbt: (psbtHex: string) => client.signPsbt(psbtHex).then((r: { psbtHex: string }) => r.psbtHex),
         signMessage: (msg: string) => client.signMessage(msg),
         disconnect: () => client.disconnect(),
         address: browserAddress.address,

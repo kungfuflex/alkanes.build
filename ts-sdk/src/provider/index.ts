@@ -211,6 +211,17 @@ export class EsploraClient {
   async broadcastTx(txHex: string): Promise<string> {
     return this.provider.esploraBroadcastTx(txHex);
   }
+
+  /**
+   * Get address transactions with complete runestone traces
+   * CLI equivalent: alkanes-cli esplora address-txs --runestone-trace <address>
+   * @param address Bitcoin address to query
+   * @param excludeCoinbase Skip coinbase transactions (default: false)
+   * @param fromBlockHeight Only process transactions at or above this block height (0 = all)
+   */
+  async getAddressTxsWithTraces(address: string, excludeCoinbase?: boolean, fromBlockHeight?: number): Promise<any[]> {
+    return this.provider.getAddressTxsWithTraces(address, excludeCoinbase ?? false, fromBlockHeight ?? 0);
+  }
 }
 
 /**
@@ -686,10 +697,13 @@ export class AlkanesProvider {
 
   /**
    * Get address history with alkane traces
+   * @param address Bitcoin address to query
+   * @param excludeCoinbase Skip coinbase transactions (default: false)
+   * @param fromBlockHeight Only process transactions at or above this block height (0 = all)
    */
-  async getAddressHistoryWithTraces(address: string, excludeCoinbase?: boolean): Promise<any[]> {
+  async getAddressHistoryWithTraces(address: string, excludeCoinbase?: boolean, fromBlockHeight?: number): Promise<any[]> {
     const provider = await this.getProvider();
-    return provider.getAddressTxsWithTraces(address, excludeCoinbase);
+    return provider.getAddressTxsWithTraces(address, excludeCoinbase, fromBlockHeight);
   }
 
   /**
