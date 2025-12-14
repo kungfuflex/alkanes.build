@@ -319,12 +319,14 @@ declare module '@alkanes/ts-sdk' {
 
     exportMnemonic(): string;
     exportToKeystore(password: string): Promise<string>;
-    deriveAddress(type: 'p2wpkh' | 'p2tr' | 'p2pkh' | 'p2sh-p2wpkh', index: number): {
+    deriveAddress(type: 'p2wpkh' | 'p2tr' | 'p2pkh' | 'p2sh-p2wpkh', index: number, change?: number): string;
+    getAddressInfo(type: 'p2wpkh' | 'p2tr' | 'p2pkh' | 'p2sh-p2wpkh', index: number, change?: number): {
       address: string;
       publicKey: string;
       path: string;
+      addressType: string;
     };
-    getAddresses(count: number): Array<{ index: number; address: string; publicKey: string; path: string }>;
+    getAddresses(count: number): Array<{ index: number; address: string }>;
   }
 
   // Browser wallet signer config

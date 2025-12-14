@@ -209,9 +209,9 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     if (walletType === 'keystore' && client.signer instanceof KeystoreSigner) {
       const signer = client.signer as KeystoreSigner;
 
-      // Get addresses synchronously from the signer
-      const segwitInfo = signer.deriveAddress('p2wpkh', 0);
-      const taprootInfo = signer.deriveAddress('p2tr', 0);
+      // Get full address info from the signer (includes address, publicKey, and path)
+      const segwitInfo = signer.getAddressInfo('p2wpkh', 0);
+      const taprootInfo = signer.getAddressInfo('p2tr', 0);
 
       return {
         nativeSegwit: {
