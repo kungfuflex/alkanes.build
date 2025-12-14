@@ -325,6 +325,11 @@ declare module '@alkanes/ts-sdk' {
       path: string;
     };
     getAddresses(count: number): Array<{ index: number; address: string; publicKey: string; path: string }>;
+    getAddressInfo(type: 'p2wpkh' | 'p2tr' | 'p2pkh' | 'p2sh', index?: number, change?: number): {
+      address: string;
+      publicKey: string;
+      path: string;
+    } | null;
   }
 
   // Browser wallet signer config

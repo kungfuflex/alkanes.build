@@ -82,10 +82,100 @@ jobs:
             public
           retention-days: 7
 
+  verify-sdk-tarball:
+    name: Verify SDK Tarball
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libclang-dev clang llvm pkg-config libssl-dev protobuf-compiler
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build external dependencies (alkanes-rs SDK)
+        run: pnpm build:external
+
+      - name: Verify tarball exists
+        run: |
+          if [ ! -f "ts-sdk/package.tgz" ]; then
+            echo "ERROR: ts-sdk/package.tgz not found"
+            exit 1
+          fi
+          ls -la ts-sdk/package.tgz
+          echo "Tarball size: $(du -h ts-sdk/package.tgz | cut -f1)"
+
+      - name: Test tarball installation
+        run: |
+          # Create temporary test directory
+          TEST_DIR=$(mktemp -d)
+          cd "$TEST_DIR"
+
+          # Initialize a minimal package.json
+          echo '{"name":"tarball-test","type":"module"}' > package.json
+
+          # Install from the tarball
+          npm install "${{ github.workspace }}/ts-sdk/package.tgz"
+
+          # Verify installation
+          if [ ! -d "node_modules/@alkanes/ts-sdk" ]; then
+            echo "ERROR: Package not installed correctly"
+            exit 1
+          fi
+
+          # Verify key directories
+          for dir in dist build/wasm; do
+            if [ ! -d "node_modules/@alkanes/ts-sdk/$dir" ]; then
+              echo "ERROR: Missing directory: $dir"
+              exit 1
+            fi
+          done
+
+          # Test import
+          cat > test-import.mjs << 'EOF'
+          try {
+            const pkg = await import('@alkanes/ts-sdk');
+            console.log('Package imported successfully');
+            console.log('Available exports:', Object.keys(pkg).length);
+            process.exit(0);
+          } catch (error) {
+            console.error('Import failed:', error.message);
+            process.exit(1);
+          }
+          EOF
+
+          node test-import.mjs
+
+          echo "✅ SDK tarball verification passed!"
+
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
+    needs: [lint-and-typecheck, verify-sdk-tarball]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -48674,6 +48674,27 @@ var KeystoreSigner = class _KeystoreSigner extends AlkanesSigner {
     }
     return addresses;
   }
+  /**
+   * Get full address info including path
+   */
+  getAddressInfo(type, index = 0, change = 0) {
+    const addressTypeMap = {
+      "p2wpkh": "p2wpkh" /* P2WPKH */,
+      "p2tr": "p2tr" /* P2TR */,
+      "p2pkh": "p2pkh" /* P2PKH */,
+      "p2sh": "p2sh" /* P2SH */
+    };
+    const addressType = addressTypeMap[type];
+    if (!addressType) return null;
+    const info = this.deriveAddressInfo(addressType, index, change);
+    const basePath = this.getDerivationPath(addressType);
+    const fullPath = `${basePath}/${change}/${index}`;
+    return {
+      address: info.address,
+      publicKey: info.publicKey,
+      path: fullPath
+    };
+  }
   // Private methods
   getDerivationPath(addressType) {
     const coinType = this.bitcoinNetwork === bitcoin7.networks.bitcoin ? 0 : 1;
