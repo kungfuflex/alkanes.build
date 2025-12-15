@@ -1,12 +1,37 @@
 /* tslint:disable */
 /* eslint-disable */
+export function analyze_psbt(psbt_base64: string, network_str: string): string;
+export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
+export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
+/**
+ * Analyze a transaction's runestone to extract Protostones
+ *
+ * This function takes a raw transaction hex string, decodes it, and extracts
+ * all Protostones from the transaction's OP_RETURN output.
+ *
+ * # Arguments
+ *
+ * * `tx_hex` - Hexadecimal string of the raw transaction (with or without "0x" prefix)
+ *
+ * # Returns
+ *
+ * A JSON string containing:
+ * - `protostone_count`: Number of Protostones found
+ * - `protostones`: Array of Protostone objects with their details
+ *
+ * # Example
+ *
+ * ```javascript
+ * const result = analyze_runestone(txHex);
+ * const data = JSON.parse(result);
+ * console.log(`Found ${data.protostone_count} Protostones`);
+ * ```
+ */
+export function analyze_runestone(tx_hex: string): string;
 /**
  * Asynchronously encrypts data using the Web Crypto API.
  */
 export function encryptMnemonic(mnemonic: string, passphrase: string): Promise<any>;
-export function analyze_psbt(psbt_base64: string, network_str: string): string;
-export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
-export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
 export interface PoolWithDetails {
     pool_id_block: number;
     pool_id_tx: number;
@@ -192,12 +217,8 @@ export class WebProvider {
   broadcastTransaction(tx_hex: string): Promise<any>;
   /**
    * Get address transactions with complete runestone traces (CLI: esplora address-txs --runestone-trace)
-   * Parameters:
-   * - address: Bitcoin address to query
-   * - exclude_coinbase: Skip coinbase transactions
-   * - from_block_height: Only process transactions at or above this block height (0 = all)
    */
-  getAddressTxsWithTraces(address: string, exclude_coinbase?: boolean | null, from_block_height?: number | null): Promise<any>;
+  getAddressTxsWithTraces(address: string, exclude_coinbase?: boolean | null): Promise<any>;
   ordInscription(inscription_id: string): Promise<any>;
   ordInscriptions(page?: number | null): Promise<any>;
   ordOutputs(address: string): Promise<any>;
@@ -258,6 +279,7 @@ export class WebProvider {
   ammGetPoolDetails(pool_id: string): Promise<any>;
   alkanesTrace(outpoint: string): Promise<any>;
   traceProtostones(txid: string): Promise<any>;
+  traceBlock(height: number): Promise<any>;
   alkanesByAddress(address: string, block_tag?: string | null, protocol_tag?: number | null): Promise<any>;
   alkanesByOutpoint(outpoint: string, block_tag?: string | null, protocol_tag?: number | null): Promise<any>;
   esploraGetTx(txid: string): Promise<any>;

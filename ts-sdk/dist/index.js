@@ -45175,8 +45175,8 @@ var init_keystore = __esm({
       // Taproot (P2TR)
     };
     KeystoreManager = class {
-      constructor(wasmModule) {
-        this.wasm = wasmModule;
+      constructor(wasmModule2) {
+        this.wasm = wasmModule2;
       }
       /**
        * Generate a new mnemonic phrase
@@ -46412,16 +46412,6 @@ var init_provider = __esm({
       async broadcastTx(txHex) {
         return this.provider.esploraBroadcastTx(txHex);
       }
-      /**
-       * Get address transactions with complete runestone traces
-       * CLI equivalent: alkanes-cli esplora address-txs --runestone-trace <address>
-       * @param address Bitcoin address to query
-       * @param excludeCoinbase Skip coinbase transactions (default: false)
-       * @param fromBlockHeight Only process transactions at or above this block height (0 = all)
-       */
-      async getAddressTxsWithTraces(address2, excludeCoinbase, fromBlockHeight) {
-        return this.provider.getAddressTxsWithTraces(address2, excludeCoinbase ?? false, fromBlockHeight ?? 0);
-      }
     };
     AlkanesRpcClient = class {
       constructor(provider) {
@@ -46447,6 +46437,9 @@ var init_provider = __esm({
       }
       async trace(outpoint) {
         return this.provider.alkanesTrace(outpoint);
+      }
+      async traceBlock(height) {
+        return this.provider.traceBlock(height);
       }
       async view(contractId, viewFn, params, blockTag) {
         return this.provider.alkanesView(contractId, viewFn, params, blockTag);
@@ -46630,13 +46623,12 @@ var init_provider = __esm({
           await wasm.init();
         }
         const providerName = this.networkPreset === "local" ? "regtest" : this.networkPreset;
-        const configOverride = {};
-        if (this.rpcUrl !== NETWORK_PRESETS[this.networkPreset]?.rpcUrl) {
-          configOverride.jsonrpc_url = this.rpcUrl;
-        }
+        const configOverride = {
+          jsonrpc_url: this.rpcUrl
+        };
         this._provider = new wasm.WebProvider(
           providerName,
-          Object.keys(configOverride).length > 0 ? configOverride : void 0
+          configOverride
         );
       }
       /**
@@ -46790,13 +46782,10 @@ var init_provider = __esm({
       }
       /**
        * Get address history with alkane traces
-       * @param address Bitcoin address to query
-       * @param excludeCoinbase Skip coinbase transactions (default: false)
-       * @param fromBlockHeight Only process transactions at or above this block height (0 = all)
        */
-      async getAddressHistoryWithTraces(address2, excludeCoinbase, fromBlockHeight) {
+      async getAddressHistoryWithTraces(address2, excludeCoinbase) {
         const provider = await this.getProvider();
-        return provider.getAddressTxsWithTraces(address2, excludeCoinbase, fromBlockHeight);
+        return provider.getAddressTxsWithTraces(address2, excludeCoinbase);
       }
       /**
        * Get current block height
@@ -48266,6 +48255,7 @@ __export(index_exports, {
   WalletConnector: () => WalletConnector,
   WizzAdapter: () => WizzAdapter,
   XverseAdapter: () => XverseAdapter,
+  analyzeRunestone: () => analyzeRunestone,
   btcToSatoshis: () => btcToSatoshis,
   bytesToHex: () => bytesToHex,
   calculateFee: () => calculateFee,
@@ -48312,6 +48302,25 @@ init_provider();
 
 // src/utils/index.ts
 var bitcoin4 = __toESM(require_src3());
+
+// src/utils/wasm.ts
+var wasmModule = null;
+async function getWasmModule() {
+  if (!wasmModule) {
+    wasmModule = await import(
+      /* webpackIgnore: true */
+      "@alkanes/ts-sdk/wasm"
+    );
+  }
+  return wasmModule;
+}
+async function analyzeRunestone(txHex) {
+  const wasm = await getWasmModule();
+  const resultJson = wasm.analyze_runestone(txHex);
+  return JSON.parse(resultJson);
+}
+
+// src/utils/index.ts
 function getNetwork(networkType) {
   switch (networkType) {
     case "mainnet":
@@ -48673,27 +48682,6 @@ var KeystoreSigner = class _KeystoreSigner extends AlkanesSigner {
       });
     }
     return addresses;
-  }
-  /**
-   * Get full address info including path
-   */
-  getAddressInfo(type, index = 0, change = 0) {
-    const addressTypeMap = {
-      "p2wpkh": "p2wpkh" /* P2WPKH */,
-      "p2tr": "p2tr" /* P2TR */,
-      "p2pkh": "p2pkh" /* P2PKH */,
-      "p2sh": "p2sh" /* P2SH */
-    };
-    const addressType = addressTypeMap[type];
-    if (!addressType) return null;
-    const info = this.deriveAddressInfo(addressType, index, change);
-    const basePath = this.getDerivationPath(addressType);
-    const fullPath = `${basePath}/${change}/${index}`;
-    return {
-      address: info.address,
-      publicKey: info.publicKey,
-      path: fullPath
-    };
   }
   // Private methods
   getDerivationPath(addressType) {

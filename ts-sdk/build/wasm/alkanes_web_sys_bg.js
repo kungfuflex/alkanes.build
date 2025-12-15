@@ -241,21 +241,6 @@ function passArrayJsValueToWasm0(array, malloc) {
     return ptr;
 }
 /**
- * Asynchronously encrypts data using the Web Crypto API.
- * @param {string} mnemonic
- * @param {string} passphrase
- * @returns {Promise<any>}
- */
-export function encryptMnemonic(mnemonic, passphrase) {
-    const ptr0 = passStringToWasm0(mnemonic, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passStringToWasm0(passphrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.encryptMnemonic(ptr0, len0, ptr1, len1);
-    return ret;
-}
-
-/**
  * @param {string} psbt_base64
  * @param {string} network_str
  * @returns {string}
@@ -313,6 +298,68 @@ export function get_alkane_bytecode(network, block, tx, block_tag) {
     const ptr1 = passStringToWasm0(block_tag, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len1 = WASM_VECTOR_LEN;
     const ret = wasm.get_alkane_bytecode(ptr0, len0, block, tx, ptr1, len1);
+    return ret;
+}
+
+/**
+ * Analyze a transaction's runestone to extract Protostones
+ *
+ * This function takes a raw transaction hex string, decodes it, and extracts
+ * all Protostones from the transaction's OP_RETURN output.
+ *
+ * # Arguments
+ *
+ * * `tx_hex` - Hexadecimal string of the raw transaction (with or without "0x" prefix)
+ *
+ * # Returns
+ *
+ * A JSON string containing:
+ * - `protostone_count`: Number of Protostones found
+ * - `protostones`: Array of Protostone objects with their details
+ *
+ * # Example
+ *
+ * ```javascript
+ * const result = analyze_runestone(txHex);
+ * const data = JSON.parse(result);
+ * console.log(`Found ${data.protostone_count} Protostones`);
+ * ```
+ * @param {string} tx_hex
+ * @returns {string}
+ */
+export function analyze_runestone(tx_hex) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(tx_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.analyze_runestone(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * Asynchronously encrypts data using the Web Crypto API.
+ * @param {string} mnemonic
+ * @param {string} passphrase
+ * @returns {Promise<any>}
+ */
+export function encryptMnemonic(mnemonic, passphrase) {
+    const ptr0 = passStringToWasm0(mnemonic, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(passphrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.encryptMnemonic(ptr0, len0, ptr1, len1);
     return ret;
 }
 
@@ -851,19 +898,14 @@ export class WebProvider {
     }
     /**
      * Get address transactions with complete runestone traces (CLI: esplora address-txs --runestone-trace)
-     * Parameters:
-     * - address: Bitcoin address to query
-     * - exclude_coinbase: Skip coinbase transactions
-     * - from_block_height: Only process transactions at or above this block height (0 = all)
      * @param {string} address
      * @param {boolean | null} [exclude_coinbase]
-     * @param {number | null} [from_block_height]
      * @returns {Promise<any>}
      */
-    getAddressTxsWithTraces(address, exclude_coinbase, from_block_height) {
+    getAddressTxsWithTraces(address, exclude_coinbase) {
         const ptr0 = passStringToWasm0(address, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.webprovider_getAddressTxsWithTraces(this.__wbg_ptr, ptr0, len0, isLikeNone(exclude_coinbase) ? 0xFFFFFF : exclude_coinbase ? 1 : 0, isLikeNone(from_block_height) ? 0x100000001 : (from_block_height) >>> 0);
+        const ret = wasm.webprovider_getAddressTxsWithTraces(this.__wbg_ptr, ptr0, len0, isLikeNone(exclude_coinbase) ? 0xFFFFFF : exclude_coinbase ? 1 : 0);
         return ret;
     }
     /**
@@ -1080,6 +1122,14 @@ export class WebProvider {
         const ptr0 = passStringToWasm0(txid, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.webprovider_traceProtostones(this.__wbg_ptr, ptr0, len0);
+        return ret;
+    }
+    /**
+     * @param {number} height
+     * @returns {Promise<any>}
+     */
+    traceBlock(height) {
+        const ret = wasm.webprovider_traceBlock(this.__wbg_ptr, height);
         return ret;
     }
     /**
@@ -2611,6 +2661,12 @@ export function __wbindgen_cast_9ae0607507abb057(arg0) {
     return ret;
 };
 
+export function __wbindgen_cast_b0ca86a6445b942a(arg0, arg1) {
+    // Cast intrinsic for `Closure(Closure { dtor_idx: 3093, function: Function { arguments: [Externref], shim_idx: 3094, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+    const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3ba04b4139aaae95, wasm_bindgen__convert__closures_____invoke__h5943629905d90057);
+    return ret;
+};
+
 export function __wbindgen_cast_cb9088102bce6b30(arg0, arg1) {
     // Cast intrinsic for `Ref(Slice(U8)) -> NamedExternref("Uint8Array")`.
     const ret = getArrayU8FromWasm0(arg0, arg1);
@@ -2626,12 +2682,6 @@ export function __wbindgen_cast_d6cd19b81560fd6e(arg0) {
 export function __wbindgen_cast_e7b45dd881f38ce3(arg0, arg1) {
     // Cast intrinsic for `U128 -> Externref`.
     const ret = (BigInt.asUintN(64, arg0) | (BigInt.asUintN(64, arg1) << BigInt(64)));
-    return ret;
-};
-
-export function __wbindgen_cast_f20a41ce5cb757e1(arg0, arg1) {
-    // Cast intrinsic for `Closure(Closure { dtor_idx: 3091, function: Function { arguments: [Externref], shim_idx: 3092, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-    const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3ba04b4139aaae95, wasm_bindgen__convert__closures_____invoke__h5943629905d90057);
     return ret;
 };
 
