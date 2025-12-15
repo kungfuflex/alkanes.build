@@ -37,6 +37,10 @@ const content = {
     dataApiDesc: "Client for the Data API endpoints. Provides market data, pool information, candles, and holder statistics.",
     dataApiAccess: "Accessed via provider.dataApi",
 
+    espoTitle: "EspoClient",
+    espoDesc: "Client for the Espo indexer. Provides alkanes data and AMM analytics through two modules: Essentials (balances, holders, storage) and AMM Data (candles, trades, pools, swap routing).",
+    espoAccess: "Accessed via provider.espo",
+
     bitcoinTitle: "BitcoinRpcClient",
     bitcoinDesc: "Client for Bitcoin Core RPC methods. Provides block data, transaction broadcasting, and network information.",
     bitcoinAccess: "Accessed via provider.bitcoin",
@@ -80,6 +84,10 @@ const content = {
     dataApiTitle: "DataApiClient",
     dataApiDesc: "用于 Data API 端点的客户端。提供市场数据、池信息、K线和持有者统计。",
     dataApiAccess: "通过 provider.dataApi 访问",
+
+    espoTitle: "EspoClient",
+    espoDesc: "用于 Espo 索引器的客户端。通过两个模块提供 alkanes 数据和 AMM 分析：Essentials（余额、持有者、存储）和 AMM Data（K线、交易、池、交换路由）。",
+    espoAccess: "通过 provider.espo 访问",
 
     bitcoinTitle: "BitcoinRpcClient",
     bitcoinDesc: "用于 Bitcoin Core RPC 方法的客户端。提供区块数据、交易广播和网络信息。",
@@ -197,6 +205,7 @@ export default function TsSdkApiPage() {
           <TocLink href="#MetashrewClient">MetashrewClient</TocLink>
           <TocLink href="#LuaClient">LuaClient</TocLink>
           <TocLink href="#DataApiClient">DataApiClient</TocLink>
+          <TocLink href="#EspoClient">EspoClient</TocLink>
           <TocLink href="#BitcoinRpcClient">BitcoinRpcClient</TocLink>
           <TocLink href="#Types">Types</TocLink>
         </div>
@@ -223,6 +232,7 @@ provider.alkanes      // AlkanesRpcClient
 provider.metashrew    // MetashrewClient
 provider.lua          // LuaClient
 provider.dataApi      // DataApiClient
+provider.espo         // EspoClient
 provider.bitcoin      // BitcoinRpcClient`}</CodeBlock>
 
         <h4 className="font-semibold text-[color:var(--sf-text)] mt-6 mb-3">{t.providerProperties}</h4>
@@ -743,6 +753,205 @@ console.log('BTC Price:', '$' + price.usd.toLocaleString());`}
             { name: "limit", type: "number", desc: "Max keys to return" },
           ]}
           returns="Promise<string[]> - Array of storage keys"
+          t={t}
+        />
+      </Section>
+
+      {/* EspoClient */}
+      <Section title={t.espoTitle} id="EspoClient">
+        <p className="text-[color:var(--sf-muted)] mb-2">{t.espoDesc}</p>
+        <p className="text-sm text-[color:var(--sf-primary)] mb-4">{t.espoAccess}</p>
+
+        <h4 className="font-semibold text-[color:var(--sf-text)] mt-6 mb-3">Essentials Module</h4>
+        <MethodDoc
+          name="ping"
+          signature="async ping(): Promise<string>"
+          description="Ping the Espo server to check connectivity."
+          returns="Promise<string> - 'pong'"
+          example={`const response = await provider.espo.ping();
+console.log(response); // 'pong'`}
+          t={t}
+        />
+        <MethodDoc
+          name="getHeight"
+          signature="async getHeight(): Promise<number>"
+          description="Get the current block height processed by the Espo indexer."
+          returns="Promise<number> - Current indexer height"
+          example={`const height = await provider.espo.getHeight();
+console.log('Espo height:', height);`}
+          t={t}
+        />
+        <MethodDoc
+          name="getAddressBalances"
+          signature="async getAddressBalances(address: string, includeOutpoints?: boolean): Promise<any>"
+          description="Get alkanes balances for a Bitcoin address with optional outpoint details."
+          params={[
+            { name: "address", type: "string", desc: "Bitcoin address" },
+            { name: "includeOutpoints", type: "boolean", desc: "Include detailed UTXO information (default: false)" },
+          ]}
+          returns="Promise<any> - Balance data with optional outpoint breakdown"
+          example={`const balances = await provider.espo.getAddressBalances('bc1q...', true);
+console.log(balances.balances); // { '840000:1': '1000000', ... }
+console.log(balances.outpoints); // [{ outpoint: 'txid:0', entries: [...] }]`}
+          t={t}
+        />
+        <MethodDoc
+          name="getAddressOutpoints"
+          signature="async getAddressOutpoints(address: string): Promise<any>"
+          description="Get all outpoints containing alkanes for an address."
+          params={[{ name: "address", type: "string", desc: "Bitcoin address" }]}
+          returns="Promise<any> - Array of outpoints with alkane entries"
+          t={t}
+        />
+        <MethodDoc
+          name="getOutpointBalances"
+          signature="async getOutpointBalances(outpoint: string): Promise<any>"
+          description="Get alkanes balances at a specific UTXO outpoint."
+          params={[{ name: "outpoint", type: "string", desc: "Outpoint in format 'txid:vout'" }]}
+          returns="Promise<any> - Alkane balances at the outpoint"
+          t={t}
+        />
+        <MethodDoc
+          name="getHolders"
+          signature="async getHolders(alkaneId: string, page?: number, limit?: number): Promise<any>"
+          description="Get paginated list of holders for an alkane token."
+          params={[
+            { name: "alkaneId", type: "string", desc: "Alkane ID in format 'block:tx'" },
+            { name: "page", type: "number", desc: "Page number (default: 0)" },
+            { name: "limit", type: "number", desc: "Items per page (default: 100)" },
+          ]}
+          returns="Promise<any> - Paginated holder data"
+          example={`const holders = await provider.espo.getHolders('840000:1', 0, 50);
+console.log('Total holders:', holders.total);
+console.log('Page:', holders.items);`}
+          t={t}
+        />
+        <MethodDoc
+          name="getHoldersCount"
+          signature="async getHoldersCount(alkaneId: string): Promise<number>"
+          description="Get the total number of unique holders for an alkane token."
+          params={[{ name: "alkaneId", type: "string", desc: "Alkane ID in format 'block:tx'" }]}
+          returns="Promise<number> - Total holder count"
+          t={t}
+        />
+        <MethodDoc
+          name="getKeys"
+          signature="async getKeys(alkaneId: string, page?: number, limit?: number): Promise<any>"
+          description="Get storage keys for an alkane contract with pagination and UTF-8 decoding."
+          params={[
+            { name: "alkaneId", type: "string", desc: "Alkane ID in format 'block:tx'" },
+            { name: "page", type: "number", desc: "Page number (default: 0)" },
+            { name: "limit", type: "number", desc: "Items per page (default: 100)" },
+          ]}
+          returns="Promise<any> - Paginated storage keys"
+          t={t}
+        />
+
+        <h4 className="font-semibold text-[color:var(--sf-text)] mt-6 mb-3">AMM Data Module</h4>
+        <MethodDoc
+          name="ammdataPing"
+          signature="async ammdataPing(): Promise<string>"
+          description="Ping the AMM Data module to check connectivity."
+          returns="Promise<string> - 'pong'"
+          t={t}
+        />
+        <MethodDoc
+          name="getCandles"
+          signature="async getCandles(pool: string, timeframe?: string, side?: string, limit?: number, page?: number): Promise<any>"
+          description="Get OHLCV candlestick data for a liquidity pool."
+          params={[
+            { name: "pool", type: "string", desc: "Pool ID in format 'block:tx'" },
+            { name: "timeframe", type: "string", desc: "Candle interval: '10m', '1h', '1d', '1w', '1M'" },
+            { name: "side", type: "string", desc: "Price side: 'base' or 'quote'" },
+            { name: "limit", type: "number", desc: "Number of candles (default: 100)" },
+            { name: "page", type: "number", desc: "Page number (default: 0)" },
+          ]}
+          returns="Promise<any> - OHLCV candlestick data"
+          example={`const candles = await provider.espo.getCandles(
+  '840100:5',
+  '1h',
+  'base',
+  100,
+  0
+);
+console.log(candles.candles); // [{ open, high, low, close, volume, ... }]`}
+          t={t}
+        />
+        <MethodDoc
+          name="getTrades"
+          signature="async getTrades(pool: string, limit?: number, page?: number, side?: string, filterSide?: string, sort?: string, dir?: string): Promise<any>"
+          description="Get trade history for a pool with comprehensive filtering and sorting."
+          params={[
+            { name: "pool", type: "string", desc: "Pool ID in format 'block:tx'" },
+            { name: "limit", type: "number", desc: "Number of trades (default: 100)" },
+            { name: "page", type: "number", desc: "Page number (default: 0)" },
+            { name: "side", type: "string", desc: "Price side: 'base' or 'quote'" },
+            { name: "filterSide", type: "string", desc: "Filter by trade side: 'buy', 'sell', or 'all'" },
+            { name: "sort", type: "string", desc: "Sort field" },
+            { name: "dir", type: "string", desc: "Sort direction: 'asc' or 'desc'" },
+          ]}
+          returns="Promise<any> - Paginated trade history"
+          t={t}
+        />
+        <MethodDoc
+          name="getPools"
+          signature="async getPools(limit?: number, page?: number): Promise<any>"
+          description="Get all AMM pools with pagination."
+          params={[
+            { name: "limit", type: "number", desc: "Number of pools (default: 100)" },
+            { name: "page", type: "number", desc: "Page number (default: 0)" },
+          ]}
+          returns="Promise<any> - Paginated pool data"
+          t={t}
+        />
+        <MethodDoc
+          name="findBestSwapPath"
+          signature="async findBestSwapPath(tokenIn: string, tokenOut: string, mode?: string, amountIn?: string, amountOut?: string, amountOutMin?: string, amountInMax?: string, availableIn?: string, feeBps?: number, maxHops?: number): Promise<any>"
+          description="Find the optimal multi-hop swap path between two tokens using advanced routing algorithms."
+          params={[
+            { name: "tokenIn", type: "string", desc: "Input token ID" },
+            { name: "tokenOut", type: "string", desc: "Output token ID" },
+            { name: "mode", type: "string", desc: "Swap mode: 'exact_in', 'exact_out', or 'implicit'" },
+            { name: "amountIn", type: "string", desc: "Input amount (for exact_in mode)" },
+            { name: "amountOut", type: "string", desc: "Output amount (for exact_out mode)" },
+            { name: "amountOutMin", type: "string", desc: "Minimum acceptable output" },
+            { name: "amountInMax", type: "string", desc: "Maximum acceptable input" },
+            { name: "availableIn", type: "string", desc: "Available input amount" },
+            { name: "feeBps", type: "number", desc: "Fee in basis points (e.g., 30 = 0.3%)" },
+            { name: "maxHops", type: "number", desc: "Maximum number of hops (default: 3)" },
+          ]}
+          returns="Promise<any> - Optimal swap route with hops and amounts"
+          example={`const path = await provider.espo.findBestSwapPath(
+  '840000:1',
+  '840000:2',
+  'exact_in',
+  '1000000',
+  undefined,
+  '900000',
+  undefined,
+  undefined,
+  30,
+  3
+);
+console.log('Amount out:', path.amount_out);
+console.log('Hops:', path.hops);`}
+          t={t}
+        />
+        <MethodDoc
+          name="getBestMevSwap"
+          signature="async getBestMevSwap(token: string, feeBps?: number, maxHops?: number): Promise<any>"
+          description="Find the best MEV (Maximal Extractable Value) arbitrage opportunity for a token across all available pools."
+          params={[
+            { name: "token", type: "string", desc: "Token ID to find arbitrage for" },
+            { name: "feeBps", type: "number", desc: "Fee in basis points (default: 30)" },
+            { name: "maxHops", type: "number", desc: "Maximum number of hops (default: 3)" },
+          ]}
+          returns="Promise<any> - Best MEV opportunity with profit calculation"
+          example={`const mev = await provider.espo.getBestMevSwap('840000:1', 30, 3);
+if (mev.profit > 0) {
+  console.log('Profit:', mev.profit);
+  console.log('Route:', mev.hops);
+}`}
           t={t}
         />
       </Section>

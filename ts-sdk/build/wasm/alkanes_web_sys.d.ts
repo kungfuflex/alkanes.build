@@ -1,5 +1,9 @@
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * Asynchronously encrypts data using the Web Crypto API.
+ */
+export function encryptMnemonic(mnemonic: string, passphrase: string): Promise<any>;
 export function analyze_psbt(psbt_base64: string, network_str: string): string;
 export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
 export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
@@ -28,10 +32,6 @@ export function get_alkane_bytecode(network: string, block: number, tx: number, 
  * ```
  */
 export function analyze_runestone(tx_hex: string): string;
-/**
- * Asynchronously encrypts data using the Web Crypto API.
- */
-export function encryptMnemonic(mnemonic: string, passphrase: string): Promise<any>;
 export interface PoolWithDetails {
     pool_id_block: number;
     pool_id_tx: number;
