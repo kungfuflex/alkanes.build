@@ -234,12 +234,15 @@ alkanes-cli wallet create --passphrase "your-passphrase" \\
         <h2 className="text-2xl font-semibold mb-4">{t.sdkTitle}</h2>
 
         <h3 className="text-xl font-medium mb-2">{t.npmTitle}</h3>
-        <CodeBlock>{`# The SDK is served from alkanes.build (not published to npm)
-npm install "https://alkanes.build/api/pkg/@alkanes/ts-sdk"
+        <CodeBlock>{`# Configure npm to use the alkanes registry
+npm config set @alkanes:registry https://pkg.alkanes.build/
+
+# Install the SDK
+npm install @alkanes/ts-sdk
 # or
-yarn add "https://alkanes.build/api/pkg/@alkanes/ts-sdk"
+yarn add @alkanes/ts-sdk
 # or
-pnpm add "https://alkanes.build/api/pkg/@alkanes/ts-sdk"`}</CodeBlock>
+pnpm add @alkanes/ts-sdk`}</CodeBlock>
 
         <h3 className="text-xl font-medium mb-2">{t.sourceTitle}</h3>
         <CodeBlock>{`# Clone the repository

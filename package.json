@@ -10,8 +10,7 @@
     "dev:full": "pnpm setup:local && pnpm dev",
     "build": "pnpm build:docs && next build --webpack",
     "build:docs": "node scripts/build-docs.js",
-    "build:external": "node build-external.js",
-    "build:all": "pnpm build:external && pnpm build",
+    "build:all": "pnpm build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
@@ -27,7 +26,7 @@
     "db:studio": "prisma studio",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "setup": "pnpm docker:up && pnpm db:push && pnpm build:external",
+    "setup": "pnpm docker:up && pnpm db:push",
     "setup:local": "pnpm docker:up && sleep 3 && pnpm db:push && pnpm db:seed",
     "gcp:setup": "bash ./gcp/setup.sh",
     "gcp:deploy": "bash ./gcp/deploy.sh",
@@ -38,7 +37,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "optionalDependencies": {
-    "@alkanes/ts-sdk": "file:./ts-sdk"
+    "@alkanes/ts-sdk": "*"
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",

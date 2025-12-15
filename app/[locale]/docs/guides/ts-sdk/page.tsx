@@ -10,7 +10,7 @@ const content = {
     intro: "This guide documents how alkanes.build uses the @alkanes/ts-sdk to fetch blockchain data, execute Lua scripts, and build a complete DeFi dashboard. All examples are from working production code.",
 
     installTitle: "Installation",
-    installDesc: "Install the SDK from alkanes.build (not published to npm):",
+    installDesc: "Install the SDK from the alkanes package registry:",
 
     architectureTitle: "Architecture Overview",
     architectureDesc: "The SDK provides a unified TypeScript interface over WASM bindings. See the full API Reference for complete method documentation.",
@@ -78,7 +78,7 @@ const content = {
     intro: "本指南记录了 alkanes.build 如何使用 @alkanes/ts-sdk 获取区块链数据、执行 Lua 脚本并构建完整的 DeFi 仪表板。所有示例均来自工作生产代码。",
 
     installTitle: "安装",
-    installDesc: "从 alkanes.build 安装 SDK（未发布到 npm）：",
+    installDesc: "从 alkanes 包注册表安装 SDK：",
 
     architectureTitle: "架构概述",
     architectureDesc: "SDK 在 WASM 绑定上提供统一的 TypeScript 接口。查看完整的 API 参考以获取详细的方法文档。",
@@ -177,14 +177,17 @@ export default function TsSdkGuidePage() {
       {/* Installation */}
       <Section title={t.installTitle} id="installation">
         <p className="mb-4 text-[color:var(--sf-muted)]">{t.installDesc}</p>
-        <CodeBlock language="bash">{`# npm
-npm install "https://alkanes.build/api/pkg/@alkanes/ts-sdk"
+        <CodeBlock language="bash">{`# Configure npm to use the alkanes registry
+npm config set @alkanes:registry https://pkg.alkanes.build/
 
-# pnpm
-pnpm add "https://alkanes.build/api/pkg/@alkanes/ts-sdk"
+# Install with npm
+npm install @alkanes/ts-sdk
 
-# yarn
-yarn add "https://alkanes.build/api/pkg/@alkanes/ts-sdk"`}</CodeBlock>
+# Or with pnpm
+pnpm add @alkanes/ts-sdk
+
+# Or with yarn
+yarn add @alkanes/ts-sdk`}</CodeBlock>
       </Section>
 
       {/* Architecture */}
