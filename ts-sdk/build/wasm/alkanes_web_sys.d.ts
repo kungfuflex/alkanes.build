@@ -1,9 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-/**
- * Asynchronously encrypts data using the Web Crypto API.
- */
-export function encryptMnemonic(mnemonic: string, passphrase: string): Promise<any>;
 export function analyze_psbt(psbt_base64: string, network_str: string): string;
 export function simulate_alkane_call(alkane_id_str: string, wasm_hex: string, cellpack_hex: string): Promise<any>;
 export function get_alkane_bytecode(network: string, block: number, tx: number, block_tag: string): Promise<any>;
@@ -32,6 +28,10 @@ export function get_alkane_bytecode(network: string, block: number, tx: number, 
  * ```
  */
 export function analyze_runestone(tx_hex: string): string;
+/**
+ * Asynchronously encrypts data using the Web Crypto API.
+ */
+export function encryptMnemonic(mnemonic: string, passphrase: string): Promise<any>;
 export interface PoolWithDetails {
     pool_id_block: number;
     pool_id_tx: number;
@@ -434,4 +434,60 @@ export class WebProvider {
    * An AlkaneReflection object with all available metadata
    */
   alkanesReflect(alkane_id: string): Promise<any>;
+  /**
+   * Get current ESPO indexer height
+   */
+  espoGetHeight(): Promise<any>;
+  /**
+   * Ping the ESPO essentials module
+   */
+  espoPing(): Promise<any>;
+  /**
+   * Get alkanes balances for an address from ESPO
+   */
+  espoGetAddressBalances(address: string, include_outpoints: boolean): Promise<any>;
+  /**
+   * Get outpoints containing alkanes for an address from ESPO
+   */
+  espoGetAddressOutpoints(address: string): Promise<any>;
+  /**
+   * Get alkanes balances at a specific outpoint from ESPO
+   */
+  espoGetOutpointBalances(outpoint: string): Promise<any>;
+  /**
+   * Get holders of an alkane token from ESPO
+   */
+  espoGetHolders(alkane_id: string, page: number, limit: number): Promise<any>;
+  /**
+   * Get holder count for an alkane from ESPO
+   */
+  espoGetHoldersCount(alkane_id: string): Promise<any>;
+  /**
+   * Get storage keys for an alkane contract from ESPO
+   */
+  espoGetKeys(alkane_id: string, page: number, limit: number): Promise<any>;
+  /**
+   * Ping the ESPO AMM Data module
+   */
+  espoAmmdataPing(): Promise<any>;
+  /**
+   * Get OHLCV candlestick data for a pool from ESPO
+   */
+  espoGetCandles(pool: string, timeframe?: string | null, side?: string | null, limit?: number | null, page?: number | null): Promise<any>;
+  /**
+   * Get trade history for a pool from ESPO
+   */
+  espoGetTrades(pool: string, limit?: number | null, page?: number | null, side?: string | null, filter_side?: string | null, sort?: string | null, dir?: string | null): Promise<any>;
+  /**
+   * Get all pools from ESPO
+   */
+  espoGetPools(limit?: number | null, page?: number | null): Promise<any>;
+  /**
+   * Find the best swap path between two tokens using ESPO
+   */
+  espoFindBestSwapPath(token_in: string, token_out: string, mode?: string | null, amount_in?: string | null, amount_out?: string | null, amount_out_min?: string | null, amount_in_max?: string | null, available_in?: string | null, fee_bps?: number | null, max_hops?: number | null): Promise<any>;
+  /**
+   * Find the best MEV swap opportunity for a token using ESPO
+   */
+  espoGetBestMevSwap(token: string, fee_bps?: number | null, max_hops?: number | null): Promise<any>;
 }

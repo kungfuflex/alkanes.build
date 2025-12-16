@@ -241,21 +241,6 @@ function passArrayJsValueToWasm0(array, malloc) {
     return ptr;
 }
 /**
- * Asynchronously encrypts data using the Web Crypto API.
- * @param {string} mnemonic
- * @param {string} passphrase
- * @returns {Promise<any>}
- */
-export function encryptMnemonic(mnemonic, passphrase) {
-    const ptr0 = passStringToWasm0(mnemonic, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passStringToWasm0(passphrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.encryptMnemonic(ptr0, len0, ptr1, len1);
-    return ret;
-}
-
-/**
  * @param {string} psbt_base64
  * @param {string} network_str
  * @returns {string}
@@ -361,6 +346,21 @@ export function analyze_runestone(tx_hex) {
     } finally {
         wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
+}
+
+/**
+ * Asynchronously encrypts data using the Web Crypto API.
+ * @param {string} mnemonic
+ * @param {string} passphrase
+ * @returns {Promise<any>}
+ */
+export function encryptMnemonic(mnemonic, passphrase) {
+    const ptr0 = passStringToWasm0(mnemonic, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(passphrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.encryptMnemonic(ptr0, len0, ptr1, len1);
+    return ret;
 }
 
 function wasm_bindgen__convert__closures_____invoke__h5943629905d90057(arg0, arg1, arg2) {
@@ -2025,6 +2025,202 @@ export class WebProvider {
         const ret = wasm.webprovider_alkanesReflect(this.__wbg_ptr, ptr0, len0);
         return ret;
     }
+    /**
+     * Get current ESPO indexer height
+     * @returns {Promise<any>}
+     */
+    espoGetHeight() {
+        const ret = wasm.webprovider_espoGetHeight(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Ping the ESPO essentials module
+     * @returns {Promise<any>}
+     */
+    espoPing() {
+        const ret = wasm.webprovider_espoPing(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get alkanes balances for an address from ESPO
+     * @param {string} address
+     * @param {boolean} include_outpoints
+     * @returns {Promise<any>}
+     */
+    espoGetAddressBalances(address, include_outpoints) {
+        const ptr0 = passStringToWasm0(address, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetAddressBalances(this.__wbg_ptr, ptr0, len0, include_outpoints);
+        return ret;
+    }
+    /**
+     * Get outpoints containing alkanes for an address from ESPO
+     * @param {string} address
+     * @returns {Promise<any>}
+     */
+    espoGetAddressOutpoints(address) {
+        const ptr0 = passStringToWasm0(address, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetAddressOutpoints(this.__wbg_ptr, ptr0, len0);
+        return ret;
+    }
+    /**
+     * Get alkanes balances at a specific outpoint from ESPO
+     * @param {string} outpoint
+     * @returns {Promise<any>}
+     */
+    espoGetOutpointBalances(outpoint) {
+        const ptr0 = passStringToWasm0(outpoint, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetOutpointBalances(this.__wbg_ptr, ptr0, len0);
+        return ret;
+    }
+    /**
+     * Get holders of an alkane token from ESPO
+     * @param {string} alkane_id
+     * @param {number} page
+     * @param {number} limit
+     * @returns {Promise<any>}
+     */
+    espoGetHolders(alkane_id, page, limit) {
+        const ptr0 = passStringToWasm0(alkane_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetHolders(this.__wbg_ptr, ptr0, len0, page, limit);
+        return ret;
+    }
+    /**
+     * Get holder count for an alkane from ESPO
+     * @param {string} alkane_id
+     * @returns {Promise<any>}
+     */
+    espoGetHoldersCount(alkane_id) {
+        const ptr0 = passStringToWasm0(alkane_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetHoldersCount(this.__wbg_ptr, ptr0, len0);
+        return ret;
+    }
+    /**
+     * Get storage keys for an alkane contract from ESPO
+     * @param {string} alkane_id
+     * @param {number} page
+     * @param {number} limit
+     * @returns {Promise<any>}
+     */
+    espoGetKeys(alkane_id, page, limit) {
+        const ptr0 = passStringToWasm0(alkane_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetKeys(this.__wbg_ptr, ptr0, len0, page, limit);
+        return ret;
+    }
+    /**
+     * Ping the ESPO AMM Data module
+     * @returns {Promise<any>}
+     */
+    espoAmmdataPing() {
+        const ret = wasm.webprovider_espoAmmdataPing(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Get OHLCV candlestick data for a pool from ESPO
+     * @param {string} pool
+     * @param {string | null} [timeframe]
+     * @param {string | null} [side]
+     * @param {number | null} [limit]
+     * @param {number | null} [page]
+     * @returns {Promise<any>}
+     */
+    espoGetCandles(pool, timeframe, side, limit, page) {
+        const ptr0 = passStringToWasm0(pool, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        var ptr1 = isLikeNone(timeframe) ? 0 : passStringToWasm0(timeframe, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len1 = WASM_VECTOR_LEN;
+        var ptr2 = isLikeNone(side) ? 0 : passStringToWasm0(side, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len2 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetCandles(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, !isLikeNone(limit), isLikeNone(limit) ? 0 : limit, !isLikeNone(page), isLikeNone(page) ? 0 : page);
+        return ret;
+    }
+    /**
+     * Get trade history for a pool from ESPO
+     * @param {string} pool
+     * @param {number | null} [limit]
+     * @param {number | null} [page]
+     * @param {string | null} [side]
+     * @param {string | null} [filter_side]
+     * @param {string | null} [sort]
+     * @param {string | null} [dir]
+     * @returns {Promise<any>}
+     */
+    espoGetTrades(pool, limit, page, side, filter_side, sort, dir) {
+        const ptr0 = passStringToWasm0(pool, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        var ptr1 = isLikeNone(side) ? 0 : passStringToWasm0(side, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len1 = WASM_VECTOR_LEN;
+        var ptr2 = isLikeNone(filter_side) ? 0 : passStringToWasm0(filter_side, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len2 = WASM_VECTOR_LEN;
+        var ptr3 = isLikeNone(sort) ? 0 : passStringToWasm0(sort, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len3 = WASM_VECTOR_LEN;
+        var ptr4 = isLikeNone(dir) ? 0 : passStringToWasm0(dir, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len4 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetTrades(this.__wbg_ptr, ptr0, len0, !isLikeNone(limit), isLikeNone(limit) ? 0 : limit, !isLikeNone(page), isLikeNone(page) ? 0 : page, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4);
+        return ret;
+    }
+    /**
+     * Get all pools from ESPO
+     * @param {number | null} [limit]
+     * @param {number | null} [page]
+     * @returns {Promise<any>}
+     */
+    espoGetPools(limit, page) {
+        const ret = wasm.webprovider_espoGetPools(this.__wbg_ptr, !isLikeNone(limit), isLikeNone(limit) ? 0 : limit, !isLikeNone(page), isLikeNone(page) ? 0 : page);
+        return ret;
+    }
+    /**
+     * Find the best swap path between two tokens using ESPO
+     * @param {string} token_in
+     * @param {string} token_out
+     * @param {string | null} [mode]
+     * @param {string | null} [amount_in]
+     * @param {string | null} [amount_out]
+     * @param {string | null} [amount_out_min]
+     * @param {string | null} [amount_in_max]
+     * @param {string | null} [available_in]
+     * @param {number | null} [fee_bps]
+     * @param {number | null} [max_hops]
+     * @returns {Promise<any>}
+     */
+    espoFindBestSwapPath(token_in, token_out, mode, amount_in, amount_out, amount_out_min, amount_in_max, available_in, fee_bps, max_hops) {
+        const ptr0 = passStringToWasm0(token_in, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(token_out, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        var ptr2 = isLikeNone(mode) ? 0 : passStringToWasm0(mode, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len2 = WASM_VECTOR_LEN;
+        var ptr3 = isLikeNone(amount_in) ? 0 : passStringToWasm0(amount_in, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len3 = WASM_VECTOR_LEN;
+        var ptr4 = isLikeNone(amount_out) ? 0 : passStringToWasm0(amount_out, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len4 = WASM_VECTOR_LEN;
+        var ptr5 = isLikeNone(amount_out_min) ? 0 : passStringToWasm0(amount_out_min, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len5 = WASM_VECTOR_LEN;
+        var ptr6 = isLikeNone(amount_in_max) ? 0 : passStringToWasm0(amount_in_max, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len6 = WASM_VECTOR_LEN;
+        var ptr7 = isLikeNone(available_in) ? 0 : passStringToWasm0(available_in, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len7 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoFindBestSwapPath(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, ptr6, len6, ptr7, len7, !isLikeNone(fee_bps), isLikeNone(fee_bps) ? 0 : fee_bps, !isLikeNone(max_hops), isLikeNone(max_hops) ? 0 : max_hops);
+        return ret;
+    }
+    /**
+     * Find the best MEV swap opportunity for a token using ESPO
+     * @param {string} token
+     * @param {number | null} [fee_bps]
+     * @param {number | null} [max_hops]
+     * @returns {Promise<any>}
+     */
+    espoGetBestMevSwap(token, fee_bps, max_hops) {
+        const ptr0 = passStringToWasm0(token, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.webprovider_espoGetBestMevSwap(this.__wbg_ptr, ptr0, len0, !isLikeNone(fee_bps), isLikeNone(fee_bps) ? 0 : fee_bps, !isLikeNone(max_hops), isLikeNone(max_hops) ? 0 : max_hops);
+        return ret;
+    }
 }
 if (Symbol.dispose) WebProvider.prototype[Symbol.dispose] = WebProvider.prototype.free;
 
@@ -2649,6 +2845,12 @@ export function __wbindgen_cast_2241b6af4c4b2941(arg0, arg1) {
     return ret;
 };
 
+export function __wbindgen_cast_445472a7878ebf0d(arg0, arg1) {
+    // Cast intrinsic for `Closure(Closure { dtor_idx: 3157, function: Function { arguments: [Externref], shim_idx: 3158, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+    const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3ba04b4139aaae95, wasm_bindgen__convert__closures_____invoke__h5943629905d90057);
+    return ret;
+};
+
 export function __wbindgen_cast_4625c577ab2ec9ee(arg0) {
     // Cast intrinsic for `U64 -> Externref`.
     const ret = BigInt.asUintN(64, arg0);
@@ -2658,12 +2860,6 @@ export function __wbindgen_cast_4625c577ab2ec9ee(arg0) {
 export function __wbindgen_cast_9ae0607507abb057(arg0) {
     // Cast intrinsic for `I64 -> Externref`.
     const ret = arg0;
-    return ret;
-};
-
-export function __wbindgen_cast_a378f3cb2d4db5d8(arg0, arg1) {
-    // Cast intrinsic for `Closure(Closure { dtor_idx: 3110, function: Function { arguments: [Externref], shim_idx: 3111, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
-    const ret = makeMutClosure(arg0, arg1, wasm.wasm_bindgen__closure__destroy__h3ba04b4139aaae95, wasm_bindgen__convert__closures_____invoke__h5943629905d90057);
     return ret;
 };
 
