@@ -136,8 +136,8 @@ importers:
         version: 2.0.0
     optionalDependencies:
       '@alkanes/ts-sdk':
-        specifier: '*'
-        version: 0.1.0-dev.20251216001047.aae5959
+        specifier: https://pkg.alkanes.build/dist/@alkanes/ts-sdk
+        version: https://pkg.alkanes.build/dist/@alkanes/ts-sdk
     devDependencies:
       '@tailwindcss/typography':
         specifier: ^0.5.15
@@ -226,8 +226,9 @@ packages:
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
 
-  '@alkanes/ts-sdk@0.1.0-dev.20251216001047.aae5959':
-    resolution: {integrity: sha512-epRt4G5YjFvyCKyz8DCzlgDn76b9cbJEbSYa5YrG2fymSqNscbfJxZ+caoGhCC9pQGZ7qtHOt4G/ZM3LBkexnQ==, tarball: https://us-central1-npm.pkg.dev/distributable-octet-pipeline/npm-packages/@alkanes/ts-sdk/-/@alkanes/ts-sdk-0.1.0-dev.20251216001047.aae5959.tgz}
+  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk':
+    resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk}
+    version: 0.1.0-dev.20251216164517.79f444e
     peerDependencies:
       '@oyl/sdk': '*'
     peerDependenciesMeta:
@@ -4780,7 +4781,7 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@alkanes/ts-sdk@0.1.0-dev.20251216001047.aae5959':
+  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk':
     dependencies:
       '@bitcoinerlab/secp256k1': 1.2.0
       bip32: 4.0.0

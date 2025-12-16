@@ -31,13 +31,13 @@
     "gcp:setup": "bash ./gcp/setup.sh",
     "gcp:deploy": "bash ./gcp/deploy.sh",
     "gcp:setup-wif": "bash ./gcp/setup-github-wif.sh",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate" 
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "optionalDependencies": {
-    "@alkanes/ts-sdk": "*"
+    "@alkanes/ts-sdk": "https://pkg.alkanes.build/dist/@alkanes/ts-sdk"
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
