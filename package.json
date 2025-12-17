@@ -36,11 +36,9 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "optionalDependencies": {
-    "@alkanes/ts-sdk": "https://pkg.alkanes.build/dist/@alkanes/ts-sdk"
-  },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
+    "@alkanes/ts-sdk": "https://pkg.alkanes.build/dist/@alkanes/ts-sdk",
     "@mdx-js/loader": "^3.0.0",
     "@mdx-js/react": "^3.0.0",
     "@next/mdx": "^16.0.8",
