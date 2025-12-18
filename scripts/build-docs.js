@@ -128,7 +128,7 @@ function generateNavigation() {
 
 // Copy reference files from alkanes-rs (if available)
 function copyReferenceFiles() {
-  const alkanesRsDir = path.join(PROJECT_ROOT, '.external-build', 'alkanes-rs');
+  const alkanesRsDir = path.join(PROJECT_ROOT, 'reference', 'alkanes-rs');
   const luaExamplesDir = path.join(alkanesRsDir, 'lua');
   const destDir = path.join(PUBLIC_DIR, 'lua-examples');
 
@@ -145,7 +145,7 @@ function copyReferenceFiles() {
       }
     }
   } else {
-    console.log('alkanes-rs not found, skipping Lua examples copy');
+    console.log('alkanes-rs reference not found, skipping Lua examples copy');
   }
 }
 

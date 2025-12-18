@@ -270,6 +270,7 @@
         "alkanes": "Alkanes Commands",
         "ord": "Ordinals Commands",
         "esplora": "Esplora Commands",
+        "espo": "Espo Commands",
         "brc20prog": "BRC20-Prog Commands",
         "dataapi": "DataAPI Commands",
         "deploy": "Deploy Commands",
@@ -280,7 +281,8 @@
         "overview": "Overview",
         "alkanes": "Alkanes Methods",
         "bitcoind": "Bitcoin Core Methods",
-        "esplora": "Esplora Methods"
+        "esplora": "Esplora Methods",
+        "espo": "Espo Methods"
       },
       "api": {
         "title": "Subfrost API",

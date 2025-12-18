@@ -101,25 +101,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libclang-dev clang llvm pkg-config libssl-dev protobuf-compiler
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build external dependencies (alkanes-rs SDK)
-        run: pnpm build:external
-
       - name: Verify tarball exists
         run: |
           if [ ! -f "ts-sdk/package.tgz" ]; then

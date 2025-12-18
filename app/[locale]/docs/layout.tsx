@@ -39,6 +39,7 @@ export default function DocsLayout({
         { titleKey: "cli.alkanes", href: "/docs/cli/alkanes" },
         { titleKey: "cli.ord", href: "/docs/cli/ord" },
         { titleKey: "cli.esplora", href: "/docs/cli/esplora" },
+        { titleKey: "cli.espo", href: "/docs/cli/espo" },
         { titleKey: "cli.brc20prog", href: "/docs/cli/brc20-prog" },
         { titleKey: "cli.dataapi", href: "/docs/cli/dataapi" },
       ],
@@ -50,6 +51,7 @@ export default function DocsLayout({
         { titleKey: "jsonrpc.alkanes", href: "/docs/jsonrpc/alkanes" },
         { titleKey: "jsonrpc.bitcoind", href: "/docs/jsonrpc/bitcoind" },
         { titleKey: "jsonrpc.esplora", href: "/docs/jsonrpc/esplora" },
+        { titleKey: "jsonrpc.espo", href: "/docs/jsonrpc/espo" },
       ],
     },
     {

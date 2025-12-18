@@ -253,6 +253,7 @@
         "alkanes": "Lệnh Alkanes",
         "ord": "Lệnh Ordinals",
         "esplora": "Lệnh Esplora",
+        "espo": "Lệnh Espo",
         "brc20prog": "Lệnh BRC20-Prog",
         "dataapi": "Lệnh DataAPI",
         "deploy": "Lệnh Deploy",
@@ -263,7 +264,8 @@
         "overview": "Tổng quan",
         "alkanes": "Phương thức Alkanes",
         "bitcoind": "Phương thức Bitcoin Core",
-        "esplora": "Phương thức Esplora"
+        "esplora": "Phương thức Esplora",
+        "espo": "Phương thức Espo"
       },
       "api": {
         "title": "API Subfrost",

@@ -253,6 +253,7 @@
         "alkanes": "Arahan Alkanes",
         "ord": "Arahan Ordinals",
         "esplora": "Arahan Esplora",
+        "espo": "Arahan Espo",
         "brc20prog": "Arahan BRC20-Prog",
         "dataapi": "Arahan DataAPI",
         "deploy": "Arahan Deploy",
@@ -263,7 +264,8 @@
         "overview": "Gambaran Keseluruhan",
         "alkanes": "Kaedah Alkanes",
         "bitcoind": "Kaedah Bitcoin Core",
-        "esplora": "Kaedah Esplora"
+        "esplora": "Kaedah Esplora",
+        "espo": "Kaedah Espo"
       },
       "api": {
         "title": "API Subfrost",

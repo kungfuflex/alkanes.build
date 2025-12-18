@@ -45,7 +45,7 @@ export async function GET(
   // Verify package directory exists
   if (!fs.existsSync(packagePath)) {
     return NextResponse.json(
-      { error: "Package not built. Run build:external first." },
+      { error: "Package directory not found in repository." },
       { status: 500 }
     );
   }

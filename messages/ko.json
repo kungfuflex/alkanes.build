@@ -253,6 +253,7 @@
         "alkanes": "Alkanes 명령어",
         "ord": "Ordinals 명령어",
         "esplora": "Esplora 명령어",
+        "espo": "Espo 명령어",
         "brc20prog": "BRC20-Prog 명령어",
         "dataapi": "DataAPI 명령어",
         "deploy": "배포 명령어",
@@ -263,7 +264,8 @@
         "overview": "개요",
         "alkanes": "Alkanes 메서드",
         "bitcoind": "Bitcoin Core 메서드",
-        "esplora": "Esplora 메서드"
+        "esplora": "Esplora 메서드",
+        "espo": "Espo 메서드"
       },
       "api": {
         "title": "Subfrost API",

@@ -80,7 +80,7 @@ export async function checkSdkAvailable(): Promise<boolean> {
   } catch (error) {
     sdkAvailable = false;
     sdkInitialized = true;
-    console.warn('⚠️ Alkanes SDK not available - run `pnpm build:external` to build it');
+    console.warn('⚠️ Alkanes SDK not available - ensure dependencies are installed with `pnpm install`');
     return false;
   }
 }
@@ -139,7 +139,7 @@ async function ensureSdk() {
     await checkSdkAvailable();
   }
   if (!sdkAvailable || !sdkModule) {
-    throw new Error('Alkanes SDK not available. Run `pnpm build:external` to build the SDK.');
+    throw new Error('Alkanes SDK not available. Ensure dependencies are installed with `pnpm install`.');
   }
   return sdkModule;
 }
