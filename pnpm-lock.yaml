@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@alkanes/ts-sdk':
-        specifier: https://pkg.alkanes.build/dist/@alkanes/ts-sdk
-        version: https://pkg.alkanes.build/dist/@alkanes/ts-sdk
+        specifier: file:./ts-sdk
+        version: file:ts-sdk
       '@bitcoinerlab/secp256k1':
         specifier: ^1.2.0
         version: 1.2.0
@@ -225,9 +225,8 @@ packages:
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
 
-  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk':
-    resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk}
-    version: 0.1.0-dev.20251216001047.aae5959
+  '@alkanes/ts-sdk@file:ts-sdk':
+    resolution: {directory: ts-sdk, type: directory}
     peerDependencies:
       '@oyl/sdk': '*'
     peerDependenciesMeta:
@@ -4780,7 +4779,7 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk':
+  '@alkanes/ts-sdk@file:ts-sdk':
     dependencies:
       '@bitcoinerlab/secp256k1': 1.2.0
       bip32: 4.0.0
