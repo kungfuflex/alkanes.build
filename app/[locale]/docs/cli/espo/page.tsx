@@ -7,7 +7,10 @@ const content = {
     title: "Espo Commands",
     intro: "The espo namespace provides access to the Espo indexer for alkanes data and AMM analytics. Espo offers two modules: Essentials for core alkanes data and AMM Data for trading analytics.",
     configTitle: "Configuration",
-    configDesc: "Configure the Espo RPC endpoint:",
+    configDesc: "Configure the Espo RPC endpoint. When using Subfrost, the SDK automatically appends /espo to your base RPC URL:",
+    urlRoutingTitle: "URL Routing",
+    urlRoutingDesc: "The @alkanes/ts-sdk automatically routes espo requests to the /espo path. When you configure:",
+    urlRoutingNote: "All provider.espo.* method calls will be routed to: https://{network}.subfrost.io/v4/{api_key}/espo",
     essentialsTitle: "Essentials Module",
     essentialsDesc: "Core alkanes data queries including balances, holders, and storage.",
     essentialsCommands: [
@@ -82,13 +85,36 @@ const content = {
       "Alkane IDs are in format 'block:tx' (e.g., '840000:1')",
       "Outpoints are in format 'txid:vout'",
       "AMM Data methods require AMM pools to be indexed"
+    ],
+    rpcMethodsTitle: "RPC Method Mapping",
+    rpcMethodsDesc: "Each espo subcommand maps to a JSON-RPC method:",
+    essentialsMethodsTable: [
+      { cmd: "ping", method: "ping" },
+      { cmd: "get-height", method: "get_espo_height" },
+      { cmd: "get-address-balances", method: "get_address_balances" },
+      { cmd: "get-address-outpoints", method: "get_address_outpoints" },
+      { cmd: "get-outpoint-balances", method: "get_outpoint_balances" },
+      { cmd: "get-holders", method: "get_holders" },
+      { cmd: "get-holders-count", method: "get_holders_count" },
+      { cmd: "get-keys", method: "get_keys" }
+    ],
+    ammdataMethodsTable: [
+      { cmd: "ammdata-ping", method: "ammdata.ping" },
+      { cmd: "get-candles", method: "ammdata.get_candles" },
+      { cmd: "get-trades", method: "ammdata.get_trades" },
+      { cmd: "get-pools", method: "ammdata.get_pools" },
+      { cmd: "find-best-swap-path", method: "ammdata.find_best_swap_path" },
+      { cmd: "get-best-mev-swap", method: "ammdata.get_best_mev_swap" }
     ]
   },
   zh: {
     title: "Espo 命令",
     intro: "espo 命名空间提供对 Espo 索引器的访问，用于 alkanes 数据和 AMM 分析。Espo 提供两个模块：用于核心 alkanes 数据的 Essentials 和用于交易分析的 AMM Data。",
     configTitle: "配置",
-    configDesc: "配置 Espo RPC 端点：",
+    configDesc: "配置 Espo RPC 端点。使用 Subfrost 时，SDK 会自动在您的基础 RPC URL 后追加 /espo：",
+    urlRoutingTitle: "URL 路由",
+    urlRoutingDesc: "@alkanes/ts-sdk 会自动将 espo 请求路由到 /espo 路径。当您配置：",
+    urlRoutingNote: "所有 provider.espo.* 方法调用将路由到：https://{network}.subfrost.io/v4/{api_key}/espo",
     essentialsTitle: "Essentials 模块",
     essentialsDesc: "核心 alkanes 数据查询，包括余额、持有者和存储。",
     essentialsCommands: [
@@ -162,6 +188,26 @@ const content = {
       "Alkane ID 格式为 'block:tx'（例如：'840000:1'）",
       "Outpoint 格式为 'txid:vout'",
       "AMM Data 方法需要索引 AMM 池"
+    ],
+    rpcMethodsTitle: "RPC 方法映射",
+    rpcMethodsDesc: "每个 espo 子命令对应一个 JSON-RPC 方法：",
+    essentialsMethodsTable: [
+      { cmd: "ping", method: "ping" },
+      { cmd: "get-height", method: "get_espo_height" },
+      { cmd: "get-address-balances", method: "get_address_balances" },
+      { cmd: "get-address-outpoints", method: "get_address_outpoints" },
+      { cmd: "get-outpoint-balances", method: "get_outpoint_balances" },
+      { cmd: "get-holders", method: "get_holders" },
+      { cmd: "get-holders-count", method: "get_holders_count" },
+      { cmd: "get-keys", method: "get_keys" }
+    ],
+    ammdataMethodsTable: [
+      { cmd: "ammdata-ping", method: "ammdata.ping" },
+      { cmd: "get-candles", method: "ammdata.get_candles" },
+      { cmd: "get-trades", method: "ammdata.get_trades" },
+      { cmd: "get-pools", method: "ammdata.get_pools" },
+      { cmd: "find-best-swap-path", method: "ammdata.find_best_swap_path" },
+      { cmd: "get-best-mev-swap", method: "ammdata.get_best_mev_swap" }
     ]
   }
 };
@@ -183,13 +229,35 @@ export default function EspoPage() {
         <p className="mb-4">{t.configDesc}</p>
         <div className="bg-secondary p-4 rounded-lg">
           <pre className="text-sm overflow-x-auto">
-{`# Set Espo RPC URL
+{`# Using Subfrost (recommended)
+# Base URL format: https://{network}.subfrost.io/v4/{api_key}
+# The SDK automatically appends /espo for espo methods
+export ALKANES_RPC_URL=https://mainnet.subfrost.io/v4/your_api_key
+
+# Or for local development
 export ESPO_RPC_URL=http://localhost:8080
 
 # Or use in command
 alkanes-cli --espo-rpc-url http://localhost:8080 espo ping`}
           </pre>
         </div>
+      </section>
+
+      {/* URL Routing */}
+      <section>
+        <h2 className="text-2xl font-semibold mb-3">{t.urlRoutingTitle}</h2>
+        <p className="mb-4">{t.urlRoutingDesc}</p>
+        <div className="bg-secondary p-4 rounded-lg mb-4">
+          <pre className="text-sm overflow-x-auto">
+{`const provider = new AlkanesProvider({
+  network: 'mainnet',
+  rpcUrl: 'https://mainnet.subfrost.io/v4/your_api_key'
+});`}
+          </pre>
+        </div>
+        <p className="text-sm text-muted-foreground p-3 bg-primary/10 rounded-lg">
+          {t.urlRoutingNote}
+        </p>
       </section>
 
       {/* Essentials Module */}
@@ -292,6 +360,52 @@ alkanes-cli espo find-best-swap-path \\
               </pre>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* RPC Method Mapping */}
+      <section>
+        <h2 className="text-2xl font-semibold mb-3">{t.rpcMethodsTitle}</h2>
+        <p className="mb-4">{t.rpcMethodsDesc}</p>
+
+        <h3 className="text-lg font-semibold mb-3 mt-6">{t.essentialsTitle}</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse mb-6">
+            <thead>
+              <tr className="border-b border-muted">
+                <th className="text-left p-3 font-semibold">CLI Command</th>
+                <th className="text-left p-3 font-semibold">JSON-RPC Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              {t.essentialsMethodsTable.map((row, i) => (
+                <tr key={i} className="border-b border-muted/50">
+                  <td className="p-3"><code className="text-primary">espo {row.cmd}</code></td>
+                  <td className="p-3"><code>{row.method}</code></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <h3 className="text-lg font-semibold mb-3">{t.ammdataTitle}</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-muted">
+                <th className="text-left p-3 font-semibold">CLI Command</th>
+                <th className="text-left p-3 font-semibold">JSON-RPC Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              {t.ammdataMethodsTable.map((row, i) => (
+                <tr key={i} className="border-b border-muted/50">
+                  <td className="p-3"><code className="text-primary">espo {row.cmd}</code></td>
+                  <td className="p-3"><code>{row.method}</code></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 

@@ -8,7 +8,10 @@ const content = {
     intro: "The Espo indexer provides a JSON-RPC API for querying alkanes data and AMM analytics. The API is organized into two modules: Essentials for core data and AMM Data for trading analytics.",
 
     endpointTitle: "Endpoint",
-    endpointDesc: "Espo runs on a separate endpoint from the main JSON-RPC:",
+    endpointDesc: "Espo runs on a separate endpoint. When using Subfrost, the @alkanes/ts-sdk automatically appends /espo to your base RPC URL:",
+    urlRoutingTitle: "URL Routing with @alkanes/ts-sdk",
+    urlRoutingDesc: "When you configure the AlkanesProvider with a base RPC URL, all espo method calls are automatically routed to the /espo path:",
+    urlRoutingNote: "For example, if your rpcUrl is https://mainnet.subfrost.io/v4/your_api_key, espo methods will POST to https://mainnet.subfrost.io/v4/your_api_key/espo",
 
     essentialsTitle: "Essentials Module",
     essentialsDesc: "Core alkanes data including balances, holders, and storage keys.",
@@ -96,7 +99,10 @@ const content = {
     intro: "Espo 索引器提供用于查询 alkanes 数据和 AMM 分析的 JSON-RPC API。API 分为两个模块：用于核心数据的 Essentials 和用于交易分析的 AMM Data。",
 
     endpointTitle: "端点",
-    endpointDesc: "Espo 在与主 JSON-RPC 不同的端点上运行：",
+    endpointDesc: "Espo 在单独的端点上运行。使用 Subfrost 时，@alkanes/ts-sdk 会自动在您的基础 RPC URL 后追加 /espo：",
+    urlRoutingTitle: "使用 @alkanes/ts-sdk 的 URL 路由",
+    urlRoutingDesc: "当您使用基础 RPC URL 配置 AlkanesProvider 时，所有 espo 方法调用会自动路由到 /espo 路径：",
+    urlRoutingNote: "例如，如果您的 rpcUrl 是 https://mainnet.subfrost.io/v4/your_api_key，espo 方法将 POST 到 https://mainnet.subfrost.io/v4/your_api_key/espo",
 
     essentialsTitle: "Essentials 模块",
     essentialsDesc: "核心 alkanes 数据，包括余额、持有者和存储键。",
@@ -205,10 +211,36 @@ export default function EspoRPCPage() {
         <h2 className="text-2xl font-semibold mb-3">{t.endpointTitle}</h2>
         <p className="mb-4">{t.endpointDesc}</p>
         <CodeBlock>
-{`{
-  "espo_rpc_url": "http://localhost:8080"
-}`}
+{`# Subfrost endpoint (recommended)
+# Base: https://{network}.subfrost.io/v4/{api_key}
+# Espo: https://{network}.subfrost.io/v4/{api_key}/espo
+
+# Local development
+espo_rpc_url: http://localhost:8080`}
         </CodeBlock>
+      </section>
+
+      {/* URL Routing */}
+      <section>
+        <h2 className="text-2xl font-semibold mb-3">{t.urlRoutingTitle}</h2>
+        <p className="mb-4">{t.urlRoutingDesc}</p>
+        <CodeBlock>
+{`import { AlkanesProvider } from '@alkanes/ts-sdk';
+
+const provider = new AlkanesProvider({
+  network: 'mainnet',
+  rpcUrl: 'https://mainnet.subfrost.io/v4/your_api_key'
+});
+
+await provider.initialize();
+
+// Espo methods are automatically routed to /espo
+const balances = await provider.espo.getAddressBalances('bc1q...');
+// ^ This POSTs to: https://mainnet.subfrost.io/v4/your_api_key/espo`}
+        </CodeBlock>
+        <p className="text-sm text-muted-foreground mt-4 p-3 bg-primary/10 rounded-lg">
+          {t.urlRoutingNote}
+        </p>
       </section>
 
       {/* Essentials Module */}
