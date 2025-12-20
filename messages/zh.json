@@ -290,6 +290,7 @@
       },
       "integration": {
         "title": "集成示例",
+        "nextjsSetup": "Next.js 配置",
         "tsSdk": "TS SDK 指南",
         "tsSdkApi": "TS SDK API 参考",
         "alkanesWebSys": "获取 Alkane 数据",

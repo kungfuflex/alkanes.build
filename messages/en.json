@@ -307,6 +307,7 @@
       },
       "integration": {
         "title": "Integration Examples",
+        "nextjsSetup": "Next.js Setup",
         "tsSdk": "TS SDK Guide",
         "tsSdkApi": "TS SDK API Reference",
         "alkanesWebSys": "Fetching Alkane Data",

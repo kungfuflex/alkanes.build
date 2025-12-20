@@ -290,6 +290,7 @@
       },
       "integration": {
         "title": "Ví dụ Tích hợp",
+        "nextjsSetup": "Cấu hình Next.js",
         "tsSdk": "Hướng dẫn TS SDK",
         "tsSdkApi": "Tài liệu API TS SDK",
         "alkanesWebSys": "Lấy dữ liệu Alkane",

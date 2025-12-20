@@ -290,6 +290,7 @@
       },
       "integration": {
         "title": "Contoh Integrasi",
+        "nextjsSetup": "Persediaan Next.js",
         "tsSdk": "Panduan TS SDK",
         "tsSdkApi": "Rujukan API TS SDK",
         "alkanesWebSys": "Ambil Data Alkane",
