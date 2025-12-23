@@ -10,11 +10,13 @@ const content = {
     endpointDesc: "BRC20-Prog uses a separate JSON-RPC endpoint:",
     contractOpsTitle: "Contract Operations",
     contractOps: [
-      { cmd: "deploy-contract", desc: "Deploy a contract from Foundry build JSON" },
+      { cmd: "deploy", desc: "Deploy a contract from Foundry build JSON" },
       { cmd: "transact", desc: "Call a contract function (state-changing)" },
       { cmd: "call", desc: "Call a contract function (read-only, eth_call)" },
       { cmd: "wrap-btc", desc: "Wrap BTC to frBTC and execute in brc20-prog" }
     ],
+    inscriptionSafetyTitle: "Inscription Safety",
+    inscriptionSafetyDesc: "The SDK automatically protects inscribed UTXOs by splitting them before use. If a UTXO contains inscriptions, a split transaction sends inscribed sats to a safe output before the commit transaction.",
     contractQueriesTitle: "Contract Queries",
     contractQueries: [
       { cmd: "get-code", desc: "Get contract bytecode (eth_getCode)" },
@@ -73,11 +75,13 @@ const content = {
     endpointDesc: "BRC20-Prog 使用独立的 JSON-RPC 端点：",
     contractOpsTitle: "合约操作",
     contractOps: [
-      { cmd: "deploy-contract", desc: "从 Foundry 构建 JSON 部署合约" },
+      { cmd: "deploy", desc: "从 Foundry 构建 JSON 部署合约" },
       { cmd: "transact", desc: "调用合约函数（状态变更）" },
       { cmd: "call", desc: "调用合约函数（只读，eth_call）" },
       { cmd: "wrap-btc", desc: "封装 BTC 为 frBTC 并在 brc20-prog 中执行" }
     ],
+    inscriptionSafetyTitle: "铭文安全",
+    inscriptionSafetyDesc: "SDK 会自动保护包含铭文的 UTXO，在使用前将其拆分。如果 UTXO 包含铭文，拆分交易会在提交交易之前将铭文聪发送到安全输出。",
     contractQueriesTitle: "合约查询",
     contractQueries: [
       { cmd: "get-code", desc: "获取合约字节码（eth_getCode）" },
@@ -136,11 +140,13 @@ const content = {
     endpointDesc: "BRC20-Prog menggunakan endpoint JSON-RPC berasingan:",
     contractOpsTitle: "Operasi Kontrak",
     contractOps: [
-      { cmd: "deploy-contract", desc: "Laksanakan kontrak dari JSON pembinaan Foundry" },
+      { cmd: "deploy", desc: "Laksanakan kontrak dari JSON pembinaan Foundry" },
       { cmd: "transact", desc: "Panggil fungsi kontrak (perubahan keadaan)" },
       { cmd: "call", desc: "Panggil fungsi kontrak (baca sahaja, eth_call)" },
       { cmd: "wrap-btc", desc: "Balut BTC ke frBTC dan laksanakan dalam brc20-prog" }
     ],
+    inscriptionSafetyTitle: "Keselamatan Inskripsi",
+    inscriptionSafetyDesc: "SDK secara automatik melindungi UTXO yang mengandungi inskripsi dengan membahagikannya sebelum digunakan. Jika UTXO mengandungi inskripsi, transaksi pembahagian menghantar sat berinskripsi ke output selamat sebelum transaksi komit.",
     contractQueriesTitle: "Pertanyaan Kontrak",
     contractQueries: [
       { cmd: "get-code", desc: "Dapatkan bytecode kontrak (eth_getCode)" },
@@ -199,11 +205,13 @@ const content = {
     endpointDesc: "BRC20-Prog sử dụng điểm cuối JSON-RPC riêng:",
     contractOpsTitle: "Thao tác Hợp đồng",
     contractOps: [
-      { cmd: "deploy-contract", desc: "Triển khai hợp đồng từ JSON build Foundry" },
+      { cmd: "deploy", desc: "Triển khai hợp đồng từ JSON build Foundry" },
       { cmd: "transact", desc: "Gọi hàm hợp đồng (thay đổi trạng thái)" },
       { cmd: "call", desc: "Gọi hàm hợp đồng (chỉ đọc, eth_call)" },
       { cmd: "wrap-btc", desc: "Gói BTC thành frBTC và thực thi trong brc20-prog" }
     ],
+    inscriptionSafetyTitle: "An toàn Inscription",
+    inscriptionSafetyDesc: "SDK tự động bảo vệ các UTXO chứa inscription bằng cách tách chúng trước khi sử dụng. Nếu UTXO chứa inscription, giao dịch tách sẽ gửi sat được khắc đến đầu ra an toàn trước giao dịch commit.",
     contractQueriesTitle: "Truy vấn Hợp đồng",
     contractQueries: [
       { cmd: "get-code", desc: "Lấy bytecode hợp đồng (eth_getCode)" },
@@ -262,11 +270,13 @@ const content = {
     endpointDesc: "BRC20-Prog는 별도의 JSON-RPC 엔드포인트를 사용합니다:",
     contractOpsTitle: "컨트랙트 작업",
     contractOps: [
-      { cmd: "deploy-contract", desc: "Foundry 빌드 JSON에서 컨트랙트 배포" },
+      { cmd: "deploy", desc: "Foundry 빌드 JSON에서 컨트랙트 배포" },
       { cmd: "transact", desc: "컨트랙트 함수 호출 (상태 변경)" },
       { cmd: "call", desc: "컨트랙트 함수 호출 (읽기 전용, eth_call)" },
       { cmd: "wrap-btc", desc: "BTC를 frBTC로 랩핑하고 brc20-prog에서 실행" }
     ],
+    inscriptionSafetyTitle: "인스크립션 안전",
+    inscriptionSafetyDesc: "SDK는 인스크립션이 포함된 UTXO를 사용 전에 자동으로 분할하여 보호합니다. UTXO에 인스크립션이 포함된 경우, 분할 트랜잭션이 커밋 트랜잭션 전에 인스크립션된 sat을 안전한 출력으로 보냅니다.",
     contractQueriesTitle: "컨트랙트 쿼리",
     contractQueries: [
       { cmd: "get-code", desc: "컨트랙트 바이트코드 가져오기 (eth_getCode)" },
@@ -380,6 +390,18 @@ alkanes-cli -p mainnet \\
       </div>
 
       <div>
+        <h2 className="text-2xl font-semibold mb-3">{t.inscriptionSafetyTitle}</h2>
+        <p className="text-[color:var(--sf-muted)] mb-4">{t.inscriptionSafetyDesc}</p>
+        <CodeBlock>{`# Transaction bundle for contract deployment with inscribed UTXO:
+# 1. Split TX: Protects inscribed sats → safe output
+# 2. Commit TX: Uses clean sats from split
+# 3. Reveal TX: Reveals the inscription
+# 4. Activation TX: Activates the contract (optional)
+
+# All transactions are broadcast atomically via sendrawtransactions`}</CodeBlock>
+      </div>
+
+      <div>
         <h2 className="text-2xl font-semibold mb-4">{t.contractQueriesTitle}</h2>
         <CommandTable commands={t.contractQueries} />
       </div>
@@ -411,19 +433,23 @@ alkanes-cli -p mainnet \\
   --brc20-prog-rpc-url https://mainnet.subfrost.io/v4/jsonrpc/brc20-prog \\
   --wallet-file ~/.alkanes/wallet.json \\
   --passphrase "your-passphrase" \\
-  brc20-prog deploy-contract ./out/MyContract.sol/MyContract.json \\
-  --fee-rate 10 \\
-  -y
+  brc20-prog deploy ./out/MyContract.sol/MyContract.json \\
+  --fee-rate 10
 
 # Arguments:
 # <FOUNDRY_JSON_PATH>  Path to Foundry build JSON file
 
 # Options:
-# --from <FROM>         Addresses to source UTXOs from
-# --change <CHANGE>     Change address
-# --fee-rate <RATE>     Fee rate in sat/vB
+# --from <addresses>    Addresses to source UTXOs from
+# --change <address>    Change address
+# --fee-rate <rate>     Fee rate in sat/vB
+# --use-activation      Use 3-transaction activation pattern
+# --mempool-indexer     Enable mempool indexer for pending UTXO tracing
 # --trace               Enable transaction tracing
-# -y, --auto-confirm    Auto-confirm the transaction`}</CodeBlock>
+# --mine                Mine a block after broadcasting (regtest only)
+# --raw                 Output raw JSON
+
+# Output includes split_txid and split_fee if inscribed UTXOs were split`}</CodeBlock>
       </div>
 
       <div>
@@ -433,17 +459,24 @@ alkanes-cli -p mainnet \\
   --brc20-prog-rpc-url https://mainnet.subfrost.io/v4/jsonrpc/brc20-prog \\
   --wallet-file ~/.alkanes/wallet.json \\
   --passphrase "your-passphrase" \\
-  brc20-prog transact \\
-  --address 0x1234...abcd \\
-  --signature "transfer(address,uint256)" \\
-  --calldata "0xRecipient...,1000" \\
-  --fee-rate 10 \\
-  -y
+  brc20-prog transact 0x1234...abcd "transfer(address,uint256)" 0xRecipient...,1000 \\
+  --fee-rate 10
+
+# Arguments:
+# <address>     Contract address (0x prefixed hex)
+# <signature>   Function signature (e.g., "transfer(address,uint256)")
+# [calldata...] Arguments as comma-separated values
 
 # Options:
-# --address <ADDRESS>       Contract address (0x prefixed hex)
-# --signature <SIGNATURE>   Function signature
-# --calldata <CALLDATA>     Arguments as comma-separated values`}</CodeBlock>
+# --from <addresses>    Addresses to source UTXOs from
+# --change <address>    Change address
+# --fee-rate <rate>     Fee rate in sat/vB
+# --mempool-indexer     Enable mempool indexer for pending UTXO tracing
+# --trace               Enable transaction tracing
+# --mine                Mine a block after broadcasting (regtest only)
+# --raw                 Output raw JSON
+
+# Output includes split_txid and split_fee if inscribed UTXOs were split`}</CodeBlock>
       </div>
 
       <div>
