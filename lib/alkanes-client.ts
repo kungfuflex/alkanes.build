@@ -283,7 +283,7 @@ class AlkanesClient {
    */
   async getAlkaneBalances(address: string): Promise<AlkaneBalance[]> {
     const provider = await this.ensureProvider();
-    return provider.alkanes.getBalance(address);
+    return provider.getAlkaneBalance(address);
   }
 
   /**
@@ -465,12 +465,20 @@ class AlkanesClient {
    */
   async getBitcoinPrice(): Promise<number> {
     const provider = await this.ensureProvider();
-    const result = await provider.dataApi.getBitcoinPrice();
-    // The API returns { statusCode: 200, data: { bitcoin: { usd: number } } }
-    // Handle various possible response structures
-    const price = result?.data?.bitcoin?.usd ?? result?.bitcoin?.usd ?? result?.price ?? result?.usd;
+    // Use the provider's direct method which returns number
+    const price = await provider.getBitcoinPrice();
     if (typeof price === 'number' && price > 0) {
       return price;
+    }
+    // Fallback to dataApi if direct method fails
+    const result = await provider.dataApi.getBitcoinPrice() as unknown as Record<string, unknown>;
+    // The API returns { statusCode: 200, data: { bitcoin: { usd: number } } }
+    // Handle various possible response structures
+    const data = result?.data as Record<string, unknown> | undefined;
+    const bitcoin = (data?.bitcoin ?? result?.bitcoin) as Record<string, unknown> | undefined;
+    const extractedPrice = bitcoin?.usd ?? result?.price ?? result?.usd;
+    if (typeof extractedPrice === 'number' && extractedPrice > 0) {
+      return extractedPrice;
     }
     // If we can't extract the price, log the response for debugging and return 0
     console.warn('Unexpected BTC price response structure:', JSON.stringify(result));
