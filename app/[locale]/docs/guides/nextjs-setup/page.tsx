@@ -2,6 +2,7 @@
 
 import { useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { useSdkVersion, formatCommitDate } from "@/hooks/useSdkVersion";
 
 const content = {
   en: {
@@ -18,7 +19,10 @@ const content = {
     ],
 
     installTitle: "Installation",
-    installDesc: "Install the SDK from the alkanes package registry:",
+    installDesc: "Install the SDK and required polyfills. The URL below is pinned to the latest commit on the develop branch:",
+    installLoading: "Fetching latest version...",
+    installError: "Could not fetch latest version. Use the base URL:",
+    installVersionLabel: "Latest version:",
 
     configTitle: "Next.js Configuration",
     configDesc: "The complete next.config.ts handles both Turbopack (for fast development) and Webpack (for production builds). Here's the full configuration:",
@@ -137,7 +141,10 @@ const content = {
     ],
 
     installTitle: "安装",
-    installDesc: "从 alkanes 包注册表安装 SDK：",
+    installDesc: "安装 SDK 和所需的 polyfills。下面的 URL 已固定到 develop 分支的最新提交：",
+    installLoading: "正在获取最新版本...",
+    installError: "无法获取最新版本。使用基础 URL：",
+    installVersionLabel: "最新版本：",
 
     configTitle: "Next.js 配置",
     configDesc: "完整的 next.config.ts 同时处理 Turbopack（用于快速开发）和 Webpack（用于生产构建）。以下是完整配置：",
@@ -264,6 +271,48 @@ function Section({ title, children, id }: { title: string; children: React.React
   );
 }
 
+function InstallationSection({ t }: { t: typeof content.en }) {
+  const { data: sdkVersion, isLoading, error } = useSdkVersion();
+
+  return (
+    <Section title={t.installTitle} id="installation">
+      <p className="mb-4 text-[color:var(--sf-muted)]">{t.installDesc}</p>
+
+      {/* Dynamic versioned URL */}
+      {isLoading ? (
+        <div className="p-4 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-sm text-[color:var(--sf-muted)]">
+          {t.installLoading}
+        </div>
+      ) : error || !sdkVersion ? (
+        <>
+          <p className="mb-2 text-sm text-orange-500">{t.installError}</p>
+          <CodeBlock language="bash">{`# Install required dependencies
+pnpm add https://pkg.alkanes.build/dist/@alkanes/ts-sdk buffer process
+
+# Or with npm
+npm install https://pkg.alkanes.build/dist/@alkanes/ts-sdk buffer process`}</CodeBlock>
+        </>
+      ) : (
+        <>
+          {/* Show version info */}
+          <div className="mb-3 p-3 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-sm">
+            <span className="text-[color:var(--sf-muted)]">{t.installVersionLabel} </span>
+            <code className="text-[color:var(--sf-primary)] font-semibold">{sdkVersion.versionWithHash}</code>
+            <span className="text-[color:var(--sf-muted)]"> - {sdkVersion.commitMessage}</span>
+            <span className="text-[color:var(--sf-muted)] ml-2 text-xs">({formatCommitDate(sdkVersion.commitDate)})</span>
+          </div>
+
+          <CodeBlock language="bash">{`# Install required dependencies
+pnpm add ${sdkVersion.packageUrl} buffer process
+
+# Or with npm
+npm install ${sdkVersion.packageUrl} buffer process`}</CodeBlock>
+        </>
+      )}
+    </Section>
+  );
+}
+
 export default function NextjsSetupPage() {
   const locale = useLocale();
   const t = content[locale as keyof typeof content] || content.en;
@@ -287,14 +336,7 @@ export default function NextjsSetupPage() {
       </Section>
 
       {/* Installation */}
-      <Section title={t.installTitle} id="installation">
-        <p className="mb-4 text-[color:var(--sf-muted)]">{t.installDesc}</p>
-        <CodeBlock language="bash">{`# Install required dependencies
-pnpm add @alkanes/ts-sdk buffer process
-
-# Or with npm
-npm install @alkanes/ts-sdk buffer process`}</CodeBlock>
-      </Section>
+      <InstallationSection t={t} />
 
       {/* Complete Config */}
       <Section title={t.configTitle} id="config">

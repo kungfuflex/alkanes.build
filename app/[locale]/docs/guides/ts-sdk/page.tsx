@@ -2,6 +2,7 @@
 
 import { useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { useSdkVersion, formatCommitDate } from "@/hooks/useSdkVersion";
 
 const content = {
   en: {
@@ -10,7 +11,11 @@ const content = {
     intro: "This guide documents how alkanes.build uses the @alkanes/ts-sdk to fetch blockchain data, execute Lua scripts, and build a complete DeFi dashboard. All examples are from working production code.",
 
     installTitle: "Installation",
-    installDesc: "Install the SDK from the alkanes package registry:",
+    installDesc: "Install the SDK from the alkanes package registry. The URL below is pinned to the latest commit on the develop branch:",
+    installDirect: "Or install directly with the versioned URL:",
+    installLoading: "Fetching latest version...",
+    installError: "Could not fetch latest version. Use the base URL:",
+    installVersionLabel: "Latest version:",
 
     architectureTitle: "Architecture Overview",
     architectureDesc: "The SDK provides a unified TypeScript interface over WASM bindings. See the full API Reference for complete method documentation.",
@@ -55,6 +60,21 @@ const content = {
     candleTitle: "Fetching Pool Candle Data",
     candleDesc: "Complete example of fetching historical pool data for charts:",
 
+    walletOpsTitle: "Wallet Operations",
+    walletOpsDesc: "The SDK provides wallet management through the rawProvider. Create wallets, load mnemonics, and get addresses:",
+
+    contractDeployTitle: "Contract Deployment",
+    contractDeployDesc: "Deploy WASM contracts using protostones. This pattern is from the alkanes-rs deploy-regtest-bindgen.ts script:",
+
+    executeTypedTitle: "Transaction Execution",
+    executeTypedDesc: "Execute alkane transactions with full type safety using alkanesExecuteTyped:",
+
+    verifyContractTitle: "Contract Verification",
+    verifyContractDesc: "Verify a contract was deployed successfully by checking its bytecode:",
+
+    regtestTitle: "Regtest Development",
+    regtestDesc: "For local development, connect to a regtest node and use Bitcoin RPC for block generation:",
+
     testingTitle: "Integration Testing",
     testingDesc: "Our integration tests verify the SDK works correctly against live RPC:",
 
@@ -78,6 +98,10 @@ const content = {
     intro: "本指南记录了 alkanes.build 如何使用 @alkanes/ts-sdk 获取区块链数据、执行 Lua 脚本并构建完整的 DeFi 仪表板。所有示例均来自工作生产代码。",
 
     installTitle: "安装",
+    installDirect: "或使用版本化 URL 直接安装：",
+    installLoading: "正在获取最新版本...",
+    installError: "无法获取最新版本。使用基础 URL：",
+    installVersionLabel: "最新版本：",
     installDesc: "从 alkanes 包注册表安装 SDK：",
 
     architectureTitle: "架构概述",
@@ -123,6 +147,21 @@ const content = {
     candleTitle: "获取池K线数据",
     candleDesc: "获取图表历史池数据的完整示例：",
 
+    walletOpsTitle: "钱包操作",
+    walletOpsDesc: "SDK 通过 rawProvider 提供钱包管理功能。创建钱包、加载助记词和获取地址：",
+
+    contractDeployTitle: "合约部署",
+    contractDeployDesc: "使用 protostones 部署 WASM 合约。此模式来自 alkanes-rs 的 deploy-regtest-bindgen.ts 脚本：",
+
+    executeTypedTitle: "交易执行",
+    executeTypedDesc: "使用 alkanesExecuteTyped 以完整类型安全执行 alkane 交易：",
+
+    verifyContractTitle: "合约验证",
+    verifyContractDesc: "通过检查字节码验证合约是否部署成功：",
+
+    regtestTitle: "Regtest 开发",
+    regtestDesc: "对于本地开发，连接到 regtest 节点并使用 Bitcoin RPC 进行区块生成：",
+
     testingTitle: "集成测试",
     testingDesc: "我们的集成测试验证 SDK 是否针对实时 RPC 正常工作：",
 
@@ -162,6 +201,52 @@ function Section({ title, children, id }: { title: string; children: React.React
   );
 }
 
+function InstallationSection({ t }: { t: typeof content.en }) {
+  const { data: sdkVersion, isLoading, error } = useSdkVersion();
+
+  return (
+    <Section title={t.installTitle} id="installation">
+      <p className="mb-4 text-[color:var(--sf-muted)]">{t.installDesc}</p>
+
+      {/* Dynamic versioned URL */}
+      {isLoading ? (
+        <div className="p-4 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-sm text-[color:var(--sf-muted)]">
+          {t.installLoading}
+        </div>
+      ) : error || !sdkVersion ? (
+        <>
+          <p className="mb-2 text-sm text-orange-500">{t.installError}</p>
+          <CodeBlock language="bash">{`npm install https://pkg.alkanes.build/dist/@alkanes/ts-sdk`}</CodeBlock>
+        </>
+      ) : (
+        <>
+          {/* Show version info */}
+          <div className="mb-3 p-3 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-sm">
+            <span className="text-[color:var(--sf-muted)]">{t.installVersionLabel} </span>
+            <code className="text-[color:var(--sf-primary)] font-semibold">{sdkVersion.versionWithHash}</code>
+            <span className="text-[color:var(--sf-muted)]"> - {sdkVersion.commitMessage}</span>
+            <span className="text-[color:var(--sf-muted)] ml-2 text-xs">({formatCommitDate(sdkVersion.commitDate)})</span>
+          </div>
+
+          <CodeBlock language="bash">{`# Install with npm
+npm install ${sdkVersion.packageUrl}
+
+# Or with pnpm
+pnpm add ${sdkVersion.packageUrl}
+
+# Or with yarn
+yarn add ${sdkVersion.packageUrl}`}</CodeBlock>
+        </>
+      )}
+
+      <p className="mt-6 mb-2 text-[color:var(--sf-muted)]">Or configure npm to use the alkanes registry:</p>
+      <CodeBlock language="bash">{`# Configure npm registry (alternative)
+npm config set @alkanes:registry https://pkg.alkanes.build/
+npm install @alkanes/ts-sdk`}</CodeBlock>
+    </Section>
+  );
+}
+
 export default function TsSdkGuidePage() {
   const locale = useLocale();
   const t = content[locale as keyof typeof content] || content.en;
@@ -175,20 +260,7 @@ export default function TsSdkGuidePage() {
       </div>
 
       {/* Installation */}
-      <Section title={t.installTitle} id="installation">
-        <p className="mb-4 text-[color:var(--sf-muted)]">{t.installDesc}</p>
-        <CodeBlock language="bash">{`# Configure npm to use the alkanes registry
-npm config set @alkanes:registry https://pkg.alkanes.build/
-
-# Install with npm
-npm install @alkanes/ts-sdk
-
-# Or with pnpm
-pnpm add @alkanes/ts-sdk
-
-# Or with yarn
-yarn add @alkanes/ts-sdk`}</CodeBlock>
-      </Section>
+      <InstallationSection t={t} />
 
       {/* Architecture */}
       <Section title={t.architectureTitle} id="architecture">
@@ -524,6 +596,209 @@ export async function fetchPoolDataPoints(
     totalSupply: BigInt(dp.total_supply),
   }));
 }`}</CodeBlock>
+      </Section>
+
+      {/* Wallet Operations */}
+      <Section title={t.walletOpsTitle} id="wallet-ops">
+        <p className="mb-4 text-[color:var(--sf-muted)]">{t.walletOpsDesc}</p>
+        <CodeBlock title="Wallet management with rawProvider">{`import { AlkanesProvider } from '@alkanes/ts-sdk';
+
+const provider = new AlkanesProvider({
+  network: 'regtest',
+  rpcUrl: 'http://127.0.0.1:18888'
+});
+await provider.initialize();
+
+// Access the raw WASM provider for wallet operations
+const rawProvider = provider.rawProvider;
+
+// Create a new wallet
+const walletInfo = rawProvider.walletCreate();
+console.log('Mnemonic:', walletInfo.mnemonic);
+console.log('Address:', walletInfo.address);
+
+// Load an existing wallet from mnemonic
+rawProvider.walletLoadMnemonic('your twelve word mnemonic phrase here ...');
+
+// Get addresses (type: 'p2tr' | 'p2wpkh' | 'p2sh-p2wpkh')
+const addresses = rawProvider.walletGetAddresses('p2tr', 0, 5);
+addresses.forEach((addr, i) => {
+  console.log(\`Address \${i}: \${addr.address}\`);
+});`}</CodeBlock>
+      </Section>
+
+      {/* Regtest Development */}
+      <Section title={t.regtestTitle} id="regtest">
+        <p className="mb-4 text-[color:var(--sf-muted)]">{t.regtestDesc}</p>
+        <CodeBlock title="Regtest setup and block generation">{`import { AlkanesProvider } from '@alkanes/ts-sdk';
+
+const provider = new AlkanesProvider({
+  network: 'regtest',
+  rpcUrl: process.env.RPC_URL || 'http://127.0.0.1:18888'
+});
+await provider.initialize();
+
+// Check if node is running
+const height = await provider.bitcoin.getBlockCount();
+console.log('Regtest node running at height:', height);
+
+// Fund a wallet by mining blocks
+const walletAddress = 'bcrt1q...';  // Your regtest address
+
+// Mine 101 blocks to mature coinbase
+await provider.bitcoin.generateToAddress(101, walletAddress);
+
+// Check wallet UTXOs
+const utxos = await provider.esplora.getAddressUtxos(walletAddress);
+console.log('Wallet has', utxos.length, 'UTXOs');
+
+// Get total balance
+const totalSats = utxos.reduce((sum, u) => sum + u.value, 0);
+console.log('Balance:', totalSats / 100_000_000, 'BTC');`}</CodeBlock>
+      </Section>
+
+      {/* Contract Deployment */}
+      <Section title={t.contractDeployTitle} id="deploy">
+        <p className="mb-4 text-[color:var(--sf-muted)]">{t.contractDeployDesc}</p>
+        <CodeBlock title="Deploy a WASM contract">{`import { readFileSync } from 'fs';
+import { AlkanesProvider } from '@alkanes/ts-sdk';
+
+// Read WASM file as hex
+function readWasmAsHex(wasmPath: string): string {
+  const buffer = readFileSync(wasmPath);
+  return buffer.toString('hex');
+}
+
+async function deployContract(
+  provider: AlkanesProvider,
+  walletAddress: string,
+  wasmPath: string,
+  targetTx: number,
+  initArgs: string = ''
+): Promise<string> {
+  // Read WASM as hex for envelope
+  const envelopeHex = readWasmAsHex(wasmPath);
+
+  // Build protostone for deployment
+  // Format: [3,targetTx,initArgs...]:v0:v0
+  // [3,...] = deploy opcode, creates contract at [4,targetTx]
+  const protostone = initArgs
+    ? \`[3,\${targetTx},\${initArgs}]:v0:v0\`
+    : \`[3,\${targetTx}]:v0:v0\`;
+
+  console.log('Deploying with protostone:', protostone);
+  console.log('WASM size:', envelopeHex.length / 2, 'bytes');
+
+  // Execute deployment
+  const result = await provider.alkanesExecuteTyped({
+    toAddresses: [walletAddress],
+    inputRequirements: '',
+    protostones: protostone,
+    feeRate: 1,
+    envelopeHex: envelopeHex,
+    fromAddresses: [walletAddress],
+    changeAddress: walletAddress,
+    traceEnabled: true,
+    autoConfirm: true,
+    mineEnabled: true,  // Auto-mine on regtest
+  });
+
+  console.log('Deployed to [4,', targetTx, ']');
+  return result.reveal_txid || result.txid;
+}
+
+// Example: Deploy a token contract at [4, 0x1234]
+await deployContract(
+  provider,
+  walletAddress,
+  './contracts/my_token.wasm',
+  0x1234,
+  '0,1000000000'  // Init args: owner=0, total_supply=1B
+);`}</CodeBlock>
+      </Section>
+
+      {/* Transaction Execution */}
+      <Section title={t.executeTypedTitle} id="execute">
+        <p className="mb-4 text-[color:var(--sf-muted)]">{t.executeTypedDesc}</p>
+        <CodeBlock title="Execute alkane transactions">{`// Call a contract method (e.g., mint DIESEL tokens)
+const mintResult = await provider.alkanesExecuteTyped({
+  toAddresses: [walletAddress],
+  inputRequirements: '',
+  // [2,0,77] = call DIESEL contract (2:0) with opcode 77 (mint)
+  protostones: '[2,0,77]:v0:v0',
+  feeRate: 1,
+  fromAddresses: [walletAddress],
+  changeAddress: walletAddress,
+  traceEnabled: true,
+  autoConfirm: true,
+  mineEnabled: true,
+});
+
+// Transfer tokens between addresses
+const transferResult = await provider.alkanesExecuteTyped({
+  toAddresses: [recipientAddress],
+  // Input requirements specify token amounts needed
+  inputRequirements: '2:0:1000000',  // Need 1M units of 2:0 (DIESEL)
+  protostones: '',  // No contract call, just transfer
+  feeRate: 2,
+  fromAddresses: [walletAddress],
+  changeAddress: walletAddress,
+  autoConfirm: true,
+});
+
+// Create a liquidity pool
+const poolResult = await provider.alkanesExecuteTyped({
+  toAddresses: [walletAddress],
+  inputRequirements: '2:0:300000000,32:0:50000',  // DIESEL + frBTC
+  // Call factory contract to create pool
+  protostones: \`[4,\${FACTORY_ID},1,2,0,32,0]:v0:v0\`,
+  feeRate: 1,
+  fromAddresses: [walletAddress],
+  changeAddress: walletAddress,
+  traceEnabled: true,
+  autoConfirm: true,
+  mineEnabled: true,
+});`}</CodeBlock>
+      </Section>
+
+      {/* Contract Verification */}
+      <Section title={t.verifyContractTitle} id="verify">
+        <p className="mb-4 text-[color:var(--sf-muted)]">{t.verifyContractDesc}</p>
+        <CodeBlock title="Verify contract deployment">{`async function verifyDeployment(
+  provider: AlkanesProvider,
+  contractId: string  // Format: "4:1234"
+): Promise<boolean> {
+  // Retry a few times as indexer may lag
+  for (let i = 0; i < 3; i++) {
+    try {
+      const bytecode = await provider.alkanes.getBytecode(contractId);
+
+      if (bytecode && bytecode.length > 0) {
+        console.log(\`Contract \${contractId} verified!\`);
+        console.log(\`Bytecode size: \${bytecode.length / 2} bytes\`);
+        return true;
+      }
+    } catch {
+      // Ignore and retry
+    }
+
+    console.log('Waiting for indexer...');
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  console.error(\`Contract \${contractId} not found\`);
+  return false;
+}
+
+// Verify after deployment
+await verifyDeployment(provider, '4:0x1234');
+
+// Get contract storage
+const storage = await provider.alkanes.getStorageSlot(
+  '4:0x1234',  // Contract ID
+  '0x00'       // Storage key
+);
+console.log('Storage value:', storage);`}</CodeBlock>
       </Section>
 
       {/* Testing */}
