@@ -14,11 +14,11 @@ export function Footer() {
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
-              alt="DIESEL"
+              alt="ALKANES"
               className="w-8 h-8 rounded-lg"
             />
             <div>
-              <span className="font-semibold text-[color:var(--sf-text)]">DIESEL</span>
+              <span className="font-semibold text-[color:var(--sf-text)]">ALKANES</span>
               <p className="text-xs text-[color:var(--sf-muted)]">{t("footer.tagline")}</p>
             </div>
           </div>

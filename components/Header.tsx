@@ -66,12 +66,12 @@ export function Header() {
             <Link href="/" className="flex items-center gap-3 group">
               <img
                 src="/logo.png"
-                alt="DIESEL"
+                alt="ALKANES"
                 className="w-10 h-10 rounded-xl shadow-lg group-hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-shadow"
               />
               <div className="flex flex-col">
-                <span className="font-bold text-xl text-[color:var(--sf-text)]">DIESEL</span>
-                <span className="text-[10px] text-[color:var(--sf-muted)] uppercase tracking-widest">Alkanes</span>
+                <span className="font-bold text-xl text-[color:var(--sf-text)]">ALKANES</span>
+                <span className="text-[10px] text-[color:var(--sf-muted)] uppercase tracking-widest">Protocol</span>
               </div>
             </Link>
 
