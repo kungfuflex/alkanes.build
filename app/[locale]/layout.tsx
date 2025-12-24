@@ -23,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 // Site configuration
 const siteConfig = {
-  name: "DIESEL",
+  name: "Alkanes",
   url: "https://alkanes.build",
   ogImage: "/og-image.png",
   twitterHandle: "@ptrk_btc",
@@ -54,24 +54,24 @@ export async function generateMetadata({
   const { locale } = await params;
 
   const titles: Record<string, string> = {
-    en: "DIESEL - Bitcoin DeFi Governance & Smart Contracts on Taproot | Alkanes",
-    zh: "DIESEL - 比特币 DeFi 治理与 Taproot 智能合约 | Alkanes 元协议",
-    ko: "DIESEL - 비트코인 DeFi 거버넌스 & Taproot 스마트 컨트랙트 | Alkanes",
-    ms: "DIESEL - Tadbir Urus DeFi Bitcoin & Kontrak Pintar Taproot | Alkanes",
-    vi: "DIESEL - Quản trị DeFi Bitcoin & Hợp đồng Thông minh Taproot | Alkanes",
+    en: "Alkanes - Bitcoin Smart Contracts & DeFi on Taproot",
+    zh: "Alkanes - 比特币 Taproot 智能合约与 DeFi 元协议",
+    ko: "Alkanes - 비트코인 Taproot 스마트 컨트랙트 & DeFi",
+    ms: "Alkanes - Kontrak Pintar Bitcoin & DeFi di Taproot",
+    vi: "Alkanes - Hợp đồng Thông minh Bitcoin & DeFi trên Taproot",
   };
 
   const descriptions: Record<string, string> = {
-    en: "DIESEL powers decentralized governance and yield vaults for the Alkanes metaprotocol. Build smart contracts on Bitcoin using Taproot, WASM runtime, and native Bitcoin security. No sidechains, no bridges.",
-    zh: "DIESEL 为 Alkanes 元协议提供去中心化治理与收益金库。基于 Taproot 在比特币上构建智能合约，使用 WASM 运行时和原生比特币安全性。无侧链，无跨链桥。",
-    ko: "DIESEL은 Alkanes 메타프로토콜의 탈중앙화 거버넌스와 수익 볼트를 지원합니다. Taproot, WASM 런타임, 네이티브 비트코인 보안을 사용하여 비트코인에서 스마트 컨트랙트를 구축하세요. 사이드체인 없음, 브릿지 없음.",
-    ms: "DIESEL menyokong tadbir urus terdesentralisasi dan bilik kebal hasil untuk metaprotokol Alkanes. Bina kontrak pintar di Bitcoin menggunakan Taproot, runtime WASM, dan keselamatan Bitcoin asli. Tiada sidechain, tiada jambatan.",
-    vi: "DIESEL hỗ trợ quản trị phi tập trung và kho lợi nhuận cho giao thức Alkanes. Xây dựng hợp đồng thông minh trên Bitcoin sử dụng Taproot, runtime WASM và bảo mật Bitcoin gốc. Không có sidechain, không có bridge.",
+    en: "Alkanes is a Bitcoin metaprotocol for smart contracts and DeFi. Build on Bitcoin using Taproot, WASM runtime, and native Bitcoin security. No sidechains, no bridges.",
+    zh: "Alkanes 是比特币智能合约与 DeFi 元协议。基于 Taproot 在比特币上构建，使用 WASM 运行时和原生比特币安全性。无侧链，无跨链桥。",
+    ko: "Alkanes는 스마트 컨트랙트와 DeFi를 위한 비트코인 메타프로토콜입니다. Taproot, WASM 런타임, 네이티브 비트코인 보안을 사용하여 비트코인에서 구축하세요. 사이드체인 없음, 브릿지 없음.",
+    ms: "Alkanes adalah metaprotokol Bitcoin untuk kontrak pintar dan DeFi. Bina di Bitcoin menggunakan Taproot, runtime WASM, dan keselamatan Bitcoin asli. Tiada sidechain, tiada jambatan.",
+    vi: "Alkanes là giao thức meta Bitcoin cho hợp đồng thông minh và DeFi. Xây dựng trên Bitcoin sử dụng Taproot, runtime WASM và bảo mật Bitcoin gốc. Không có sidechain, không có bridge.",
   };
 
   const keywordsEN = [
-    "DIESEL",
     "Alkanes",
+    "DIESEL",
     "Bitcoin DeFi",
     "Taproot",
     "Bitcoin smart contracts",
@@ -92,8 +92,8 @@ export async function generateMetadata({
   ];
 
   const keywordsZH = [
-    "DIESEL",
     "Alkanes",
+    "DIESEL",
     "比特币 DeFi",
     "Taproot",
     "比特币智能合约",
@@ -114,8 +114,8 @@ export async function generateMetadata({
   ];
 
   const keywordsKO = [
-    "DIESEL",
     "Alkanes",
+    "DIESEL",
     "비트코인 DeFi",
     "Taproot",
     "비트코인 스마트 컨트랙트",
@@ -136,8 +136,8 @@ export async function generateMetadata({
   ];
 
   const keywordsMS = [
-    "DIESEL",
     "Alkanes",
+    "DIESEL",
     "Bitcoin DeFi",
     "Taproot",
     "kontrak pintar Bitcoin",
@@ -158,8 +158,8 @@ export async function generateMetadata({
   ];
 
   const keywordsVI = [
-    "DIESEL",
     "Alkanes",
+    "DIESEL",
     "Bitcoin DeFi",
     "Taproot",
     "hợp đồng thông minh Bitcoin",
@@ -244,7 +244,7 @@ export async function generateMetadata({
           url: siteConfig.ogImage,
           width: 1200,
           height: 630,
-          alt: "DIESEL - Bitcoin DeFi on Alkanes",
+          alt: "Alkanes - Bitcoin Smart Contracts & DeFi",
         },
       ],
     },
@@ -303,13 +303,13 @@ function JsonLd({ locale }: { locale: string }) {
         "@type": "WebSite",
         "@id": `${siteConfig.url}/#website`,
         url: siteConfig.url,
-        name: "DIESEL - Alkanes Protocol",
+        name: "Alkanes Protocol",
         description: getText(
-          "DIESEL powers decentralized governance and yield vaults for the Alkanes metaprotocol",
-          "DIESEL 为 Alkanes 元协议提供去中心化治理与收益金库",
-          "DIESEL은 Alkanes 메타프로토콜의 탈중앙화 거버넌스와 수익 볼트를 지원합니다",
-          "DIESEL menyokong tadbir urus terdesentralisasi dan bilik kebal hasil untuk metaprotokol Alkanes",
-          "DIESEL hỗ trợ quản trị phi tập trung và kho lợi nhuận cho giao thức Alkanes"
+          "Alkanes is a Bitcoin metaprotocol for smart contracts and DeFi on Taproot",
+          "Alkanes 是比特币智能合约与 DeFi 元协议",
+          "Alkanes는 스마트 컨트랙트와 DeFi를 위한 비트코인 메타프로토콜입니다",
+          "Alkanes adalah metaprotokol Bitcoin untuk kontrak pintar dan DeFi",
+          "Alkanes là giao thức meta Bitcoin cho hợp đồng thông minh và DeFi"
         ),
         inLanguage: getLanguage(),
         publisher: {
