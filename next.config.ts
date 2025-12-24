@@ -12,6 +12,9 @@ import webpack from "webpack";
 const tsSdkWasmPath = path.join(process.cwd(), "ts-sdk/build/wasm/alkanes_web_sys.js");
 const hasTsSdk = fs.existsSync(tsSdkWasmPath);
 
+// Node-loader.cjs path from npm package (for server-side WASM loading)
+const nodeLoaderPath = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm/node-loader.cjs");
+
 // Create next-intl plugin
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
@@ -40,6 +43,12 @@ const nextConfig: NextConfig = {
         "@alkanes/ts-sdk/wasm": tsSdkWasmPath,
       };
     }
+
+    // Add alias for node-loader.cjs (used by SDK for server-side WASM loading)
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@alkanes/ts-sdk/wasm/node-loader.cjs": nodeLoaderPath,
+    };
 
     // WASM support
     config.experiments = {
