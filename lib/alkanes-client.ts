@@ -214,11 +214,14 @@ export function formatAlkaneId(id: AlkaneId | string): string {
 // ============================================================================
 
 /**
- * Singleton client for all alkanes/blockchain interactions
+ * Client for all alkanes/blockchain interactions
+ *
+ * Note: Creates a fresh AlkanesProvider for each request to avoid
+ * WASM threading issues ("recursive use of an object detected").
+ * The WASM WebProvider is not thread-safe and cannot be shared
+ * across concurrent requests in a serverless environment.
  */
 class AlkanesClient {
-  private provider: AlkanesProvider | null = null;
-  private initPromise: Promise<void> | null = null;
   private rpcUrl: string;
 
   constructor() {
@@ -233,23 +236,16 @@ class AlkanesClient {
   }
 
   /**
-   * Initialize the provider (lazy, singleton)
+   * Create a fresh provider for each request
+   * This avoids WASM threading/aliasing issues in serverless environments
    */
-  private async ensureProvider(): Promise<AlkanesProvider> {
-    if (this.provider) return this.provider;
-
-    if (!this.initPromise) {
-      this.initPromise = (async () => {
-        this.provider = new AlkanesProvider({
-          network: 'mainnet',
-          rpcUrl: this.rpcUrl,
-        });
-        await this.provider.initialize();
-      })();
-    }
-
-    await this.initPromise;
-    return this.provider!;
+  private async createProvider(): Promise<AlkanesProvider> {
+    const provider = new AlkanesProvider({
+      network: 'mainnet',
+      rpcUrl: this.rpcUrl,
+    });
+    await provider.initialize();
+    return provider;
   }
 
   // ==========================================================================
@@ -260,7 +256,7 @@ class AlkanesClient {
    * Get UTXOs for an address
    */
   async getAddressUtxos(address: string): Promise<UTXO[]> {
-    const provider = await this.ensureProvider();
+    const provider = await this.createProvider();
     const utxos = await provider.esplora.getAddressUtxos(address);
     return utxos as UTXO[];
   }
@@ -282,7 +278,7 @@ class AlkanesClient {
    * Uses protorunesbyaddress via metashrew_view
    */
   async getAlkaneBalances(address: string): Promise<AlkaneBalance[]> {
-    const provider = await this.ensureProvider();
+    const provider = await this.createProvider();
     return provider.getAlkaneBalance(address);
   }
 
@@ -290,7 +286,7 @@ class AlkanesClient {
    * Get protorunes by address (full outpoint data with balance sheets)
    */
   async getProtorunesByAddress(address: string, protocolTag: number = 1): Promise<unknown> {
-    const provider = await this.ensureProvider();
+    const provider = await this.createProvider();
     return provider.alkanes.getByAddress(address, undefined, protocolTag);
   }
 
@@ -358,7 +354,7 @@ class AlkanesClient {
    * Uses the SDK's metashrewHeight() method
    */
   async getCurrentHeight(): Promise<number> {
-    const provider = await this.ensureProvider();
+    const provider = await this.createProvider();
     return provider.getBlockHeight();
   }
 
@@ -367,7 +363,7 @@ class AlkanesClient {
    * Uses the SDK's metashrewView method
    */
   async metashrewView(viewFn: string, payload: string, blockTag: string = 'latest'): Promise<string> {
-    const provider = await this.ensureProvider();
+    const provider = await this.createProvider();
     return provider.metashrew.view(viewFn, payload, blockTag);
   }
 
@@ -382,7 +378,7 @@ class AlkanesClient {
    * This provides better performance for repeated script executions.
    */
   async executeLuaScript<T>(script: string, args: unknown[]): Promise<T> {
-    const provider = await this.ensureProvider();
+    const provider = await this.createProvider();
     const result = await provider.lua.eval(script, args);
 
     // lua eval returns { calls, returns, runtime }
@@ -464,7 +460,7 @@ class AlkanesClient {
    * Get current Bitcoin price in USD from the Data API
    */
   async getBitcoinPrice(): Promise<number> {
-    const provider = await this.ensureProvider();
+    const provider = await this.createProvider();
     // Use the provider's direct method which returns number
     const price = await provider.getBitcoinPrice();
     if (typeof price === 'number' && price > 0) {
