@@ -1,87 +1,15 @@
 import { NextResponse } from 'next/server';
 import { cacheGet, cacheSet } from '@/lib/redis';
+import {
+  fetchSdkVersionData,
+  SDK_PACKAGE_BASE_URL,
+  type SdkVersionData,
+} from '@/lib/sdk-version';
 
 // Cache key for SDK version
 const CACHE_KEY = 'sdk:version:latest';
 // Cache for 10 minutes
 const CACHE_TTL_SECONDS = 600;
-
-interface GitHubCommit {
-  sha: string;
-  commit: {
-    message: string;
-    author: {
-      name: string;
-      date: string;
-    };
-  };
-}
-
-interface PackageJson {
-  version: string;
-  name: string;
-}
-
-interface SdkVersionData {
-  version: string;
-  shortHash: string;
-  fullHash: string;
-  versionWithHash: string;
-  packageUrl: string;
-  commitMessage: string;
-  commitDate: string;
-  branch: string;
-  repository: string;
-  cachedAt: string;
-}
-
-/**
- * Fetch package.json from the ts-sdk directory in alkanes-rs
- */
-async function fetchPackageJson(): Promise<PackageJson> {
-  const response = await fetch(
-    'https://raw.githubusercontent.com/kungfuflex/alkanes-rs/develop/ts-sdk/package.json',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'alkanes.build',
-        ...(process.env.GITHUB_TOKEN && {
-          'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
-        }),
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch package.json: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-/**
- * Fetch latest commit from the develop branch
- */
-async function fetchLatestCommit(): Promise<GitHubCommit> {
-  const response = await fetch(
-    'https://api.github.com/repos/kungfuflex/alkanes-rs/commits/develop',
-    {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'alkanes.build',
-        ...(process.env.GITHUB_TOKEN && {
-          'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
-        }),
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`GitHub API returned ${response.status}: ${response.statusText}`);
-  }
-
-  return response.json();
-}
 
 /**
  * GET /api/sdk-version
@@ -93,7 +21,7 @@ async function fetchLatestCommit(): Promise<GitHubCommit> {
 export async function GET() {
   try {
     // Check Redis cache first
-    const cached = await cacheGet<SdkVersionData>(CACHE_KEY);
+    const cached = await cacheGet<SdkVersionData & { cachedAt: string }>(CACHE_KEY);
     if (cached) {
       return NextResponse.json({
         success: true,
@@ -102,40 +30,24 @@ export async function GET() {
       });
     }
 
-    // Fetch package.json and latest commit in parallel
-    const [packageJson, commit] = await Promise.all([
-      fetchPackageJson(),
-      fetchLatestCommit(),
-    ]);
+    // Fetch SDK version data using the shared library
+    const versionData = await fetchSdkVersionData(
+      'develop',
+      process.env.GITHUB_TOKEN
+    );
 
-    // Get short commit hash (7 characters)
-    const shortHash = commit.sha.substring(0, 7);
-
-    // Build version string: {semver}-{shortHash}
-    const versionWithHash = `${packageJson.version}-${shortHash}`;
-
-    // Build the package URL
-    const packageUrl = `https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=${versionWithHash}`;
-
-    const versionData: SdkVersionData = {
-      version: packageJson.version,
-      shortHash,
-      fullHash: commit.sha,
-      versionWithHash,
-      packageUrl,
-      commitMessage: commit.commit.message.split('\n')[0], // First line only
-      commitDate: commit.commit.author.date,
-      branch: 'develop',
-      repository: 'kungfuflex/alkanes-rs',
+    // Add cache timestamp
+    const versionDataWithCache = {
+      ...versionData,
       cachedAt: new Date().toISOString(),
     };
 
     // Cache in Redis
-    await cacheSet(CACHE_KEY, versionData, CACHE_TTL_SECONDS);
+    await cacheSet(CACHE_KEY, versionDataWithCache, CACHE_TTL_SECONDS);
 
     return NextResponse.json({
       success: true,
-      data: versionData,
+      data: versionDataWithCache,
       cached: false,
     });
   } catch (error) {
@@ -149,7 +61,7 @@ export async function GET() {
         error: error instanceof Error ? error.message : 'Failed to fetch SDK version',
         // Provide fallback data so the UI can still function
         fallback: {
-          packageUrl: 'https://pkg.alkanes.build/dist/@alkanes/ts-sdk',
+          packageUrl: SDK_PACKAGE_BASE_URL,
           note: 'Using base URL without version pin. Check GitHub for latest version.',
         },
       },
