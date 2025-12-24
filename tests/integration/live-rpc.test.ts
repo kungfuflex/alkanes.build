@@ -1177,3 +1177,151 @@ describe.skipIf(!runIntegration)("Live Wallet Balance Integration Tests", () => 
     }, TEST_TIMEOUT);
   });
 });
+
+/**
+ * Concurrent Access Tests
+ *
+ * These tests verify that the AlkanesProvider handles concurrent requests correctly.
+ * The WASM WebProvider is not thread-safe, so we need to either:
+ * 1. Create a fresh provider for each request (current fix in alkanes-client.ts)
+ * 2. Or serialize access to the provider
+ *
+ * The "recursive use of an object detected" error occurs when the same
+ * WebProvider instance is accessed concurrently.
+ */
+describe.skipIf(!runIntegration)("Concurrent Access Tests", () => {
+  const TEST_ADDRESS = "bc1puvfmy5whzdq35nd2trckkm09em9u7ps6lal564jz92c9feswwrpsr7ach5";
+
+  describe("Shared provider concurrent access (should fail with singleton)", () => {
+    it("should handle concurrent requests with shared provider", async () => {
+      const { AlkanesProvider } = await import("@alkanes/ts-sdk");
+
+      // Create a SINGLE provider instance (simulating singleton pattern)
+      const provider = new AlkanesProvider({
+        network: "mainnet",
+        rpcUrl: "https://mainnet.subfrost.io/v4/buildalkanes"
+      });
+      await provider.initialize();
+
+      console.log("\n=== Testing concurrent access with SHARED provider ===");
+
+      // Make 5 concurrent requests using the SAME provider
+      const promises = Array(5).fill(null).map(async (_, i) => {
+        try {
+          console.log(`Request ${i + 1}: starting...`);
+          const start = Date.now();
+          const utxos = await provider.esplora.getAddressUtxos(TEST_ADDRESS);
+          const elapsed = Date.now() - start;
+          console.log(`Request ${i + 1}: completed in ${elapsed}ms, got ${utxos.length} UTXOs`);
+          return { success: true, index: i + 1, utxos: utxos.length };
+        } catch (error: any) {
+          console.log(`Request ${i + 1}: FAILED - ${error.message}`);
+          return { success: false, index: i + 1, error: error.message };
+        }
+      });
+
+      const results = await Promise.all(promises);
+
+      // Log summary
+      const successes = results.filter(r => r.success);
+      const failures = results.filter(r => !r.success);
+
+      console.log(`\nResults: ${successes.length} succeeded, ${failures.length} failed`);
+
+      if (failures.length > 0) {
+        console.log("Failures:");
+        for (const f of failures) {
+          console.log(`  Request ${f.index}: ${f.error}`);
+        }
+      }
+
+      // With the singleton pattern, we expect some failures due to WASM threading issues
+      // This test documents the expected behavior
+      expect(results.length).toBe(5);
+    }, TEST_TIMEOUT);
+  });
+
+  describe("Fresh provider per request (should succeed)", () => {
+    it("should handle concurrent requests with fresh providers", async () => {
+      const { AlkanesProvider } = await import("@alkanes/ts-sdk");
+
+      console.log("\n=== Testing concurrent access with FRESH providers ===");
+
+      // Make 5 concurrent requests, each with its OWN provider
+      const promises = Array(5).fill(null).map(async (_, i) => {
+        try {
+          console.log(`Request ${i + 1}: creating fresh provider...`);
+          const provider = new AlkanesProvider({
+            network: "mainnet",
+            rpcUrl: "https://mainnet.subfrost.io/v4/buildalkanes"
+          });
+          await provider.initialize();
+
+          const start = Date.now();
+          const utxos = await provider.esplora.getAddressUtxos(TEST_ADDRESS);
+          const elapsed = Date.now() - start;
+          console.log(`Request ${i + 1}: completed in ${elapsed}ms, got ${utxos.length} UTXOs`);
+          return { success: true, index: i + 1, utxos: utxos.length };
+        } catch (error: any) {
+          console.log(`Request ${i + 1}: FAILED - ${error.message}`);
+          return { success: false, index: i + 1, error: error.message };
+        }
+      });
+
+      const results = await Promise.all(promises);
+
+      // Log summary
+      const successes = results.filter(r => r.success);
+      const failures = results.filter(r => !r.success);
+
+      console.log(`\nResults: ${successes.length} succeeded, ${failures.length} failed`);
+
+      // With fresh providers, all requests should succeed
+      expect(successes.length).toBe(5);
+      expect(failures.length).toBe(0);
+    }, TEST_TIMEOUT);
+  });
+
+  describe("alkanesClient concurrent access", () => {
+    it("should handle concurrent requests via alkanesClient", async () => {
+      // This tests the actual fix in alkanes-client.ts
+      const { alkanesClient } = await import("@/lib/alkanes-client");
+
+      console.log("\n=== Testing concurrent access via alkanesClient ===");
+
+      // Make 5 concurrent requests using alkanesClient
+      const promises = Array(5).fill(null).map(async (_, i) => {
+        try {
+          console.log(`Request ${i + 1}: starting...`);
+          const start = Date.now();
+          const height = await alkanesClient.getCurrentHeight();
+          const elapsed = Date.now() - start;
+          console.log(`Request ${i + 1}: completed in ${elapsed}ms, height=${height}`);
+          return { success: true, index: i + 1, height };
+        } catch (error: any) {
+          console.log(`Request ${i + 1}: FAILED - ${error.message}`);
+          return { success: false, index: i + 1, error: error.message };
+        }
+      });
+
+      const results = await Promise.all(promises);
+
+      // Log summary
+      const successes = results.filter(r => r.success);
+      const failures = results.filter(r => !r.success);
+
+      console.log(`\nResults: ${successes.length} succeeded, ${failures.length} failed`);
+
+      if (failures.length > 0) {
+        console.log("Failures:");
+        for (const f of failures) {
+          console.log(`  Request ${f.index}: ${f.error}`);
+        }
+      }
+
+      // After our fix, all requests should succeed
+      expect(successes.length).toBe(5);
+      expect(failures.length).toBe(0);
+    }, TEST_TIMEOUT);
+  });
+});

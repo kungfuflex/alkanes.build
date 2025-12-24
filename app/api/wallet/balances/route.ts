@@ -48,8 +48,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching wallet balances:', error);
+
+    // Extract error details for debugging
+    let errorMessage = 'Unknown error';
+    let errorDetails: Record<string, unknown> = {};
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = {
+        name: error.name,
+        stack: error.stack?.split('\n').slice(0, 5).join('\n'),
+      };
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error && typeof error === 'object') {
+      errorMessage = JSON.stringify(error);
+      errorDetails = error as Record<string, unknown>;
+    }
+
     return NextResponse.json(
-      { error: 'Failed to fetch wallet balances', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        success: false,
+        error: 'Failed to fetch wallet balances',
+        details: errorMessage,
+        debug: process.env.NODE_ENV === 'development' ? errorDetails : undefined,
+      },
       { status: 500 }
     );
   }
