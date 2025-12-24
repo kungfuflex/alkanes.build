@@ -182,9 +182,10 @@ export async function fetchPoolDataPoints(
   const pool = POOL_CONFIGS[poolKey];
 
   // Use alkanes-client with scripthash caching
+  // Pass args as flat array - the RPC will wrap it correctly for Lua to access as args[1]
   const luaResult = await alkanesClient.executeLuaScript<LuaScriptResult>(
     POOL_CANDLES_LUA_SCRIPT,
-    [[pool.protobufPayload, startHeight.toString(), endHeight.toString(), interval.toString()]]
+    [pool.protobufPayload, startHeight.toString(), endHeight.toString(), interval.toString()]
   );
 
   if (luaResult?.error) {
@@ -720,7 +721,7 @@ export async function fetchDieselStats(
 }> {
   const luaResult = await alkanesClient.executeLuaScript<StatsLuaResult>(
     STATS_LUA_SCRIPT,
-    [[]]
+    []
   );
 
   return {
