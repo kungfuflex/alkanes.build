@@ -11,6 +11,7 @@
  * - Eliminates duplicate fetch/RPC code throughout the codebase
  */
 
+import { AlkanesProvider } from '@alkanes/ts-sdk';
 import type { AlkaneBalance, AlkaneId } from '@alkanes/ts-sdk';
 
 // ============================================================================
