@@ -1,7 +1,7 @@
 {
-  "name": "DIESEL - Alkanes Protocol",
-  "short_name": "DIESEL",
-  "description": "Governance, vaults, and documentation for the Alkanes metaprotocol on Bitcoin",
+  "name": "Alkanes Protocol",
+  "short_name": "Alkanes",
+  "description": "Bitcoin smart contracts and DeFi on Taproot. Governance, vaults, and documentation.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

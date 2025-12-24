@@ -31,14 +31,14 @@
     "gcp:setup": "bash ./gcp/setup.sh",
     "gcp:deploy": "bash ./gcp/deploy.sh",
     "gcp:setup-wif": "bash ./gcp/setup-github-wif.sh",
-    "postinstall": "prisma generate" 
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@alkanes/ts-sdk": "https://pkg.alkanes.build/dist/@alkanes/ts-sdk?=v0.1.1-6a5ae39",
     "@bitcoinerlab/secp256k1": "^1.2.0",
-    "@alkanes/ts-sdk": "https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=1766021187",
     "@mdx-js/loader": "^3.0.0",
     "@mdx-js/react": "^3.0.0",
     "@next/mdx": "^16.0.8",

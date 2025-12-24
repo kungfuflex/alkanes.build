@@ -249,8 +249,12 @@ export function formatAlkaneId(id: AlkaneId | string): string {
 // ============================================================================
 
 /**
- * Singleton client for all alkanes/blockchain interactions
- * Uses direct JSON-RPC calls to avoid WASM issues in serverless environments
+ * Client for all alkanes/blockchain interactions
+ *
+ * Note: Creates a fresh AlkanesProvider for each request to avoid
+ * WASM threading issues ("recursive use of an object detected").
+ * The WASM WebProvider is not thread-safe and cannot be shared
+ * across concurrent requests in a serverless environment.
  */
 class AlkanesClient {
   private rpcUrl: string;
@@ -264,6 +268,19 @@ class AlkanesClient {
    */
   getRpcUrl(): string {
     return this.rpcUrl;
+  }
+
+  /**
+   * Create a fresh provider for each request
+   * This avoids WASM threading/aliasing issues in serverless environments
+   */
+  private async createProvider(): Promise<AlkanesProvider> {
+    const provider = new AlkanesProvider({
+      network: 'mainnet',
+      rpcUrl: this.rpcUrl,
+    });
+    await provider.initialize();
+    return provider;
   }
 
   // ==========================================================================
@@ -345,12 +362,21 @@ class AlkanesClient {
 
   /**
    * Get complete wallet balances (BTC + tokens)
+   * Uses a single provider instance to avoid WASM concurrent initialization issues
    */
   async getWalletBalances(address: string): Promise<WalletBalances> {
-    const [btcBalance, alkaneBalances] = await Promise.all([
-      this.getBtcBalance(address),
-      this.getAlkaneBalances(address),
+    // Create a single provider for all operations to avoid WASM concurrency issues
+    const provider = await this.createProvider();
+
+    // Execute both operations with the shared provider
+    const [utxos, alkaneBalances] = await Promise.all([
+      provider.esplora.getAddressUtxos(address),
+      provider.getAlkaneBalance(address),
     ]);
+
+    // Handle case where utxos might not be an array (e.g., empty response or error)
+    const utxoArray = Array.isArray(utxos) ? utxos : [];
+    const btcBalance = utxoArray.reduce((sum: number, utxo: UTXO) => sum + (utxo.value || 0), 0);
 
     // Convert alkane balances to token balances with metadata
     const tokens: TokenBalance[] = alkaneBalances.map((ab) => {

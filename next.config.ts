@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployment
   output: "standalone",
 
+  // External packages that should not be bundled on the server
+  // This allows Node.js to resolve @alkanes/ts-sdk naturally at runtime
+  serverExternalPackages: ["@alkanes/ts-sdk"],
+
   // Enable MDX pages
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
 
