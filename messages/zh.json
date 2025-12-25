@@ -27,7 +27,8 @@
       "title": "ALKANES",
       "subtitle": "Alkanes 元协议的治理中心、收益金库与技术文档。质押、投票，共同塑造比特币 DeFi 的未来。",
       "viewProposals": "查看提案",
-      "readDocs": "阅读文档"
+      "readDocs": "阅读文档",
+      "getApiKey": "获取 API 密钥"
     },
     "explore": {
       "title": "探索 DIESEL",

@@ -27,7 +27,8 @@
       "title": "ALKANES",
       "subtitle": "Governance, vaults, and documentation for the Alkanes metaprotocol on Bitcoin. Stake, vote, and shape the future of Bitcoin DeFi.",
       "viewProposals": "View Proposals",
-      "readDocs": "Read the Docs"
+      "readDocs": "Read the Docs",
+      "getApiKey": "Get an API Key"
     },
     "explore": {
       "title": "Explore DIESEL",

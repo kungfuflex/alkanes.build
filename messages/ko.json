@@ -27,7 +27,8 @@
       "title": "ALKANES",
       "subtitle": "비트코인 위 Alkanes 메타프로토콜의 거버넌스, 볼트, 그리고 문서. 스테이킹, 투표, 비트코인 DeFi의 미래를 함께 만들어갑니다.",
       "viewProposals": "제안 보기",
-      "readDocs": "문서 읽기"
+      "readDocs": "문서 읽기",
+      "getApiKey": "API 키 받기"
     },
     "explore": {
       "title": "DIESEL 탐색하기",

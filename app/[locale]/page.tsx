@@ -46,6 +46,29 @@ export default function HomePage() {
               <Link href="/docs" className="btn-secondary">
                 {t("home.hero.readDocs")}
               </Link>
+              <a
+                href="https://api.subfrost.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-frost"
+              >
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="12" y1="2" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                  <line x1="19.07" y1="4.93" x2="4.93" y2="19.07" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                {t("home.hero.getApiKey")}
+              </a>
             </div>
           </div>
         </section>
