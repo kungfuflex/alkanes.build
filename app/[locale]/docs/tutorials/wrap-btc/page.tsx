@@ -832,15 +832,32 @@ declare_alkane! {
 
 // Initialize provider
 const provider = new AlkanesProvider({
-  network: 'mainnet',
+  network: 'mainnet',  // or 'regtest' for local development
   rpcUrl: 'https://mainnet.subfrost.io/v4/jsonrpc',
 });
 await provider.initialize();
 
+// Load wallet from mnemonic (for transactions)
+provider.walletLoadMnemonic('your twelve word mnemonic...');
+const addresses = provider.walletGetAddresses('p2tr', 0, 1);
+const walletAddress = addresses[0].address;
+
+// Wrap BTC to frBTC using the typed method
+const wrapResult = await provider.frbtcWrapTyped({
+  amount: BigInt(100000000),  // 1 BTC in satoshis
+  toAddress: walletAddress,
+  fromAddress: walletAddress,
+  feeRate: 1,
+  traceEnabled: true,
+  mineEnabled: true,  // Auto-mine on regtest
+  autoConfirm: true,
+});
+console.log('Wrap TXID:', wrapResult.reveal_txid);
+
 // Get frBTC balance for an address
-const balances = await provider.alkanes.getBalance(address);
+const balances = await provider.alkanes.getBalance(walletAddress);
 const frbtc = balances.find(b =>
-  b.id?.block === 32 && b.id?.tx === 0
+  b.alkane_id?.block === 32 && b.alkane_id?.tx === 0
 );
 console.log('frBTC balance:', frbtc?.balance);
 

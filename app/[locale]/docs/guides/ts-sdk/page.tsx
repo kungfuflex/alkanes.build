@@ -67,7 +67,18 @@ const content = {
     contractDeployDesc: "Deploy WASM contracts using protostones. This pattern is from the alkanes-rs deploy-regtest-bindgen.ts script:",
 
     executeTypedTitle: "Transaction Execution",
-    executeTypedDesc: "Execute alkane transactions with full type safety using alkanesExecuteTyped:",
+    executeTypedDesc: "Execute alkane transactions with full type safety using alkanesExecuteTyped. This method returns a TransactionBroadcast object that provides immediate access to transaction info and lazy-loaded execution traces:",
+    executeTypedBroadcastTitle: "TransactionBroadcast Interface",
+    executeTypedBroadcastDesc: "The TransactionBroadcast object separates immediate transaction data from async trace fetching:",
+
+    frbtcWrapTitle: "Wrapping BTC to frBTC",
+    frbtcWrapDesc: "Use frbtcWrapTyped to convert BTC to frBTC (the wrapped Bitcoin token on Alkanes). This is essential for participating in Alkanes DeFi:",
+
+    ammPoolTitle: "Creating AMM Pools",
+    ammPoolDesc: "Use alkanesInitPoolTyped to create new liquidity pools. This example is from the deploy-regtest-bindgen.ts script:",
+
+    ammSwapTitle: "Executing Swaps",
+    ammSwapDesc: "Use alkanesSwapTyped to execute token swaps through AMM pools:",
 
     verifyContractTitle: "Contract Verification",
     verifyContractDesc: "Verify a contract was deployed successfully by checking its bytecode:",
@@ -154,7 +165,18 @@ const content = {
     contractDeployDesc: "使用 protostones 部署 WASM 合约。此模式来自 alkanes-rs 的 deploy-regtest-bindgen.ts 脚本：",
 
     executeTypedTitle: "交易执行",
-    executeTypedDesc: "使用 alkanesExecuteTyped 以完整类型安全执行 alkane 交易：",
+    executeTypedDesc: "使用 alkanesExecuteTyped 以完整类型安全执行 alkane 交易。此方法返回一个 TransactionBroadcast 对象，提供立即访问交易信息和延迟加载的执行追踪：",
+    executeTypedBroadcastTitle: "TransactionBroadcast 接口",
+    executeTypedBroadcastDesc: "TransactionBroadcast 对象将即时交易数据与异步追踪获取分离：",
+
+    frbtcWrapTitle: "将 BTC 封装为 frBTC",
+    frbtcWrapDesc: "使用 frbtcWrapTyped 将 BTC 转换为 frBTC（Alkanes 上的封装比特币代币）。这是参与 Alkanes DeFi 的必要步骤：",
+
+    ammPoolTitle: "创建 AMM 池",
+    ammPoolDesc: "使用 alkanesInitPoolTyped 创建新的流动性池。此示例来自 deploy-regtest-bindgen.ts 脚本：",
+
+    ammSwapTitle: "执行交换",
+    ammSwapDesc: "使用 alkanesSwapTyped 通过 AMM 池执行代币交换：",
 
     verifyContractTitle: "合约验证",
     verifyContractDesc: "通过检查字节码验证合约是否部署成功：",
@@ -759,6 +781,99 @@ const poolResult = await provider.alkanesExecuteTyped({
   autoConfirm: true,
   mineEnabled: true,
 });`}</CodeBlock>
+      </Section>
+
+      {/* frBTC Wrap */}
+      <Section title={t.frbtcWrapTitle} id="frbtc-wrap">
+        <p className="mb-4 text-[color:var(--sf-muted)]">{t.frbtcWrapDesc}</p>
+        <CodeBlock title="Wrap BTC to frBTC">{`// Wrap BTC to frBTC using the typed method
+const result = await provider.frbtcWrapTyped({
+  // Amount in satoshis to wrap
+  amount: BigInt(100000000), // 1 BTC = 100,000,000 sats
+  toAddress: walletAddress,
+  fromAddress: walletAddress,
+  feeRate: 1,
+  traceEnabled: true,
+  mineEnabled: true,   // Auto-mine on regtest
+  autoConfirm: true,
+});
+
+console.log('Wrap transaction:', result.reveal_txid);
+
+// Verify frBTC balance after wrap
+const balances = await provider.alkanes.getBalance(walletAddress);
+const frbtc = balances.find(b =>
+  b.alkane_id.block === 32 && b.alkane_id.tx === 0
+);
+console.log('frBTC balance:', frbtc?.balance);`}</CodeBlock>
+      </Section>
+
+      {/* AMM Pool Creation */}
+      <Section title={t.ammPoolTitle} id="amm-pool">
+        <p className="mb-4 text-[color:var(--sf-muted)]">{t.ammPoolDesc}</p>
+        <CodeBlock title="Create AMM liquidity pool">{`// Initialize a new AMM pool with two tokens
+const txid = await provider.alkanesInitPoolTyped({
+  // Factory contract ID (where to create the pool)
+  factoryId: { block: 4, tx: 65522 },  // AMM Factory
+
+  // Token pair for the pool
+  token0: { block: 2, tx: 0 },    // DIESEL
+  token1: { block: 32, tx: 0 },   // frBTC
+
+  // Initial liquidity amounts (in smallest units)
+  amount0: '300000000',  // 3 DIESEL (8 decimals)
+  amount1: '50000',      // 0.0005 frBTC
+
+  // Minimum LP tokens to receive (optional, for slippage protection)
+  minimumLp: '0',
+
+  toAddress: walletAddress,
+  fromAddress: walletAddress,
+  feeRate: 1,
+  trace: true,
+  autoConfirm: true,
+});
+
+console.log('Pool created! TXID:', txid);
+
+// The pool will be created at a new alkane ID
+// Query the factory to find the pool ID`}</CodeBlock>
+      </Section>
+
+      {/* AMM Swap */}
+      <Section title={t.ammSwapTitle} id="amm-swap">
+        <p className="mb-4 text-[color:var(--sf-muted)]">{t.ammSwapDesc}</p>
+        <CodeBlock title="Execute token swap">{`// Swap tokens through an AMM pool
+const txid = await provider.alkanesSwapTyped({
+  // Factory to route through
+  factoryId: { block: 4, tx: 65522 },
+
+  // Swap path: array of token IDs from input to output
+  path: [
+    { block: 2, tx: 0 },   // DIESEL (input)
+    { block: 32, tx: 0 },  // frBTC (output)
+  ],
+
+  // Amount of input token to swap
+  inputAmount: '100000000',  // 1 DIESEL
+
+  // Minimum output (slippage protection)
+  minimumOutput: '10',  // Minimum frBTC to receive
+
+  // Expiration block height (deadline for swap)
+  expires: currentHeight + 10,
+
+  toAddress: walletAddress,
+  fromAddress: walletAddress,
+  feeRate: 1,
+  trace: true,
+  autoConfirm: true,
+});
+
+console.log('Swap executed! TXID:', txid);
+
+// For multi-hop swaps, extend the path:
+// path: [tokenA, tokenB, tokenC]  // A -> B -> C`}</CodeBlock>
       </Section>
 
       {/* Contract Verification */}

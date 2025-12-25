@@ -282,6 +282,149 @@ await provider.initialize();
 console.log('Current height:', height); // e.g., 927618`}
           t={t}
         />
+
+        <h4 className="font-semibold text-[color:var(--sf-text)] mt-6 mb-3">Typed Transaction Methods</h4>
+        <MethodDoc
+          name="alkanesExecuteTyped"
+          signature={`async alkanesExecuteTyped(params: {
+  toAddresses: string[];
+  inputRequirements: string;
+  protostones: string;
+  feeRate?: number;
+  envelopeHex?: string;
+  fromAddresses?: string[];
+  changeAddress?: string;
+  traceEnabled?: boolean;
+  mineEnabled?: boolean;
+  autoConfirm?: boolean;
+}): Promise<TransactionBroadcast>`}
+          description="Execute an Alkanes contract call with full type safety. Returns a TransactionBroadcast object with transaction() for immediate tx info and receipt() for lazy-loaded traces."
+          params={[
+            { name: "toAddresses", type: "string[]", desc: "Recipient addresses" },
+            { name: "inputRequirements", type: "string", desc: "Token inputs required (e.g., '2:0:1000000')" },
+            { name: "protostones", type: "string", desc: "Protostone call format (e.g., '[2,0,77]:v0:v0')" },
+            { name: "feeRate", type: "number", desc: "Fee rate in sat/vB" },
+            { name: "envelopeHex", type: "string", desc: "WASM bytecode hex for contract deploy" },
+            { name: "traceEnabled", type: "boolean", desc: "Enable execution tracing" },
+            { name: "mineEnabled", type: "boolean", desc: "Auto-mine block (regtest only)" },
+          ]}
+          returns="Promise<TransactionBroadcast> - { transaction(): Transaction, receipt(): Promise<Trace[]> }"
+          example={`const broadcast = await provider.alkanesExecuteTyped({
+  toAddresses: [walletAddress],
+  inputRequirements: '',
+  protostones: '[2,0,77]:v0:v0',  // Mint DIESEL
+  feeRate: 1,
+  traceEnabled: true,
+  mineEnabled: true,
+});
+const tx = broadcast.transaction();
+console.log('TXID:', tx.txid);
+const traces = await broadcast.receipt();`}
+          t={t}
+        />
+        <MethodDoc
+          name="frbtcWrapTyped"
+          signature={`async frbtcWrapTyped(params: {
+  amount: bigint | number;
+  toAddress: string;
+  fromAddress?: string;
+  changeAddress?: string;
+  feeRate?: number;
+  traceEnabled?: boolean;
+  mineEnabled?: boolean;
+  autoConfirm?: boolean;
+}): Promise<TransactionResult>`}
+          description="Wrap BTC to frBTC (the wrapped Bitcoin token on Alkanes). Essential for participating in Alkanes DeFi."
+          params={[
+            { name: "amount", type: "bigint | number", desc: "Amount in satoshis to wrap" },
+            { name: "toAddress", type: "string", desc: "Recipient address for frBTC" },
+            { name: "fromAddress", type: "string", desc: "Source address for BTC" },
+            { name: "feeRate", type: "number", desc: "Fee rate in sat/vB" },
+            { name: "mineEnabled", type: "boolean", desc: "Auto-mine block (regtest only)" },
+          ]}
+          returns="Promise<TransactionResult> - Transaction details with txid"
+          example={`const result = await provider.frbtcWrapTyped({
+  amount: BigInt(100000000), // 1 BTC
+  toAddress: walletAddress,
+  feeRate: 1,
+  mineEnabled: true,
+});
+console.log('Wrapped! TXID:', result.reveal_txid);`}
+          t={t}
+        />
+        <MethodDoc
+          name="alkanesInitPoolTyped"
+          signature={`async alkanesInitPoolTyped(params: {
+  factoryId: { block: number; tx: number };
+  token0: { block: number; tx: number };
+  token1: { block: number; tx: number };
+  amount0: string | number | bigint;
+  amount1: string | number | bigint;
+  minimumLp?: string | number | bigint;
+  toAddress: string;
+  fromAddress?: string;
+  feeRate?: number;
+  trace?: boolean;
+  autoConfirm?: boolean;
+}): Promise<string>`}
+          description="Initialize a new AMM liquidity pool with two tokens."
+          params={[
+            { name: "factoryId", type: "AlkaneId", desc: "AMM Factory contract ID" },
+            { name: "token0", type: "AlkaneId", desc: "First token of the pair" },
+            { name: "token1", type: "AlkaneId", desc: "Second token of the pair" },
+            { name: "amount0", type: "string", desc: "Initial amount of token0" },
+            { name: "amount1", type: "string", desc: "Initial amount of token1" },
+            { name: "minimumLp", type: "string", desc: "Minimum LP tokens (slippage protection)" },
+          ]}
+          returns="Promise<string> - Transaction ID"
+          example={`const txid = await provider.alkanesInitPoolTyped({
+  factoryId: { block: 4, tx: 65522 },
+  token0: { block: 2, tx: 0 },    // DIESEL
+  token1: { block: 32, tx: 0 },   // frBTC
+  amount0: '300000000',
+  amount1: '50000',
+  toAddress: walletAddress,
+  feeRate: 1,
+});`}
+          t={t}
+        />
+        <MethodDoc
+          name="alkanesSwapTyped"
+          signature={`async alkanesSwapTyped(params: {
+  factoryId: { block: number; tx: number };
+  path: Array<{ block: number; tx: number }>;
+  inputAmount: string | number | bigint;
+  minimumOutput: string | number | bigint;
+  expires: number;
+  toAddress: string;
+  fromAddress?: string;
+  feeRate?: number;
+  trace?: boolean;
+  autoConfirm?: boolean;
+}): Promise<string>`}
+          description="Execute a token swap through AMM pools. Supports multi-hop routing."
+          params={[
+            { name: "factoryId", type: "AlkaneId", desc: "AMM Factory contract ID" },
+            { name: "path", type: "AlkaneId[]", desc: "Swap path from input to output token" },
+            { name: "inputAmount", type: "string", desc: "Amount of input token to swap" },
+            { name: "minimumOutput", type: "string", desc: "Minimum acceptable output (slippage protection)" },
+            { name: "expires", type: "number", desc: "Expiration block height" },
+          ]}
+          returns="Promise<string> - Transaction ID"
+          example={`const txid = await provider.alkanesSwapTyped({
+  factoryId: { block: 4, tx: 65522 },
+  path: [
+    { block: 2, tx: 0 },   // DIESEL (in)
+    { block: 32, tx: 0 },  // frBTC (out)
+  ],
+  inputAmount: '100000000',
+  minimumOutput: '10',
+  expires: currentHeight + 10,
+  toAddress: walletAddress,
+  feeRate: 1,
+});`}
+          t={t}
+        />
       </Section>
 
       {/* EsploraClient */}
