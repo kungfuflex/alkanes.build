@@ -200,6 +200,300 @@ const content = {
       { text: "实时集成测试", href: "https://github.com/alkanes-rs/alkanes-rs/tree/develop/ts-sdk", desc: "TS SDK 测试示例" },
       { text: "Subfrost API", href: "https://api.subfrost.io", desc: "获取生产环境 API 密钥" }
     ]
+  },
+  ms: {
+    title: "Panduan @alkanes/ts-sdk",
+    subtitle: "Contoh kerja dari kod alkanes.build",
+    intro: "Panduan ini mendokumentasikan bagaimana alkanes.build menggunakan @alkanes/ts-sdk untuk mendapatkan data blockchain, melaksanakan skrip Lua, dan membina papan pemuka DeFi yang lengkap. Semua contoh adalah dari kod pengeluaran yang berfungsi.",
+
+    installTitle: "Pemasangan",
+    installDesc: "Pasang SDK dari registri pakej alkanes. URL di bawah dipinkan ke komit terkini pada cabang develop:",
+    installDirect: "Atau pasang terus dengan URL berversi:",
+    installLoading: "Mendapatkan versi terkini...",
+    installError: "Tidak dapat mendapatkan versi terkini. Gunakan URL asas:",
+    installVersionLabel: "Versi terkini:",
+
+    architectureTitle: "Gambaran Keseluruhan Seni Bina",
+    architectureDesc: "SDK menyediakan antara muka TypeScript bersatu ke atas binding WASM. Lihat Rujukan API lengkap untuk dokumentasi kaedah yang lengkap.",
+    architectureItems: [
+      { name: "AlkanesProvider", desc: "Titik masuk utama dengan sub-klien untuk setiap API", anchor: "AlkanesProvider" },
+      { name: "EsploraClient", desc: "Data UTXO dan transaksi Bitcoin", anchor: "EsploraClient" },
+      { name: "AlkanesRpcClient", desc: "Baki token Alkane dan panggilan kontrak", anchor: "AlkanesRpcClient" },
+      { name: "MetashrewClient", desc: "Akses RPC metashrew_view tahap rendah", anchor: "MetashrewClient" },
+      { name: "LuaClient", desc: "Pelaksanaan skrip Lua sisi pelayan dengan caching", anchor: "LuaClient" },
+      { name: "DataApiClient", desc: "Data pasaran, candlestick, dan harga BTC", anchor: "DataApiClient" },
+      { name: "BitcoinRpcClient", desc: "Kaedah RPC Bitcoin Core", anchor: "BitcoinRpcClient" }
+    ],
+    apiRefLink: "Lihat Rujukan API Lengkap",
+
+    providerTitle: "Mencipta Provider",
+    providerDesc: "AlkanesProvider adalah titik masuk utama. Berikut adalah cara alkanes.build memulakan ia:",
+
+    clientTitle: "Corak Klien Singleton",
+    clientDesc: "Kami menggunakan corak singleton untuk provider bagi mengelakkan permulaan WASM berulang:",
+
+    heightTitle: "Mendapatkan Ketinggian Blok",
+    heightDesc: "Dapatkan ketinggian blockchain semasa menggunakan provider:",
+
+    balancesTitle: "Mendapatkan Baki Dompet",
+    balancesDesc: "Dapatkan baki BTC dan pegangan token Alkane untuk alamat:",
+
+    btcPriceTitle: "Mendapatkan Harga Bitcoin",
+    btcPriceDesc: "Dapatkan harga BTC/USD semasa dari Data API:",
+
+    metashrewTitle: "Panggilan Metashrew View",
+    metashrewDesc: "Panggil kontrak alkane menggunakan metashrew_view untuk rizab pool dan data token:",
+
+    luaTitle: "Pelaksanaan Skrip Lua",
+    luaDesc: "Laksanakan skrip Lua untuk pertanyaan berkumpulan dengan caching scripthash automatik:",
+    luaAdvantages: [
+      "Satu perjalanan RPC untuk pelbagai pertanyaan",
+      "Snapshot data atomik pada ketinggian blok yang sama",
+      "Caching scripthash automatik (fallback lua_evalsaved)",
+      "Pengekodan JSON sisi pelayan"
+    ],
+
+    candleTitle: "Mendapatkan Data Candlestick Pool",
+    candleDesc: "Contoh lengkap mendapatkan data pool sejarah untuk carta:",
+
+    walletOpsTitle: "Operasi Dompet",
+    walletOpsDesc: "SDK menyediakan pengurusan dompet melalui rawProvider. Cipta dompet, muatkan mnemonic, dan dapatkan alamat:",
+
+    contractDeployTitle: "Penempatan Kontrak",
+    contractDeployDesc: "Tempatkan kontrak WASM menggunakan protostones. Corak ini dari skrip deploy-regtest-bindgen.ts alkanes-rs:",
+
+    executeTypedTitle: "Pelaksanaan Transaksi",
+    executeTypedDesc: "Laksanakan transaksi alkane dengan keselamatan jenis penuh menggunakan alkanesExecuteTyped. Kaedah ini mengembalikan objek TransactionBroadcast yang menyediakan akses segera kepada maklumat transaksi dan jejak pelaksanaan yang dimuatkan secara malas:",
+    executeTypedBroadcastTitle: "Antara Muka TransactionBroadcast",
+    executeTypedBroadcastDesc: "Objek TransactionBroadcast memisahkan data transaksi segera daripada pengambilan jejak async:",
+
+    frbtcWrapTitle: "Membalut BTC ke frBTC",
+    frbtcWrapDesc: "Gunakan frbtcWrapTyped untuk menukar BTC kepada frBTC (token Bitcoin berbalut pada Alkanes). Ini penting untuk menyertai Alkanes DeFi:",
+
+    ammPoolTitle: "Mencipta Pool AMM",
+    ammPoolDesc: "Gunakan alkanesInitPoolTyped untuk mencipta pool kecairan baharu. Contoh ini dari skrip deploy-regtest-bindgen.ts:",
+
+    ammSwapTitle: "Melaksanakan Pertukaran",
+    ammSwapDesc: "Gunakan alkanesSwapTyped untuk melaksanakan pertukaran token melalui pool AMM:",
+
+    verifyContractTitle: "Pengesahan Kontrak",
+    verifyContractDesc: "Sahkan kontrak telah ditempatkan dengan jayanya dengan memeriksa bytecodenya:",
+
+    regtestTitle: "Pembangunan Regtest",
+    regtestDesc: "Untuk pembangunan tempatan, sambung ke nod regtest dan gunakan Bitcoin RPC untuk penjanaan blok:",
+
+    testingTitle: "Ujian Integrasi",
+    testingDesc: "Ujian integrasi kami mengesahkan SDK berfungsi dengan betul terhadap RPC langsung:",
+
+    troubleshootTitle: "Penyelesaian Masalah",
+    troubleshootItems: [
+      { issue: "WASM tidak memuatkan dalam Node.js", solution: "Pastikan anda memanggil provider.initialize() sebelum menggunakan sebarang kaedah. SDK mengendalikan pemuatan WASM merentas platform secara automatik." },
+      { issue: "Respons kosong dari skrip Lua", solution: "Semak bahawa skrip Lua anda mengembalikan nilai. SDK menggunakan JSON.parse secara dalaman untuk menyahsiri respons." },
+      { issue: "Ralat tamat masa RPC", solution: "Skrip Lua yang membuat banyak panggilan RPC mungkin tamat masa. Kurangkan bilangan ketinggian blok yang dipertanyakan atau tingkatkan selang." }
+    ],
+
+    resourcesTitle: "Sumber",
+    resources: [
+      { text: "alkanes-rs GitHub", href: "https://github.com/kungfuflex/alkanes-rs", desc: "Sumber protokol dan SDK Alkanes" },
+      { text: "Ujian Integrasi Langsung", href: "https://github.com/alkanes-rs/alkanes-rs/tree/develop/ts-sdk", desc: "Contoh ujian TS SDK" },
+      { text: "Subfrost API", href: "https://api.subfrost.io", desc: "Dapatkan kunci API untuk kegunaan pengeluaran" }
+    ]
+  },
+  vi: {
+    title: "Hướng dẫn @alkanes/ts-sdk",
+    subtitle: "Các ví dụ hoạt động từ codebase alkanes.build",
+    intro: "Hướng dẫn này ghi lại cách alkanes.build sử dụng @alkanes/ts-sdk để lấy dữ liệu blockchain, thực thi các script Lua và xây dựng bảng điều khiển DeFi hoàn chỉnh. Tất cả các ví dụ đều từ mã sản xuất hoạt động.",
+
+    installTitle: "Cài đặt",
+    installDesc: "Cài đặt SDK từ registry gói alkanes. URL dưới đây được ghim vào commit mới nhất trên nhánh develop:",
+    installDirect: "Hoặc cài đặt trực tiếp với URL có phiên bản:",
+    installLoading: "Đang lấy phiên bản mới nhất...",
+    installError: "Không thể lấy phiên bản mới nhất. Sử dụng URL cơ sở:",
+    installVersionLabel: "Phiên bản mới nhất:",
+
+    architectureTitle: "Tổng quan Kiến trúc",
+    architectureDesc: "SDK cung cấp giao diện TypeScript thống nhất trên các binding WASM. Xem Tham chiếu API đầy đủ để có tài liệu phương thức hoàn chỉnh.",
+    architectureItems: [
+      { name: "AlkanesProvider", desc: "Điểm vào chính với các sub-client cho mỗi API", anchor: "AlkanesProvider" },
+      { name: "EsploraClient", desc: "Dữ liệu UTXO và giao dịch Bitcoin", anchor: "EsploraClient" },
+      { name: "AlkanesRpcClient", desc: "Số dư token Alkane và cuộc gọi hợp đồng", anchor: "AlkanesRpcClient" },
+      { name: "MetashrewClient", desc: "Truy cập RPC metashrew_view cấp thấp", anchor: "MetashrewClient" },
+      { name: "LuaClient", desc: "Thực thi script Lua phía server với bộ nhớ đệm", anchor: "LuaClient" },
+      { name: "DataApiClient", desc: "Dữ liệu thị trường, nến và giá BTC", anchor: "DataApiClient" },
+      { name: "BitcoinRpcClient", desc: "Các phương thức RPC Bitcoin Core", anchor: "BitcoinRpcClient" }
+    ],
+    apiRefLink: "Xem Tham chiếu API Đầy đủ",
+
+    providerTitle: "Tạo Provider",
+    providerDesc: "AlkanesProvider là điểm vào chính. Đây là cách alkanes.build khởi tạo nó:",
+
+    clientTitle: "Mẫu Client Singleton",
+    clientDesc: "Chúng tôi sử dụng mẫu singleton cho provider để tránh khởi tạo WASM lặp lại:",
+
+    heightTitle: "Lấy Chiều cao Block",
+    heightDesc: "Lấy chiều cao blockchain hiện tại bằng provider:",
+
+    balancesTitle: "Lấy Số dư Ví",
+    balancesDesc: "Lấy số dư BTC và nắm giữ token Alkane cho một địa chỉ:",
+
+    btcPriceTitle: "Lấy Giá Bitcoin",
+    btcPriceDesc: "Lấy giá BTC/USD hiện tại từ Data API:",
+
+    metashrewTitle: "Cuộc gọi Metashrew View",
+    metashrewDesc: "Gọi các hợp đồng alkane bằng metashrew_view cho dự trữ pool và dữ liệu token:",
+
+    luaTitle: "Thực thi Script Lua",
+    luaDesc: "Thực thi các script Lua cho các truy vấn hàng loạt với bộ nhớ đệm scripthash tự động:",
+    luaAdvantages: [
+      "Một chuyến khứ hồi RPC cho nhiều truy vấn",
+      "Snapshot dữ liệu nguyên tử ở cùng chiều cao block",
+      "Bộ nhớ đệm scripthash tự động (fallback lua_evalsaved)",
+      "Mã hóa JSON phía server"
+    ],
+
+    candleTitle: "Lấy Dữ liệu Nến Pool",
+    candleDesc: "Ví dụ đầy đủ về lấy dữ liệu pool lịch sử cho biểu đồ:",
+
+    walletOpsTitle: "Hoạt động Ví",
+    walletOpsDesc: "SDK cung cấp quản lý ví thông qua rawProvider. Tạo ví, tải mnemonic và lấy địa chỉ:",
+
+    contractDeployTitle: "Triển khai Hợp đồng",
+    contractDeployDesc: "Triển khai các hợp đồng WASM bằng protostones. Mẫu này từ script deploy-regtest-bindgen.ts của alkanes-rs:",
+
+    executeTypedTitle: "Thực thi Giao dịch",
+    executeTypedDesc: "Thực thi các giao dịch alkane với an toàn kiểu đầy đủ bằng alkanesExecuteTyped. Phương thức này trả về đối tượng TransactionBroadcast cung cấp truy cập ngay lập tức vào thông tin giao dịch và các trace thực thi được tải chậm:",
+    executeTypedBroadcastTitle: "Giao diện TransactionBroadcast",
+    executeTypedBroadcastDesc: "Đối tượng TransactionBroadcast tách biệt dữ liệu giao dịch ngay lập tức khỏi việc lấy trace async:",
+
+    frbtcWrapTitle: "Bọc BTC thành frBTC",
+    frbtcWrapDesc: "Sử dụng frbtcWrapTyped để chuyển đổi BTC thành frBTC (token Bitcoin được bọc trên Alkanes). Điều này cần thiết để tham gia Alkanes DeFi:",
+
+    ammPoolTitle: "Tạo Pool AMM",
+    ammPoolDesc: "Sử dụng alkanesInitPoolTyped để tạo pool thanh khoản mới. Ví dụ này từ script deploy-regtest-bindgen.ts:",
+
+    ammSwapTitle: "Thực hiện Swap",
+    ammSwapDesc: "Sử dụng alkanesSwapTyped để thực hiện swap token thông qua các pool AMM:",
+
+    verifyContractTitle: "Xác minh Hợp đồng",
+    verifyContractDesc: "Xác minh hợp đồng đã được triển khai thành công bằng cách kiểm tra bytecode của nó:",
+
+    regtestTitle: "Phát triển Regtest",
+    regtestDesc: "Để phát triển cục bộ, kết nối với node regtest và sử dụng Bitcoin RPC để tạo block:",
+
+    testingTitle: "Kiểm thử Tích hợp",
+    testingDesc: "Các bài kiểm thử tích hợp của chúng tôi xác minh SDK hoạt động chính xác với RPC trực tiếp:",
+
+    troubleshootTitle: "Khắc phục Sự cố",
+    troubleshootItems: [
+      { issue: "WASM không tải trong Node.js", solution: "Đảm bảo bạn gọi provider.initialize() trước khi sử dụng bất kỳ phương thức nào. SDK tự động xử lý việc tải WASM đa nền tảng." },
+      { issue: "Phản hồi trống từ các script Lua", solution: "Kiểm tra rằng script Lua của bạn trả về một giá trị. SDK sử dụng JSON.parse nội bộ để deserialize phản hồi." },
+      { issue: "Lỗi hết thời gian RPC", solution: "Các script Lua thực hiện nhiều cuộc gọi RPC có thể hết thời gian. Giảm số lượng chiều cao block được truy vấn hoặc tăng khoảng thời gian." }
+    ],
+
+    resourcesTitle: "Tài nguyên",
+    resources: [
+      { text: "alkanes-rs GitHub", href: "https://github.com/kungfuflex/alkanes-rs", desc: "Mã nguồn giao thức và SDK Alkanes" },
+      { text: "Kiểm thử Tích hợp Trực tiếp", href: "https://github.com/alkanes-rs/alkanes-rs/tree/develop/ts-sdk", desc: "Ví dụ kiểm thử TS SDK" },
+      { text: "Subfrost API", href: "https://api.subfrost.io", desc: "Nhận khóa API cho sử dụng sản xuất" }
+    ]
+  },
+  ko: {
+    title: "@alkanes/ts-sdk 가이드",
+    subtitle: "alkanes.build 코드베이스의 실제 예제",
+    intro: "이 가이드는 alkanes.build가 @alkanes/ts-sdk를 사용하여 블록체인 데이터를 가져오고, Lua 스크립트를 실행하고, 완전한 DeFi 대시보드를 구축하는 방법을 문서화합니다. 모든 예제는 실제 프로덕션 코드에서 가져온 것입니다.",
+
+    installTitle: "설치",
+    installDesc: "alkanes 패키지 레지스트리에서 SDK를 설치합니다. 아래 URL은 develop 브랜치의 최신 커밋에 고정되어 있습니다:",
+    installDirect: "또는 버전이 지정된 URL로 직접 설치:",
+    installLoading: "최신 버전 가져오는 중...",
+    installError: "최신 버전을 가져올 수 없습니다. 기본 URL 사용:",
+    installVersionLabel: "최신 버전:",
+
+    architectureTitle: "아키텍처 개요",
+    architectureDesc: "SDK는 WASM 바인딩 위에 통합된 TypeScript 인터페이스를 제공합니다. 완전한 메서드 문서는 전체 API 참조를 확인하세요.",
+    architectureItems: [
+      { name: "AlkanesProvider", desc: "각 API에 대한 서브 클라이언트가 있는 주요 진입점", anchor: "AlkanesProvider" },
+      { name: "EsploraClient", desc: "Bitcoin UTXO 및 트랜잭션 데이터", anchor: "EsploraClient" },
+      { name: "AlkanesRpcClient", desc: "Alkane 토큰 잔액 및 계약 호출", anchor: "AlkanesRpcClient" },
+      { name: "MetashrewClient", desc: "저수준 metashrew_view RPC 접근", anchor: "MetashrewClient" },
+      { name: "LuaClient", desc: "캐싱이 있는 서버 측 Lua 스크립트 실행", anchor: "LuaClient" },
+      { name: "DataApiClient", desc: "시장 데이터, 캔들 및 BTC 가격", anchor: "DataApiClient" },
+      { name: "BitcoinRpcClient", desc: "Bitcoin Core RPC 메서드", anchor: "BitcoinRpcClient" }
+    ],
+    apiRefLink: "전체 API 참조 보기",
+
+    providerTitle: "Provider 생성",
+    providerDesc: "AlkanesProvider는 주요 진입점입니다. alkanes.build가 초기화하는 방법입니다:",
+
+    clientTitle: "싱글톤 클라이언트 패턴",
+    clientDesc: "반복적인 WASM 초기화를 피하기 위해 provider에 싱글톤 패턴을 사용합니다:",
+
+    heightTitle: "블록 높이 가져오기",
+    heightDesc: "provider를 사용하여 현재 블록체인 높이를 가져옵니다:",
+
+    balancesTitle: "지갑 잔액 가져오기",
+    balancesDesc: "주소의 BTC 잔액 및 Alkane 토큰 보유량을 가져옵니다:",
+
+    btcPriceTitle: "Bitcoin 가격 가져오기",
+    btcPriceDesc: "Data API에서 현재 BTC/USD 가격을 가져옵니다:",
+
+    metashrewTitle: "Metashrew View 호출",
+    metashrewDesc: "풀 준비금 및 토큰 데이터를 위해 metashrew_view를 사용하여 alkane 계약을 호출합니다:",
+
+    luaTitle: "Lua 스크립트 실행",
+    luaDesc: "자동 scripthash 캐싱으로 일괄 쿼리를 위한 Lua 스크립트를 실행합니다:",
+    luaAdvantages: [
+      "여러 쿼리에 대한 단일 RPC 왕복",
+      "동일한 블록 높이에서 원자적 데이터 스냅샷",
+      "자동 scripthash 캐싱 (lua_evalsaved 폴백)",
+      "서버 측 JSON 인코딩"
+    ],
+
+    candleTitle: "풀 캔들 데이터 가져오기",
+    candleDesc: "차트를 위한 과거 풀 데이터 가져오기의 전체 예제:",
+
+    walletOpsTitle: "지갑 작업",
+    walletOpsDesc: "SDK는 rawProvider를 통해 지갑 관리를 제공합니다. 지갑 생성, 니모닉 로드 및 주소 가져오기:",
+
+    contractDeployTitle: "계약 배포",
+    contractDeployDesc: "protostones를 사용하여 WASM 계약을 배포합니다. 이 패턴은 alkanes-rs의 deploy-regtest-bindgen.ts 스크립트에서 가져온 것입니다:",
+
+    executeTypedTitle: "트랜잭션 실행",
+    executeTypedDesc: "alkanesExecuteTyped를 사용하여 완전한 타입 안전성으로 alkane 트랜잭션을 실행합니다. 이 메서드는 트랜잭션 정보에 대한 즉각적인 접근과 지연 로드된 실행 트레이스를 제공하는 TransactionBroadcast 객체를 반환합니다:",
+    executeTypedBroadcastTitle: "TransactionBroadcast 인터페이스",
+    executeTypedBroadcastDesc: "TransactionBroadcast 객체는 즉각적인 트랜잭션 데이터와 비동기 트레이스 가져오기를 분리합니다:",
+
+    frbtcWrapTitle: "BTC를 frBTC로 래핑",
+    frbtcWrapDesc: "frbtcWrapTyped를 사용하여 BTC를 frBTC (Alkanes의 래핑된 Bitcoin 토큰)로 변환합니다. 이는 Alkanes DeFi에 참여하는 데 필수적입니다:",
+
+    ammPoolTitle: "AMM 풀 생성",
+    ammPoolDesc: "alkanesInitPoolTyped를 사용하여 새 유동성 풀을 생성합니다. 이 예제는 deploy-regtest-bindgen.ts 스크립트에서 가져온 것입니다:",
+
+    ammSwapTitle: "스왑 실행",
+    ammSwapDesc: "alkanesSwapTyped를 사용하여 AMM 풀을 통해 토큰 스왑을 실행합니다:",
+
+    verifyContractTitle: "계약 검증",
+    verifyContractDesc: "bytecode를 확인하여 계약이 성공적으로 배포되었는지 확인합니다:",
+
+    regtestTitle: "Regtest 개발",
+    regtestDesc: "로컬 개발의 경우, regtest 노드에 연결하고 블록 생성을 위해 Bitcoin RPC를 사용합니다:",
+
+    testingTitle: "통합 테스트",
+    testingDesc: "통합 테스트는 SDK가 라이브 RPC에 대해 올바르게 작동하는지 확인합니다:",
+
+    troubleshootTitle: "문제 해결",
+    troubleshootItems: [
+      { issue: "Node.js에서 WASM이 로드되지 않음", solution: "메서드를 사용하기 전에 provider.initialize()를 호출해야 합니다. SDK는 크로스 플랫폼 WASM 로딩을 자동으로 처리합니다." },
+      { issue: "Lua 스크립트에서 빈 응답", solution: "Lua 스크립트가 값을 반환하는지 확인하세요. SDK는 응답을 역직렬화하기 위해 내부적으로 JSON.parse를 사용합니다." },
+      { issue: "RPC 시간 초과 오류", solution: "많은 RPC 호출을 하는 Lua 스크립트는 시간 초과될 수 있습니다. 쿼리하는 블록 높이 수를 줄이거나 간격을 늘리세요." }
+    ],
+
+    resourcesTitle: "리소스",
+    resources: [
+      { text: "alkanes-rs GitHub", href: "https://github.com/kungfuflex/alkanes-rs", desc: "Alkanes 프로토콜 및 SDK 소스" },
+      { text: "라이브 통합 테스트", href: "https://github.com/alkanes-rs/alkanes-rs/tree/develop/ts-sdk", desc: "TS SDK 테스트 예제" },
+      { text: "Subfrost API", href: "https://api.subfrost.io", desc: "프로덕션 사용을 위한 API 키 받기" }
+    ]
   }
 };
 

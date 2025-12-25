@@ -99,6 +99,150 @@ const content = {
     parametersLabel: "参数：",
     returnsLabel: "返回：",
     exampleLabel: "示例：",
+  },
+  ms: {
+    title: "Rujukan API @alkanes/ts-sdk",
+    subtitle: "Rujukan SDK TypeScript lengkap untuk protokol Alkanes",
+    intro: "@alkanes/ts-sdk menyediakan antara muka TypeScript bersatu untuk berinteraksi dengan protokol Alkanes. Halaman ini mendokumentasikan semua kelas dan kaedah yang tersedia.",
+
+    tocTitle: "Jadual Kandungan",
+
+    providerTitle: "AlkanesProvider",
+    providerDesc: "Titik masuk utama untuk semua fungsi SDK. Menyediakan akses kepada semua sub-klien selepas permulaan.",
+    providerUsage: "Penggunaan asas:",
+    providerProperties: "Sifat",
+    providerMethods: "Kaedah",
+
+    esploraTitle: "EsploraClient",
+    esploraDesc: "Klien untuk API penjelajah blok Bitcoin yang serasi dengan Esplora. Menyediakan data UTXO, maklumat transaksi, dan baki alamat.",
+    esploraAccess: "Diakses melalui provider.esplora",
+
+    alkanesTitle: "AlkanesRpcClient",
+    alkanesDesc: "Klien untuk kaedah RPC khusus Alkanes. Mengendalikan baki token, simulasi kontrak, dan operasi protokol.",
+    alkanesAccess: "Diakses melalui provider.alkanes",
+
+    metashrewTitle: "MetashrewClient",
+    metashrewDesc: "Klien tahap rendah untuk panggilan RPC metashrew_view. Menyediakan akses langsung kepada pertanyaan keadaan pengindeks.",
+    metashrewAccess: "Diakses melalui provider.metashrew",
+
+    luaTitle: "LuaClient",
+    luaDesc: "Klien untuk melaksanakan skrip Lua pada pelayan. Menyokong caching scripthash automatik untuk prestasi yang lebih baik.",
+    luaAccess: "Diakses melalui provider.lua",
+
+    dataApiTitle: "DataApiClient",
+    dataApiDesc: "Klien untuk titik akhir Data API. Menyediakan data pasaran, maklumat pool, candlestick, dan statistik pemegang.",
+    dataApiAccess: "Diakses melalui provider.dataApi",
+
+    espoTitle: "EspoClient",
+    espoDesc: "Klien untuk pengindeks Espo. Menyediakan data alkanes dan analitik AMM melalui dua modul: Essentials (baki, pemegang, storan) dan AMM Data (candlestick, dagangan, pool, laluan swap).",
+    espoAccess: "Diakses melalui provider.espo",
+
+    bitcoinTitle: "BitcoinRpcClient",
+    bitcoinDesc: "Klien untuk kaedah RPC Bitcoin Core. Menyediakan data blok, penyiaran transaksi, dan maklumat rangkaian.",
+    bitcoinAccess: "Diakses melalui provider.bitcoin",
+
+    typesTitle: "Jenis",
+    typesDesc: "Jenis biasa yang digunakan di seluruh SDK.",
+
+    parametersLabel: "Parameter:",
+    returnsLabel: "Pulangan:",
+    exampleLabel: "Contoh:",
+  },
+  vi: {
+    title: "Tham chiếu API @alkanes/ts-sdk",
+    subtitle: "Tham chiếu SDK TypeScript đầy đủ cho giao thức Alkanes",
+    intro: "@alkanes/ts-sdk cung cấp giao diện TypeScript thống nhất để tương tác với giao thức Alkanes. Trang này ghi lại tất cả các lớp và phương thức có sẵn.",
+
+    tocTitle: "Mục lục",
+
+    providerTitle: "AlkanesProvider",
+    providerDesc: "Điểm vào chính cho tất cả chức năng SDK. Cung cấp quyền truy cập vào tất cả các sub-client sau khi khởi tạo.",
+    providerUsage: "Cách sử dụng cơ bản:",
+    providerProperties: "Thuộc tính",
+    providerMethods: "Phương thức",
+
+    esploraTitle: "EsploraClient",
+    esploraDesc: "Client cho API trình duyệt khối Bitcoin tương thích Esplora. Cung cấp dữ liệu UTXO, thông tin giao dịch và số dư địa chỉ.",
+    esploraAccess: "Truy cập qua provider.esplora",
+
+    alkanesTitle: "AlkanesRpcClient",
+    alkanesDesc: "Client cho các phương thức RPC cụ thể của Alkanes. Xử lý số dư token, mô phỏng hợp đồng và các hoạt động giao thức.",
+    alkanesAccess: "Truy cập qua provider.alkanes",
+
+    metashrewTitle: "MetashrewClient",
+    metashrewDesc: "Client cấp thấp cho các cuộc gọi RPC metashrew_view. Cung cấp quyền truy cập trực tiếp vào các truy vấn trạng thái của bộ lập chỉ mục.",
+    metashrewAccess: "Truy cập qua provider.metashrew",
+
+    luaTitle: "LuaClient",
+    luaDesc: "Client để thực thi các script Lua trên server. Hỗ trợ bộ nhớ đệm scripthash tự động để cải thiện hiệu suất.",
+    luaAccess: "Truy cập qua provider.lua",
+
+    dataApiTitle: "DataApiClient",
+    dataApiDesc: "Client cho các endpoint Data API. Cung cấp dữ liệu thị trường, thông tin pool, nến và thống kê người nắm giữ.",
+    dataApiAccess: "Truy cập qua provider.dataApi",
+
+    espoTitle: "EspoClient",
+    espoDesc: "Client cho bộ lập chỉ mục Espo. Cung cấp dữ liệu alkanes và phân tích AMM thông qua hai module: Essentials (số dư, người nắm giữ, lưu trữ) và AMM Data (nến, giao dịch, pool, định tuyến swap).",
+    espoAccess: "Truy cập qua provider.espo",
+
+    bitcoinTitle: "BitcoinRpcClient",
+    bitcoinDesc: "Client cho các phương thức RPC Bitcoin Core. Cung cấp dữ liệu khối, phát sóng giao dịch và thông tin mạng.",
+    bitcoinAccess: "Truy cập qua provider.bitcoin",
+
+    typesTitle: "Kiểu",
+    typesDesc: "Các kiểu phổ biến được sử dụng trong toàn bộ SDK.",
+
+    parametersLabel: "Tham số:",
+    returnsLabel: "Trả về:",
+    exampleLabel: "Ví dụ:",
+  },
+  ko: {
+    title: "@alkanes/ts-sdk API 참조",
+    subtitle: "Alkanes 프로토콜을 위한 완전한 TypeScript SDK 참조",
+    intro: "@alkanes/ts-sdk는 Alkanes 프로토콜과 상호작용하기 위한 통합 TypeScript 인터페이스를 제공합니다. 이 페이지는 모든 사용 가능한 클래스와 메서드를 문서화합니다.",
+
+    tocTitle: "목차",
+
+    providerTitle: "AlkanesProvider",
+    providerDesc: "모든 SDK 기능의 주요 진입점. 초기화 후 모든 서브 클라이언트에 대한 접근을 제공합니다.",
+    providerUsage: "기본 사용법:",
+    providerProperties: "속성",
+    providerMethods: "메서드",
+
+    esploraTitle: "EsploraClient",
+    esploraDesc: "Esplora 호환 Bitcoin 블록 탐색기 API용 클라이언트. UTXO 데이터, 트랜잭션 정보 및 주소 잔액을 제공합니다.",
+    esploraAccess: "provider.esplora를 통해 접근",
+
+    alkanesTitle: "AlkanesRpcClient",
+    alkanesDesc: "Alkanes 전용 RPC 메서드용 클라이언트. 토큰 잔액, 계약 시뮬레이션 및 프로토콜 작업을 처리합니다.",
+    alkanesAccess: "provider.alkanes를 통해 접근",
+
+    metashrewTitle: "MetashrewClient",
+    metashrewDesc: "metashrew_view RPC 호출을 위한 저수준 클라이언트. 인덱서 상태 쿼리에 대한 직접 접근을 제공합니다.",
+    metashrewAccess: "provider.metashrew를 통해 접근",
+
+    luaTitle: "LuaClient",
+    luaDesc: "서버에서 Lua 스크립트를 실행하기 위한 클라이언트. 성능 향상을 위한 자동 scripthash 캐싱을 지원합니다.",
+    luaAccess: "provider.lua를 통해 접근",
+
+    dataApiTitle: "DataApiClient",
+    dataApiDesc: "Data API 엔드포인트용 클라이언트. 시장 데이터, 풀 정보, 캔들 및 보유자 통계를 제공합니다.",
+    dataApiAccess: "provider.dataApi를 통해 접근",
+
+    espoTitle: "EspoClient",
+    espoDesc: "Espo 인덱서용 클라이언트. 두 모듈을 통해 alkanes 데이터와 AMM 분석을 제공합니다: Essentials (잔액, 보유자, 스토리지) 및 AMM Data (캔들, 거래, 풀, 스왑 라우팅).",
+    espoAccess: "provider.espo를 통해 접근",
+
+    bitcoinTitle: "BitcoinRpcClient",
+    bitcoinDesc: "Bitcoin Core RPC 메서드용 클라이언트. 블록 데이터, 트랜잭션 브로드캐스트 및 네트워크 정보를 제공합니다.",
+    bitcoinAccess: "provider.bitcoin을 통해 접근",
+
+    typesTitle: "타입",
+    typesDesc: "SDK 전체에서 사용되는 공통 타입.",
+
+    parametersLabel: "파라미터:",
+    returnsLabel: "반환:",
+    exampleLabel: "예제:",
   }
 };
 
