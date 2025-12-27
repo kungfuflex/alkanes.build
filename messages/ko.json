@@ -17,7 +17,9 @@
   },
   "navigation": {
     "dashboard": "대시보드",
-    "governance": "거버넌스",
+    "governance": "Governance",
+      "fuel": "FUEL",
+    "fuel": "FUEL",
     "forum": "포럼",
     "docs": "문서",
     "github": "GitHub"
@@ -220,7 +222,9 @@
     "tagline": "Alkanes 메타프로토콜",
     "links": {
       "documentation": "문서",
-      "governance": "거버넌스",
+      "governance": "Governance",
+      "fuel": "FUEL",
+    "fuel": "FUEL",
       "forum": "포럼",
       "github": "GitHub",
       "twitter": "Twitter",

@@ -18,6 +18,7 @@
   "navigation": {
     "dashboard": "Dashboard",
     "governance": "Governance",
+    "fuel": "FUEL",
     "forum": "Forum",
     "docs": "Docs",
     "github": "GitHub"
@@ -233,11 +234,85 @@
       "by": "By {author}"
     }
   },
+  "fuel": {
+    "title": "FUEL Token",
+    "subtitle": "Sustainable tokenomics through timelocked LP staking, bonding, and treasury-backed redemption",
+    "overview": {
+      "title": "Overview",
+      "description": "FUEL is a utility token built on Alkanes that implements sustainable tokenomics through timelocked liquidity provider positions. Stake LP tokens to earn FUEL, bond for discounts, or redeem for treasury backing."
+    },
+    "tokenomics": {
+      "title": "Tokenomics",
+      "maxSupply": "Max Supply",
+      "decimals": "Decimals",
+      "treasuryPremine": "Treasury Premine",
+      "teamPremine": "Team Premine",
+      "emissionPool": "Emission Pool"
+    },
+    "staking": {
+      "title": "LP Staking",
+      "description": "Stake DIESEL/frBTC LP tokens to earn FUEL rewards. Longer lock periods earn higher multipliers.",
+      "lockPeriod": "Lock Period",
+      "multiplier": "Multiplier",
+      "noLock": "No Lock",
+      "week": "1 Week",
+      "month": "1 Month",
+      "threeMonths": "3 Months",
+      "sixMonths": "6 Months",
+      "year": "1 Year"
+    },
+    "bonding": {
+      "title": "Bonding",
+      "description": "Bond DIESEL/frBTC LP tokens to receive FUEL at a discount. Bonded tokens vest over 7 days and build protocol-owned liquidity.",
+      "discount": "Bond Discount",
+      "vestingPeriod": "Vesting Period",
+      "days": "days"
+    },
+    "redemption": {
+      "title": "Redemption Floor",
+      "description": "Burn FUEL to redeem a proportional share of treasury backing. This creates a hard price floor based on treasury assets.",
+      "fee": "Redemption Fee",
+      "cooldown": "Cooldown Period",
+      "hours": "hours"
+    },
+    "distribution": {
+      "title": "Community Distribution",
+      "description": "Fair community allocation via merkle-proof claims. Participate in the contribution phase to earn your share.",
+      "lpSeeding": "LP Seeding",
+      "bondingAlloc": "Bonding",
+      "communityAlloc": "Community",
+      "teamVesting": "Team Vesting"
+    },
+    "emissions": {
+      "title": "Emission Schedule",
+      "description": "Follows Bitcoin's halving model - emissions halve every 2 years until the supply cap is reached.",
+      "epoch": "Epoch",
+      "period": "Period",
+      "dailyEmission": "Daily Emission",
+      "years": "years"
+    },
+    "contracts": {
+      "title": "System Contracts",
+      "token": "FUEL Token",
+      "tokenDesc": "Base token with capped supply and emission pool management",
+      "stakingContract": "Staking Gauge",
+      "stakingDesc": "Timelocked LP staking for FUEL emissions",
+      "treasury": "Treasury",
+      "treasuryDesc": "Central treasury for allocations and protocol-owned liquidity",
+      "bondingContract": "Bonding",
+      "bondingDesc": "Bond LP for discounted FUEL with vesting",
+      "redemptionContract": "Redemption",
+      "redemptionDesc": "Burn FUEL to redeem treasury backing",
+      "distributor": "Distributor",
+      "distributorDesc": "Merkle-based community claims"
+    }
+  },
   "footer": {
     "tagline": "Alkanes Metaprotocol",
     "links": {
       "documentation": "Documentation",
       "governance": "Governance",
+      "fuel": "FUEL",
       "forum": "Forum",
       "github": "GitHub",
       "twitter": "Twitter",

@@ -17,7 +17,9 @@
   },
   "navigation": {
     "dashboard": "Bảng điều khiển",
-    "governance": "Quản trị",
+    "governance": "Governance",
+      "fuel": "FUEL",
+    "fuel": "FUEL",
     "forum": "Diễn đàn",
     "docs": "Tài liệu",
     "github": "GitHub"
@@ -220,7 +222,9 @@
     "tagline": "Giao thức Alkanes",
     "links": {
       "documentation": "Tài liệu",
-      "governance": "Quản trị",
+      "governance": "Governance",
+      "fuel": "FUEL",
+    "fuel": "FUEL",
       "forum": "Diễn đàn",
       "github": "GitHub",
       "twitter": "Twitter",

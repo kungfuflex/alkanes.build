@@ -31,6 +31,9 @@ export function Footer() {
             <Link href="/governance" className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors">
               {t("footer.links.governance")}
             </Link>
+            <Link href="/fuel" className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors">
+              {t("footer.links.fuel")}
+            </Link>
             <Link href="/forum" className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] transition-colors">
               {t("footer.links.forum")}
             </Link>
