@@ -27,7 +27,13 @@ export async function GET(request: NextRequest) {
     // This internally uses:
     // - esplora_address::utxo for BTC balance
     // - protorunesbyaddress via metashrew_view for token balances
+    console.log('[wallet/balances] Fetching balances for address:', address);
     const walletBalances = await alkanesClient.getWalletBalances(address);
+    console.log('[wallet/balances] Raw result:', JSON.stringify({
+      btcBalance: walletBalances.btcBalance,
+      tokensCount: walletBalances.tokens.length,
+      tokens: walletBalances.tokens.map(t => ({ runeId: t.runeId, balance: t.balance.toString() })),
+    }, null, 2));
 
     // Transform to API response format
     const response = {

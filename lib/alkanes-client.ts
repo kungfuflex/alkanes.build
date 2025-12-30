@@ -370,10 +370,13 @@ class AlkanesClient {
     const provider = await this.createProvider();
 
     // Execute both operations with the shared provider
+    console.log('[AlkanesClient] Fetching balances for:', address);
     const [utxos, alkaneBalances] = await Promise.all([
       provider.esplora.getAddressUtxos(address),
       provider.getAlkaneBalance(address),
     ]);
+    console.log('[AlkanesClient] UTXOs count:', Array.isArray(utxos) ? utxos.length : 0);
+    console.log('[AlkanesClient] Alkane balances raw:', JSON.stringify(alkaneBalances, null, 2));
 
     // Handle case where utxos might not be an array (e.g., empty response or error)
     const utxoArray = Array.isArray(utxos) ? utxos : [];
