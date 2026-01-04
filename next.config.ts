@@ -24,9 +24,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
 
   // External packages that should not be bundled on the server
-  // This allows Node.js to resolve @alkanes/ts-sdk naturally at runtime
-  // Include both the main package and its wasm subpath for proper resolution
-  serverExternalPackages: ["@alkanes/ts-sdk", "@alkanes/ts-sdk/wasm"],
+  // Note: fix-standalone.js creates the missing symlinks for pnpm packages
+  serverExternalPackages: ["@alkanes/ts-sdk"],
 
   // Enable MDX pages
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
