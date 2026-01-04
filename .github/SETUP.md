@@ -30,7 +30,7 @@ This guide explains how to configure GitHub Actions and Google Cloud Platform fo
 ### 1.1 Set Environment Variables
 
 ```bash
-export GCP_PROJECT_ID="alkanes-governance"  # Your project ID
+export GCP_PROJECT_ID="alkanes-build"  # Your project ID
 export GCP_PROJECT_NUMBER=$(gcloud projects describe $GCP_PROJECT_ID --format="value(projectNumber)")
 export REGION="us-central1"
 ```
@@ -189,7 +189,7 @@ Add these secrets:
 
 | Secret Name | Value | Description |
 |-------------|-------|-------------|
-| `GCP_PROJECT_ID` | `alkanes-governance` | Your GCP project ID |
+| `GCP_PROJECT_ID` | `alkanes-build` | Your GCP project ID |
 | `WIF_PROVIDER` | `projects/123.../providers/github-provider` | From step 2.6 |
 | `WIF_SERVICE_ACCOUNT` | `github-actions@....iam.gserviceaccount.com` | From step 2.6 |
 
