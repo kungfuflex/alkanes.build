@@ -92,7 +92,7 @@ function createSymlink(packageName) {
 
 /**
  * Fix the missing index.cjs in the wasm directory
- * The SDK package.json exports "require": "./wasm/index.cjs" but the file doesn't exist
+ * Next.js standalone build doesn't copy index.cjs, so we need to create it
  */
 function fixWasmIndexCjs() {
   const sdkPath = findPnpmPackage('@alkanes/ts-sdk');
@@ -109,11 +109,15 @@ function fixWasmIndexCjs() {
     return true;
   }
 
-  // Create a CJS wrapper that re-exports the node-loader
-  // The node-loader.cjs is the proper CJS module for Node.js
-  const cjsContent = `// Auto-generated CJS wrapper for Node.js environments
-// This file re-exports the node-loader which properly handles WASM loading in Node.js
-module.exports = require('./node-loader.cjs');
+  // Create the correct CJS wrapper that matches the source package
+  const cjsContent = `// CommonJS export for wasm module
+const wasm_module = require('./alkanes_web_sys.js');
+const wasm = require('./alkanes_web_sys_bg.wasm');
+
+module.exports = {
+  ...wasm_module,
+  wasm
+};
 `;
 
   try {
