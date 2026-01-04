@@ -4,6 +4,10 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
+// Pre-load WASM module to ensure webpack bundles it
+// This must be imported before the SDK to ensure the module is available
+import { ensureWasmPreloaded } from '@/lib/wasm-preload';
+
 // Import from the unified client module
 import {
   AlkanesClient,
@@ -149,6 +153,9 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
   useEffect(() => {
     const initializeWallet = async () => {
       if (typeof window === 'undefined') return;
+
+      // Pre-load WASM module before any SDK initialization
+      await ensureWasmPreloaded();
 
       const stored = localStorage.getItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE);
       setHasStoredKeystore(!!stored);
