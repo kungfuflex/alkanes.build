@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyMessage } from "@/lib/bip322";
 
 /**
  * POST /api/governance/vote
@@ -57,8 +58,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid choice" }, { status: 400 });
     }
 
-    // TODO: Verify BIP-322 signature
-    // The signature should sign: JSON.stringify({ proposalId, choice, voter })
+    // Verify BIP-322 signature
+    const voteMessage = JSON.stringify({ proposalId, choice, voter });
+    const verificationResult = verifyMessage(voter, voteMessage, voterSig);
+    if (!verificationResult.valid) {
+      console.error("Vote signature verification failed:", verificationResult.error);
+      return NextResponse.json(
+        {
+          error: "Invalid signature",
+          details: verificationResult.error
+        },
+        { status: 400 }
+      );
+    }
 
     // TODO: Verify voting power by querying DIESEL balance at snapshot block
     // For now, trust the provided voting power

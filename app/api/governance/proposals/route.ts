@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { marked } from "marked";
 import { serializeBigInt } from "@/lib/serialize";
+import { verifyMessage } from "@/lib/bip322";
 
 function generateSlug(title: string): string {
   return title
@@ -105,7 +106,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Verify BIP-322 signature
+    // Verify BIP-322 signature
+    // The message signed should be a hash/representation of the proposal content
+    const proposalMessage = JSON.stringify({ title, body: proposalBody, choices, author });
+    const verificationResult = verifyMessage(author, proposalMessage, authorSig);
+    if (!verificationResult.valid) {
+      console.error("Proposal signature verification failed:", verificationResult.error);
+      return NextResponse.json(
+        {
+          error: "Invalid signature",
+          details: verificationResult.error
+        },
+        { status: 400 }
+      );
+    }
+
     // TODO: Verify author has minimum DIESEL balance for proposal creation
 
     // Get governance settings

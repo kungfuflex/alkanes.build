@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyMessage } from "@/lib/bip322";
 
 const VALID_REACTIONS = ["LIKE", "HEART", "CELEBRATE", "THINKING", "DISAGREE"];
 
@@ -10,7 +11,7 @@ const VALID_REACTIONS = ["LIKE", "HEART", "CELEBRATE", "THINKING", "DISAGREE"];
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { postId, user, type } = body;
+    const { postId, user, type, signature } = body;
 
     // Validate required fields
     if (!postId || !user || !type) {
@@ -38,7 +39,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // TODO: Verify user signature
+    // Verify BIP-322 signature if provided
+    if (signature) {
+      const reactionMessage = JSON.stringify({ postId, user, type });
+      const verificationResult = verifyMessage(user, reactionMessage, signature);
+      if (!verificationResult.valid) {
+        console.error("Reaction signature verification failed:", verificationResult.error);
+        return NextResponse.json(
+          {
+            error: "Invalid signature",
+            details: verificationResult.error
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     const reactionType = type.toUpperCase();
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { marked } from "marked";
+import { verifyMessage } from "@/lib/bip322";
 
 /**
  * POST /api/forum/posts
@@ -51,7 +52,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // TODO: Verify BIP-322 signature
+    // Verify BIP-322 signature if provided
+    if (authorSig) {
+      const postMessage = JSON.stringify({ discussionId, content, author });
+      const verificationResult = verifyMessage(author, postMessage, authorSig);
+      if (!verificationResult.valid) {
+        console.error("Post signature verification failed:", verificationResult.error);
+        return NextResponse.json(
+          {
+            error: "Invalid signature",
+            details: verificationResult.error
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // TODO: Check minimum DIESEL balance requirements
 
     // Parse markdown to HTML
