@@ -8,9 +8,13 @@ import path from "path";
 import fs from "fs";
 import webpack from "webpack";
 
-// Check if ts-sdk is built
-const tsSdkWasmPath = path.join(process.cwd(), "ts-sdk/build/wasm/alkanes_web_sys.js");
-const hasTsSdk = fs.existsSync(tsSdkWasmPath);
+// Determine the WASM path - prefer node_modules, fall back to local ts-sdk
+const nodeModulesWasmPath = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm/index.js");
+const localTsSdkWasmPath = path.join(process.cwd(), "ts-sdk/build/wasm/alkanes_web_sys.js");
+
+// Use node_modules if available, otherwise local ts-sdk
+const wasmPath = fs.existsSync(nodeModulesWasmPath) ? nodeModulesWasmPath :
+                 fs.existsSync(localTsSdkWasmPath) ? localTsSdkWasmPath : null;
 
 // Create next-intl plugin
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
@@ -21,27 +25,28 @@ const nextConfig: NextConfig = {
 
   // External packages that should not be bundled on the server
   // This allows Node.js to resolve @alkanes/ts-sdk naturally at runtime
-  serverExternalPackages: ["@alkanes/ts-sdk"],
+  // Include both the main package and its wasm subpath for proper resolution
+  serverExternalPackages: ["@alkanes/ts-sdk", "@alkanes/ts-sdk/wasm"],
 
   // Enable MDX pages
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
 
   // Turbopack configuration (for dev mode)
-  turbopack: hasTsSdk
+  turbopack: wasmPath
     ? {
         resolveAlias: {
-          "@alkanes/ts-sdk/wasm": "./ts-sdk/build/wasm/alkanes_web_sys.js",
+          "@alkanes/ts-sdk/wasm": wasmPath,
         },
       }
     : {},
 
   // Webpack configuration (for production)
   webpack: (config, { isServer }) => {
-    // WASM alias for production (only if ts-sdk exists)
-    if (hasTsSdk) {
+    // WASM alias - always set up if path is available
+    if (wasmPath) {
       config.resolve.alias = {
         ...config.resolve.alias,
-        "@alkanes/ts-sdk/wasm": tsSdkWasmPath,
+        "@alkanes/ts-sdk/wasm": wasmPath,
       };
     }
 
@@ -56,6 +61,18 @@ const nextConfig: NextConfig = {
       test: /\.wasm$/,
       type: "webassembly/async",
     });
+
+    // Help webpack resolve dynamic imports for the SDK wasm module
+    // This creates a context for dynamic imports from the SDK
+    if (!isServer && wasmPath) {
+      config.plugins.push(
+        new webpack.ContextReplacementPlugin(
+          /@alkanes\/ts-sdk/,
+          path.dirname(wasmPath),
+          { "./wasm": "./index.js" }
+        )
+      );
+    }
 
     // Fix for node: protocol imports in browser
     if (!isServer) {
