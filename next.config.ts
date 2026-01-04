@@ -5,16 +5,10 @@ import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 import createNextIntlPlugin from "next-intl/plugin";
 import path from "path";
-import fs from "fs";
 import webpack from "webpack";
 
-// Determine the WASM path - prefer node_modules, fall back to local ts-sdk
-const nodeModulesWasmPath = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm/index.js");
-const localTsSdkWasmPath = path.join(process.cwd(), "ts-sdk/build/wasm/alkanes_web_sys.js");
-
-// Use node_modules if available, otherwise local ts-sdk
-const wasmPath = fs.existsSync(nodeModulesWasmPath) ? nodeModulesWasmPath :
-                 fs.existsSync(localTsSdkWasmPath) ? localTsSdkWasmPath : null;
+// WASM path from node_modules
+const wasmPath = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm/index.js");
 
 // Create next-intl plugin
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
@@ -31,23 +25,19 @@ const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
 
   // Turbopack configuration (for dev mode)
-  turbopack: wasmPath
-    ? {
-        resolveAlias: {
-          "@alkanes/ts-sdk/wasm": wasmPath,
-        },
-      }
-    : {},
+  turbopack: {
+    resolveAlias: {
+      "@alkanes/ts-sdk/wasm": wasmPath,
+    },
+  },
 
   // Webpack configuration (for production)
   webpack: (config, { isServer }) => {
-    // WASM alias - always set up if path is available
-    if (wasmPath) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        "@alkanes/ts-sdk/wasm": wasmPath,
-      };
-    }
+    // WASM alias
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@alkanes/ts-sdk/wasm": wasmPath,
+    };
 
     // WASM support
     config.experiments = {
@@ -63,7 +53,7 @@ const nextConfig: NextConfig = {
 
     // Help webpack resolve dynamic imports for the SDK wasm module
     // This creates a context for dynamic imports from the SDK
-    if (!isServer && wasmPath) {
+    if (!isServer) {
       config.plugins.push(
         new webpack.ContextReplacementPlugin(
           /@alkanes\/ts-sdk/,

@@ -23,15 +23,10 @@ node_modules/
 coverage/
 .nyc_output/
 
-# Exclude build output (except ts-sdk which is pre-built)
+# Exclude build output
 .next/
 out/
 
 # Exclude reference docs (too large)
 reference/
 .external-build/
-
-# IMPORTANT: Do NOT exclude ts-sdk/dist and ts-sdk/build
-# These contain the pre-built SDK files needed for the application
-!ts-sdk/dist/
-!ts-sdk/build/

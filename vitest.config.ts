@@ -22,7 +22,6 @@ export default defineConfig({
     exclude: [
       "**/node_modules/**",
       "**/reference/**",
-      "**/ts-sdk/**",
       "**/.external-build/**",
     ],
     coverage: {
@@ -39,7 +38,6 @@ export default defineConfig({
         "**/*.d.ts",
         "**/node_modules/**",
         "**/reference/**",
-        "**/ts-sdk/**",
         "**/.external-build/**",
         "**/tests/**",
         "**/__mocks__/**",
@@ -76,8 +74,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./"),
-      "@alkanes/ts-sdk/wasm": path.resolve(__dirname, "./ts-sdk/build/wasm/index.js"),
-      "@alkanes/ts-sdk": path.resolve(__dirname, "./ts-sdk/dist/index.mjs"),
+      "@alkanes/ts-sdk/wasm": path.resolve(__dirname, "./node_modules/@alkanes/ts-sdk/wasm/index.js"),
+      "@alkanes/ts-sdk": path.resolve(__dirname, "./node_modules/@alkanes/ts-sdk/dist/index.mjs"),
     },
   },
 });
