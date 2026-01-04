@@ -7,8 +7,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 import path from "path";
 import webpack from "webpack";
 
-// WASM path from node_modules
-const wasmPath = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm/index.js");
+// WASM directory from node_modules
+const wasmDir = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm");
 
 // Create next-intl plugin
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
@@ -27,16 +27,17 @@ const nextConfig: NextConfig = {
   // Turbopack configuration (for dev mode)
   turbopack: {
     resolveAlias: {
-      "@alkanes/ts-sdk/wasm": wasmPath,
+      "@alkanes/ts-sdk/wasm": wasmDir,
     },
   },
 
   // Webpack configuration (for production)
   webpack: (config, { isServer }) => {
-    // WASM alias
+    // WASM alias - map the directory, not just the index file
+    const wasmDir = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm");
     config.resolve.alias = {
       ...config.resolve.alias,
-      "@alkanes/ts-sdk/wasm": wasmPath,
+      "@alkanes/ts-sdk/wasm": wasmDir,
     };
 
     // WASM support
@@ -57,8 +58,12 @@ const nextConfig: NextConfig = {
       config.plugins.push(
         new webpack.ContextReplacementPlugin(
           /@alkanes\/ts-sdk/,
-          path.dirname(wasmPath),
-          { "./wasm": "./index.js" }
+          wasmDir,
+          {
+            "./wasm": ".",
+            "./wasm/node-loader.cjs": "./node-loader.cjs",
+            "./wasm/index.js": "./index.js"
+          }
         )
       );
     }
