@@ -9,10 +9,23 @@
  * - Consistent error handling
  * - Works in serverless environments (no WASM dependency for server-side)
  * - Eliminates duplicate fetch/RPC code throughout the codebase
+ *
+ * IMPORTANT: This module must NOT import or use AlkanesProvider on the server side,
+ * as it requires WASM which cannot be loaded in Node.js serverless environments.
+ * All methods use pure JSON-RPC calls via the Lua scripting endpoint.
  */
 
-import { AlkanesProvider } from '@alkanes/ts-sdk';
-import type { AlkaneBalance, AlkaneId } from '@alkanes/ts-sdk';
+import type { AlkaneId } from '@alkanes/ts-sdk';
+
+// Define AlkaneBalance locally to avoid importing from SDK (which might trigger WASM loading)
+export interface AlkaneBalance {
+  id?: AlkaneId;
+  alkane_id?: AlkaneId;
+  balance?: string;
+  amount?: string;
+  symbol?: string;
+  name?: string;
+}
 
 // ============================================================================
 // Simple JSON-RPC Client (server-side, no WASM)
@@ -252,10 +265,8 @@ export function formatAlkaneId(id: AlkaneId | string): string {
 /**
  * Client for all alkanes/blockchain interactions
  *
- * Note: Creates a fresh AlkanesProvider for each request to avoid
- * WASM threading issues ("recursive use of an object detected").
- * The WASM WebProvider is not thread-safe and cannot be shared
- * across concurrent requests in a serverless environment.
+ * This client uses pure JSON-RPC calls and Lua scripting for all operations.
+ * It does NOT use AlkanesProvider or WASM, making it safe for serverless environments.
  */
 class AlkanesClient {
   private rpcUrl: string;
@@ -269,19 +280,6 @@ class AlkanesClient {
    */
   getRpcUrl(): string {
     return this.rpcUrl;
-  }
-
-  /**
-   * Create a fresh provider for each request
-   * This avoids WASM threading/aliasing issues in serverless environments
-   */
-  private async createProvider(): Promise<AlkanesProvider> {
-    const provider = new AlkanesProvider({
-      network: 'mainnet',
-      rpcUrl: this.rpcUrl,
-    });
-    await provider.initialize();
-    return provider;
   }
 
   // ==========================================================================
@@ -362,19 +360,71 @@ class AlkanesClient {
   }
 
   /**
+   * Get alkane balances for an address using Lua scripting
+   * This is a pure JSON-RPC approach that doesn't require WASM
+   */
+  async getAlkaneBalancesViaLua(address: string): Promise<AlkaneBalance[]> {
+    // Lua script to get alkane balances for an address
+    // Uses the _RPC methods available in the Lua environment
+    const luaScript = `
+      local address = args[1]
+      local balances = _RPC.protorunesbyaddress(address, 1)
+      if not balances or not balances.outpoints then
+        return {}
+      end
+
+      -- Aggregate balances by alkane ID
+      local result = {}
+      local seen = {}
+
+      for _, outpoint in ipairs(balances.outpoints) do
+        if outpoint.balances then
+          for _, balance in ipairs(outpoint.balances) do
+            local key = balance.block .. ":" .. balance.tx
+            if not seen[key] then
+              seen[key] = true
+              table.insert(result, {
+                id = { block = balance.block, tx = balance.tx },
+                balance = tostring(balance.value or 0)
+              })
+            else
+              -- Add to existing balance
+              for _, r in ipairs(result) do
+                if r.id.block == balance.block and r.id.tx == balance.tx then
+                  r.balance = tostring(tonumber(r.balance) + (balance.value or 0))
+                  break
+                end
+              end
+            end
+          end
+        end
+      end
+
+      return result
+    `;
+
+    try {
+      const result = await this.executeLuaScript<AlkaneBalance[]>(luaScript, [address]);
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.warn('[AlkanesClient] Lua balance fetch failed, falling back to empty:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get complete wallet balances (BTC + tokens)
-   * Uses a single provider instance to avoid WASM concurrent initialization issues
+   * Uses pure JSON-RPC and Lua scripting - no WASM required
    */
   async getWalletBalances(address: string): Promise<WalletBalances> {
-    // Create a single provider for all operations to avoid WASM concurrency issues
-    const provider = await this.createProvider();
-
-    // Execute both operations with the shared provider
     console.log('[AlkanesClient] Fetching balances for:', address);
+
+    // Execute both operations in parallel using pure JSON-RPC
     const [utxos, alkaneBalances] = await Promise.all([
-      provider.esplora.getAddressUtxos(address),
-      provider.getAlkaneBalance(address),
+      this.getAddressUtxos(address),
+      this.getAlkaneBalancesViaLua(address),
     ]);
+
     console.log('[AlkanesClient] UTXOs count:', Array.isArray(utxos) ? utxos.length : 0);
     console.log('[AlkanesClient] Alkane balances raw:', JSON.stringify(alkaneBalances, null, 2));
 
