@@ -46279,8 +46279,8 @@ var init_provider = __esm({
         networkType: "regtest"
       },
       "regtest": {
-        rpcUrl: "http://localhost:18888",
-        dataApiUrl: "http://localhost:18888",
+        rpcUrl: "https://regtest.subfrost.io/v4/subfrost",
+        dataApiUrl: "https://regtest.subfrost.io/v4/subfrost",
         networkType: "regtest"
       },
       "local": {

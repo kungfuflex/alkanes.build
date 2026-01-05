@@ -13,9 +13,9 @@ export function Footer() {
           {/* Logo & Copyright */}
           <div className="flex items-center gap-3">
             <img
-              src="/logo.png"
+              src="/alkanes-mark.png"
               alt="ALKANES"
-              className="w-8 h-8 rounded-lg"
+              className="h-8 w-auto object-contain"
             />
             <div>
               <span className="font-semibold text-[color:var(--sf-text)]">ALKANES</span>

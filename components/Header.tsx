@@ -65,9 +65,9 @@ export function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
               <img
-                src="/logo.png"
+                src="/alkanes-mark.png"
                 alt="ALKANES"
-                className="w-10 h-10 rounded-xl shadow-lg group-hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-shadow"
+                className="h-10 w-auto object-contain"
               />
               <div className="flex flex-col">
                 <span className="font-bold text-xl text-[color:var(--sf-text)]">ALKANES</span>

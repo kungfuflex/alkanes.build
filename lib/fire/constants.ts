@@ -45,7 +45,7 @@ export const FIRE_CONTRACTS: Record<NetworkType, FireContracts> = {
   regtest: {
     // Regtest uses different staking contract ID (redeployed with correct LP token)
     fireToken: { block: 4, tx: 256 },
-    fireStaking: { block: 4, tx: 262 },    // 0x106 - redeployed with LP 2:3
+    fireStaking: { block: 4, tx: 263 },    // 0x107 - redeployed with LP 2:3
     fireTreasury: { block: 4, tx: 258 },
     fireBonding: { block: 4, tx: 259 },
     fireRedemption: { block: 4, tx: 260 },

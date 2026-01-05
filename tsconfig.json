@@ -62,6 +62,8 @@
     ".external-build",
     "reference",
     "ts-sdk",
-    "tests"
+    "tests",
+    "alkanes-rs",
+    "fire"
   ]
 }
