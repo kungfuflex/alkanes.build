@@ -172,10 +172,14 @@ export default function WalletDashboardPage() {
 
   // Fetch wallet balances for the connected address
   // For keystore wallets, also check the payment address (native segwit) since tokens may be on either address
-  const { data: balances, isLoading: balancesLoading, refetch: refetchBalances } = useWalletBalances(address);
+  console.log('[WalletPage] Fetching balances for address:', address, 'paymentAddress:', paymentAddress);
+  const { data: balances, isLoading: balancesLoading, error: balancesError, refetch: refetchBalances } = useWalletBalances(address);
   const { data: paymentBalances, isLoading: paymentBalancesLoading, refetch: refetchPaymentBalances } = useWalletBalances(
     paymentAddress !== address ? paymentAddress : undefined
   );
+
+  // Log balance results
+  console.log('[WalletPage] balances:', balances, 'error:', balancesError);
 
   // Merge balances from both addresses
   const mergedBalances = useMemo(() => {
