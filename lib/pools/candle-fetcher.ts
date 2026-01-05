@@ -12,21 +12,43 @@
 
 import { alkanesClient } from '@/lib/alkanes-client';
 
-// Pool configuration with prebuilt protobuf payloads
-// These are the exact payloads used by alkanes-cli pool-details
-export const POOL_CONFIGS = {
+// Network detection
+const isRegtest = process.env.NEXT_PUBLIC_NETWORK === 'regtest';
+
+// Pool configuration - network-aware
+// Mainnet pool IDs from alkanes-cli get-all-pools
+// Regtest pool ID: 2:3 (DIESEL/frBTC LP)
+export const POOL_CONFIGS = isRegtest ? {
+  // Regtest pools (from alkanes-cli -p regtest alkanes get-all-pools)
+  DIESEL_FRBTC: {
+    id: '2:3',
+    name: 'DIESEL/frBTC',
+    protobufPayload: '0x20c1162a040203e7073001', // Regtest payload
+    token0Decimals: 8,
+    token1Decimals: 8,
+  },
+  // No BUSD pool on regtest, use same as frBTC for now
+  DIESEL_BUSD: {
+    id: '2:3',
+    name: 'DIESEL/frBTC',
+    protobufPayload: '0x20c1162a040203e7073001',
+    token0Decimals: 8,
+    token1Decimals: 8,
+  },
+} as const : {
+  // Mainnet pools
   DIESEL_FRBTC: {
     id: '2:77087',
     name: 'DIESEL/frBTC',
     protobufPayload: '0x2096ce382a06029fda04e7073001',
-    token0Decimals: 8,  // All alkane tokens use 8 decimals (like satoshis)
+    token0Decimals: 8,
     token1Decimals: 8,
   },
   DIESEL_BUSD: {
     id: '2:68441',
     name: 'DIESEL/bUSD',
     protobufPayload: '0x2096ce382a0602d99604e7073001',
-    token0Decimals: 8,  // All alkane tokens use 8 decimals (like satoshis)
+    token0Decimals: 8,
     token1Decimals: 8,
   },
 } as const;
