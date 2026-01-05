@@ -37,13 +37,20 @@ async function getProvider(): Promise<AlkanesProvider> {
   }
 
   providerInitPromise = (async () => {
-    const provider = new AlkanesProvider({
-      network: 'mainnet',
-      rpcUrl: process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes'
-    });
-    await provider.initialize();
-    providerInstance = provider;
-    return provider;
+    console.log('[useWalletBalances] Initializing AlkanesProvider...');
+    try {
+      const provider = new AlkanesProvider({
+        network: 'mainnet',
+        rpcUrl: process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes'
+      });
+      await provider.initialize();
+      console.log('[useWalletBalances] AlkanesProvider initialized successfully');
+      providerInstance = provider;
+      return provider;
+    } catch (error) {
+      console.error('[useWalletBalances] Failed to initialize provider:', error);
+      throw error;
+    }
   })();
 
   return providerInitPromise;
@@ -83,52 +90,65 @@ async function getTokenMetadata(provider: AlkanesProvider, runeId: string): Prom
  * This bypasses the API route and uses the SDK's WASM-based protobuf decoding
  */
 async function fetchWalletBalances(address: string): Promise<WalletBalancesResponse> {
-  const provider = await getProvider();
+  console.log('[useWalletBalances] Fetching balances for:', address);
 
-  // Fetch BTC balance and alkane balances in parallel
-  const [utxos, alkaneBalances] = await Promise.all([
-    provider.esplora.getAddressUtxos(address),
-    provider.alkanes.getBalance(address),
-  ]);
+  try {
+    const provider = await getProvider();
+    console.log('[useWalletBalances] Provider ready');
 
-  // Calculate BTC balance from UTXOs
-  const btcBalance = utxos.reduce((sum, utxo) => sum + (utxo.value || 0), 0);
+    // Fetch BTC balance and alkane balances in parallel
+    const [utxos, alkaneBalances] = await Promise.all([
+      provider.esplora.getAddressUtxos(address),
+      provider.alkanes.getBalance(address),
+    ]);
 
-  // Fetch metadata for all tokens in parallel
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tokensWithMeta = await Promise.all(
-    alkaneBalances.map(async (ab: any) => {
-      const runeId = `${ab.alkane_id.block}:${ab.alkane_id.tx}`;
-      const metadata = await getTokenMetadata(provider, runeId);
-      const balanceValue = typeof ab.balance === 'bigint' ? ab.balance : BigInt(ab.balance);
+    console.log('[useWalletBalances] UTXOs:', utxos.length);
+    console.log('[useWalletBalances] Alkane balances:', alkaneBalances.length, alkaneBalances);
 
-      return {
-        runeId,
-        symbol: metadata.symbol,
-        name: metadata.name,
-        balance: balanceValue.toString(),
-        balanceFormatted: Number(balanceValue) / Math.pow(10, metadata.decimals),
-        decimals: metadata.decimals,
-      };
-    })
-  );
+    // Calculate BTC balance from UTXOs
+    const btcBalance = utxos.reduce((sum, utxo) => sum + (utxo.value || 0), 0);
 
-  // Sort tokens: DIESEL first, then by balance
-  tokensWithMeta.sort((a, b) => {
-    // DIESEL (2:0) always first
-    if (a.runeId === '2:0') return -1;
-    if (b.runeId === '2:0') return 1;
-    // Then by formatted balance descending
-    return b.balanceFormatted - a.balanceFormatted;
-  });
+    // Fetch metadata for all tokens in parallel
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tokensWithMeta = await Promise.all(
+      alkaneBalances.map(async (ab: any) => {
+        const runeId = `${ab.alkane_id.block}:${ab.alkane_id.tx}`;
+        const metadata = await getTokenMetadata(provider, runeId);
+        const balanceValue = typeof ab.balance === 'bigint' ? ab.balance : BigInt(ab.balance);
 
-  return {
-    btcBalance,
-    btcBalanceFormatted: (btcBalance / 100000000).toFixed(8),
-    tokens: tokensWithMeta,
-    address,
-    timestamp: Date.now(),
-  };
+        return {
+          runeId,
+          symbol: metadata.symbol,
+          name: metadata.name,
+          balance: balanceValue.toString(),
+          balanceFormatted: Number(balanceValue) / Math.pow(10, metadata.decimals),
+          decimals: metadata.decimals,
+        };
+      })
+    );
+
+    // Sort tokens: DIESEL first, then by balance
+    tokensWithMeta.sort((a, b) => {
+      // DIESEL (2:0) always first
+      if (a.runeId === '2:0') return -1;
+      if (b.runeId === '2:0') return 1;
+      // Then by formatted balance descending
+      return b.balanceFormatted - a.balanceFormatted;
+    });
+
+    console.log('[useWalletBalances] Final tokens:', tokensWithMeta);
+
+    return {
+      btcBalance,
+      btcBalanceFormatted: (btcBalance / 100000000).toFixed(8),
+      tokens: tokensWithMeta,
+      address,
+      timestamp: Date.now(),
+    };
+  } catch (error) {
+    console.error('[useWalletBalances] Error fetching balances:', error);
+    throw error;
+  }
 }
 
 /**
