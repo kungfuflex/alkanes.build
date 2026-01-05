@@ -173,6 +173,12 @@ export default function WalletDashboardPage() {
   // Fetch wallet balances for the connected address
   // For keystore wallets, also check the payment address (native segwit) since tokens may be on either address
   console.log('[WalletPage] Fetching balances for address:', address, 'paymentAddress:', paymentAddress);
+
+  // DEBUG: Temporary alert to confirm code is running
+  if (typeof window !== 'undefined' && address && !(window as any).__balanceAlertShown) {
+    (window as any).__balanceAlertShown = true;
+    alert('DEBUG: Wallet page loading for address: ' + address?.slice(0, 20) + '...');
+  }
   const { data: balances, isLoading: balancesLoading, error: balancesError, refetch: refetchBalances } = useWalletBalances(address);
   const { data: paymentBalances, isLoading: paymentBalancesLoading, refetch: refetchPaymentBalances } = useWalletBalances(
     paymentAddress !== address ? paymentAddress : undefined
