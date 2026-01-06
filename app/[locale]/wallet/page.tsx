@@ -54,10 +54,24 @@ export default function WalletDashboardPage() {
   // Fetch wallet balances for the connected address
   // IMPORTANT: These hooks must be called unconditionally (before any early returns)
   // to satisfy React's Rules of Hooks
-  const { data: balances, isLoading: balancesLoading, error: balancesError, refetch: refetchBalances } = useWalletBalances(address);
+  const { data: balances, isLoading: balancesLoading, error: balancesError, refetch: refetchBalances, status: balancesStatus, fetchStatus } = useWalletBalances(address);
   const { data: paymentBalances, isLoading: paymentBalancesLoading, refetch: refetchPaymentBalances } = useWalletBalances(
     paymentAddress !== address ? paymentAddress : undefined
   );
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[WalletDashboard] Debug state:', {
+      isConnected,
+      address,
+      paymentAddress,
+      balancesStatus,
+      fetchStatus,
+      balancesLoading,
+      balancesError: balancesError?.message,
+      hasBalances: !!balances,
+    });
+  }, [isConnected, address, paymentAddress, balancesStatus, fetchStatus, balancesLoading, balancesError, balances]);
 
   // Merge balances from both addresses
   const mergedBalances = useMemo(() => {

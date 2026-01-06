@@ -158,10 +158,23 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
  * @param enabled - Whether to enable the query (default: true when address is provided)
  */
 export function useWalletBalances(address: string | undefined, enabled = true) {
+  const isEnabled = enabled && !!address;
+
+  // Debug: Log when the hook is called and what its state is
+  console.log('[useWalletBalances] Hook called:', {
+    address: address?.slice(0, 20) + '...',
+    enabled,
+    isEnabled,
+    hasAddress: !!address
+  });
+
   return useQuery({
     queryKey: ['walletBalances', address],
-    queryFn: () => fetchWalletBalances(address!),
-    enabled: enabled && !!address,
+    queryFn: () => {
+      console.log('[useWalletBalances] queryFn executing for:', address);
+      return fetchWalletBalances(address!);
+    },
+    enabled: isEnabled,
     staleTime: 30000, // Cache for 30 seconds
     refetchInterval: 60000, // Refresh every minute
   });
