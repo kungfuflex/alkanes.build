@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Webpack configuration (for production)
+  // Webpack configuration (for dev and production)
   webpack: (config, { isServer }) => {
     // WASM alias - map the directory, not just the index file
     const wasmDir = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm");
@@ -51,6 +51,24 @@ const nextConfig: NextConfig = {
       test: /\.wasm$/,
       type: "webassembly/async",
     });
+
+    // Server-side: Ensure all @alkanes/ts-sdk subpath imports are external
+    // This prevents webpack from trying to bundle dynamic imports like @alkanes/ts-sdk/wasm
+    if (isServer) {
+      // Add explicit externals for SDK subpaths that use dynamic imports
+      const originalExternals = config.externals || [];
+      config.externals = [
+        ...originalExternals,
+        // Match all @alkanes/ts-sdk subpath imports
+        ({ request }: { request?: string }, callback: (err?: Error | null, result?: string) => void) => {
+          if (request && request.startsWith('@alkanes/ts-sdk')) {
+            // Externalize all @alkanes/ts-sdk imports
+            return callback(null, `commonjs ${request}`);
+          }
+          callback();
+        },
+      ];
+    }
 
     // Help webpack resolve dynamic imports for the SDK wasm module
     // This creates a context for dynamic imports from the SDK

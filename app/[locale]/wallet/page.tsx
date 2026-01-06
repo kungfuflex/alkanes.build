@@ -51,6 +51,70 @@ export default function WalletDashboardPage() {
     }
   }, [isConnected, onConnectModalOpenChange]);
 
+  // Fetch wallet balances for the connected address
+  // IMPORTANT: These hooks must be called unconditionally (before any early returns)
+  // to satisfy React's Rules of Hooks
+  const { data: balances, isLoading: balancesLoading, error: balancesError, refetch: refetchBalances } = useWalletBalances(address);
+  const { data: paymentBalances, isLoading: paymentBalancesLoading, refetch: refetchPaymentBalances } = useWalletBalances(
+    paymentAddress !== address ? paymentAddress : undefined
+  );
+
+  // Merge balances from both addresses
+  const mergedBalances = useMemo(() => {
+    if (!balances && !paymentBalances) return undefined;
+
+    const primary = balances || { btcBalance: 0, btcBalanceFormatted: '0', tokens: [], address: '', timestamp: 0 };
+    const payment = paymentBalances;
+
+    if (!payment) return primary;
+
+    // Merge BTC balances
+    const totalBtc = primary.btcBalance + payment.btcBalance;
+
+    // Merge token balances - combine tokens from both addresses
+    const tokenMap = new Map<string, typeof primary.tokens[0]>();
+
+    // Add primary address tokens
+    for (const token of primary.tokens) {
+      tokenMap.set(token.runeId, token);
+    }
+
+    // Add payment address tokens (or combine if already exists)
+    for (const token of payment.tokens) {
+      const existing = tokenMap.get(token.runeId);
+      if (existing) {
+        // Combine balances
+        const combinedBalance = BigInt(existing.balance) + BigInt(token.balance);
+        tokenMap.set(token.runeId, {
+          ...existing,
+          balance: combinedBalance.toString(),
+          balanceFormatted: Number(combinedBalance) / Math.pow(10, existing.decimals),
+        });
+      } else {
+        tokenMap.set(token.runeId, token);
+      }
+    }
+
+    return {
+      btcBalance: totalBtc,
+      btcBalanceFormatted: (totalBtc / 100000000).toFixed(8),
+      tokens: Array.from(tokenMap.values()),
+      address: primary.address,
+      timestamp: Date.now(),
+    };
+  }, [balances, paymentBalances]);
+
+  // Combined loading state
+  const isBalancesLoading = balancesLoading || paymentBalancesLoading;
+
+  // Combined refetch
+  const handleRefetchBalances = () => {
+    refetchBalances();
+    if (paymentAddress !== address) {
+      refetchPaymentBalances();
+    }
+  };
+
   const copyToClipboard = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(key);
@@ -169,79 +233,6 @@ export default function WalletDashboardPage() {
 
   const isKeystoreWallet = !!wallet && !browserWallet;
   const isBrowserWallet = !!browserWallet;
-
-  // Fetch wallet balances for the connected address
-  // For keystore wallets, also check the payment address (native segwit) since tokens may be on either address
-  console.log('[WalletPage] Fetching balances for address:', address, 'paymentAddress:', paymentAddress);
-
-  // DEBUG: Temporary alert to confirm code is running
-  if (typeof window !== 'undefined' && address && !(window as any).__balanceAlertShown) {
-    (window as any).__balanceAlertShown = true;
-    alert('DEBUG: Wallet page loading for address: ' + address?.slice(0, 20) + '...');
-  }
-  const { data: balances, isLoading: balancesLoading, error: balancesError, refetch: refetchBalances } = useWalletBalances(address);
-  const { data: paymentBalances, isLoading: paymentBalancesLoading, refetch: refetchPaymentBalances } = useWalletBalances(
-    paymentAddress !== address ? paymentAddress : undefined
-  );
-
-  // Log balance results
-  console.log('[WalletPage] balances:', balances, 'error:', balancesError);
-
-  // Merge balances from both addresses
-  const mergedBalances = useMemo(() => {
-    if (!balances && !paymentBalances) return undefined;
-
-    const primary = balances || { btcBalance: 0, btcBalanceFormatted: '0', tokens: [], address: '', timestamp: 0 };
-    const payment = paymentBalances;
-
-    if (!payment) return primary;
-
-    // Merge BTC balances
-    const totalBtc = primary.btcBalance + payment.btcBalance;
-
-    // Merge token balances - combine tokens from both addresses
-    const tokenMap = new Map<string, typeof primary.tokens[0]>();
-
-    // Add primary address tokens
-    for (const token of primary.tokens) {
-      tokenMap.set(token.runeId, token);
-    }
-
-    // Add payment address tokens (or combine if already exists)
-    for (const token of payment.tokens) {
-      const existing = tokenMap.get(token.runeId);
-      if (existing) {
-        // Combine balances
-        const combinedBalance = BigInt(existing.balance) + BigInt(token.balance);
-        tokenMap.set(token.runeId, {
-          ...existing,
-          balance: combinedBalance.toString(),
-          balanceFormatted: Number(combinedBalance) / Math.pow(10, existing.decimals),
-        });
-      } else {
-        tokenMap.set(token.runeId, token);
-      }
-    }
-
-    return {
-      btcBalance: totalBtc,
-      btcBalanceFormatted: (totalBtc / 100000000).toFixed(8),
-      tokens: Array.from(tokenMap.values()),
-      address: primary.address,
-      timestamp: Date.now(),
-    };
-  }, [balances, paymentBalances]);
-
-  // Combined loading state
-  const isBalancesLoading = balancesLoading || paymentBalancesLoading;
-
-  // Combined refetch
-  const handleRefetchBalances = () => {
-    refetchBalances();
-    if (paymentAddress !== address) {
-      refetchPaymentBalances();
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
