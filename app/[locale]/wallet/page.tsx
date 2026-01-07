@@ -14,6 +14,8 @@ import { GoogleDriveBackup, type WalletBackupInfo } from "@alkanes/ts-sdk";
 import { useWalletBalances, formatBalance, formatBtcBalance } from "@/hooks/useWalletBalances";
 
 export default function WalletDashboardPage() {
+  console.log('[WalletDashboardPage] Component rendering');
+
   const t = useTranslations();
   const router = useRouter();
   const {

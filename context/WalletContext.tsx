@@ -152,38 +152,52 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
   // Check for stored keystore and restore session on mount
   useEffect(() => {
     const initializeWallet = async () => {
-      if (typeof window === 'undefined') return;
+      console.log('[WalletContext] initializeWallet starting...');
+      if (typeof window === 'undefined') {
+        console.log('[WalletContext] Server-side, skipping');
+        return;
+      }
 
       // Pre-load WASM module before any SDK initialization
+      console.log('[WalletContext] Preloading WASM...');
       await ensureWasmPreloaded();
+      console.log('[WalletContext] WASM preloaded');
 
       const stored = localStorage.getItem(STORAGE_KEYS.ENCRYPTED_KEYSTORE);
+      console.log('[WalletContext] Has stored keystore:', !!stored);
       setHasStoredKeystore(!!stored);
 
       // Check for active session (survives page navigation but not tab close)
       const sessionMnemonic = sessionStorage.getItem(STORAGE_KEYS.SESSION_MNEMONIC);
+      console.log('[WalletContext] Has session mnemonic:', !!sessionMnemonic);
       if (sessionMnemonic && stored) {
         try {
+          console.log('[WalletContext] Restoring keystore wallet...');
           // Create client with mnemonic
           const sdkNetwork = toSdkNetwork(network);
           const newClient = AlkanesClient.withMnemonic(sessionMnemonic, sdkNetwork);
+          console.log('[WalletContext] Client created, initializing...');
           await newClient.initialize();
+          console.log('[WalletContext] Client initialized');
 
           setClient(newClient);
           setWalletType('keystore');
           setCurrentMnemonic(sessionMnemonic);
         } catch (error) {
-          console.error('Failed to restore session wallet:', error);
+          console.error('[WalletContext] Failed to restore session wallet:', error);
           sessionStorage.removeItem(STORAGE_KEYS.SESSION_MNEMONIC);
         }
       }
 
       // Check for browser wallet reconnection
       const browserWalletId = sessionStorage.getItem(STORAGE_KEYS.BROWSER_WALLET);
+      console.log('[WalletContext] Browser wallet ID:', browserWalletId);
       if (browserWalletId && !sessionMnemonic) {
         try {
+          console.log('[WalletContext] Reconnecting browser wallet...');
           const sdkNetwork = toSdkNetwork(network);
           const newClient = await sdkConnectWallet(browserWalletId, sdkNetwork);
+          console.log('[WalletContext] Browser wallet connected');
           setClient(newClient);
           setWalletType('browser');
           // Restore wallet info from ID
@@ -192,15 +206,19 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
             setConnectedWalletInfo(walletInfo);
           }
         } catch (error) {
-          console.error('Failed to reconnect browser wallet:', error);
+          console.error('[WalletContext] Failed to reconnect browser wallet:', error);
           sessionStorage.removeItem(STORAGE_KEYS.BROWSER_WALLET);
         }
       }
 
+      console.log('[WalletContext] Initialization complete, setting isInitializing to false');
       setIsInitializing(false);
     };
 
-    initializeWallet();
+    initializeWallet().catch(error => {
+      console.error('[WalletContext] initializeWallet failed:', error);
+      setIsInitializing(false);
+    });
   }, [network]);
 
   // Derive addresses from client

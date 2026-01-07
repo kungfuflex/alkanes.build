@@ -106,7 +106,7 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
     console.log('[useWalletBalances] Alkane balances:', alkaneBalances.length, alkaneBalances);
 
     // Calculate BTC balance from UTXOs
-    const btcBalance = utxos.reduce((sum, utxo) => sum + (utxo.value || 0), 0);
+    const btcBalance = utxos.reduce((sum: number, utxo: { value?: number }) => sum + (utxo.value || 0), 0);
 
     // Fetch metadata for all tokens in parallel
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
