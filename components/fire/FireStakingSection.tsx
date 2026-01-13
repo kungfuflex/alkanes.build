@@ -1,14 +1,35 @@
 'use client';
 
-import { Flame } from 'lucide-react';
+import { useState } from 'react';
+import { Flame, Settings } from 'lucide-react';
 import { StakingStats } from './StakingStats';
 import { StakeForm } from './StakeForm';
 import { PositionsList } from './PositionsList';
+import { useInitializeStaking } from '@/hooks/useFireStaking';
+import { useWallet } from '@/context/WalletContext';
+import { getFireContracts, getRelatedTokens } from '@/lib/fire/constants';
 
 /**
  * Main FIRE staking section combining all staking components
  */
 export function FireStakingSection() {
+  const [showAdmin, setShowAdmin] = useState(false);
+  const { isConnected } = useWallet();
+  const initMutation = useInitializeStaking();
+  const contracts = getFireContracts();
+  const tokens = getRelatedTokens();
+
+  const handleInitialize = async () => {
+    if (confirm(`Initialize staking contract ${contracts.fireStaking.block}:${contracts.fireStaking.tx} with LP token ${tokens.dieselFrbtcLp.block}:${tokens.dieselFrbtcLp.tx}?`)) {
+      try {
+        await initMutation.mutateAsync();
+        alert('Contract initialized successfully!');
+      } catch (err: any) {
+        alert(`Initialization failed: ${err.message}`);
+      }
+    }
+  };
+
   return (
     <section className="space-y-8">
       {/* Section Header */}
@@ -16,7 +37,7 @@ export function FireStakingSection() {
         <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500/20 to-red-500/20">
           <Flame className="w-8 h-8 text-orange-500" />
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="text-2xl font-bold text-[color:var(--sf-text)]">
             FIRE Staking
           </h2>
@@ -24,7 +45,39 @@ export function FireStakingSection() {
             Stake DIESEL/frBTC LP tokens to earn FIRE rewards
           </p>
         </div>
+        {/* Admin toggle (small gear icon) */}
+        <button
+          onClick={() => setShowAdmin(!showAdmin)}
+          className="p-2 rounded-lg hover:bg-[color:var(--sf-surface)] transition-colors opacity-30 hover:opacity-100"
+          title="Admin Settings"
+        >
+          <Settings className="w-5 h-5 text-[color:var(--sf-muted)]" />
+        </button>
       </div>
+
+      {/* Admin Panel (collapsed by default) */}
+      {showAdmin && (
+        <div className="glass-card p-4 border-2 border-orange-500/20">
+          <h4 className="font-semibold text-[color:var(--sf-text)] mb-3">Admin Panel</h4>
+          <div className="text-sm text-[color:var(--sf-muted)] mb-3">
+            <p>Staking Contract: {contracts.fireStaking.block}:{contracts.fireStaking.tx}</p>
+            <p>LP Token: {tokens.dieselFrbtcLp.block}:{tokens.dieselFrbtcLp.tx}</p>
+          </div>
+          <button
+            onClick={handleInitialize}
+            disabled={!isConnected || initMutation.isPending}
+            className="px-4 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {initMutation.isPending ? 'Initializing...' : 'Initialize Contract'}
+          </button>
+          {initMutation.isError && (
+            <p className="text-red-500 text-sm mt-2">{(initMutation.error as Error)?.message}</p>
+          )}
+          {initMutation.isSuccess && (
+            <p className="text-green-500 text-sm mt-2">Contract initialized!</p>
+          )}
+        </div>
+      )}
 
       {/* Global Stats */}
       <StakingStats />

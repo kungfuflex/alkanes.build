@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { usePoolPrices, useBtcPrice, formatUsd, formatCompact } from "@/hooks/usePriceData";
 import { FireStakingSection } from "@/components/fire";
+import { usePOLStats } from "@/hooks/useFireStaking";
 import { POOL_IDS } from "@/lib/pools/pool-ids";
 
 // All alkanes tokens use 8 decimals
@@ -18,6 +19,7 @@ export default function VaultsPage() {
   const t = useTranslations();
   const { data: pools, isLoading: poolsLoading, error: poolsError } = usePoolPrices();
   const { data: btcPrice } = useBtcPrice();
+  const { data: polStats } = usePOLStats();
 
   const loading = poolsLoading;
   const error = poolsError?.message || null;
@@ -38,17 +40,25 @@ export default function VaultsPage() {
     dieselPriceInFrbtc: pools.pools.DIESEL_FRBTC.price,
   } : null;
 
-  // TODO: These will come from treasury contract queries
-  const protocolMetrics = {
+  // Protocol metrics from treasury contract
+  const protocolMetrics = polStats ? {
     // Protocol Owned Liquidity (LP tokens held by treasury)
-    polLpTokens: 0, // Placeholder - need to query treasury
-    polValueUsd: 0, // Placeholder
-    polPercentOfPool: 0, // Placeholder
+    polLpTokens: Number(polStats.polLpTokens) / Math.pow(10, TOKEN_DECIMALS),
+    polValueUsd: polStats.polValueUsd,
+    polPercentOfPool: polStats.polPercentOfPool,
     // Treasury total value
-    treasuryValueUsd: 0, // Placeholder
+    treasuryValueUsd: polStats.treasuryValueUsd,
     // FIRE metrics
-    fireCirculatingSupply: 0, // Placeholder
-    liquidityBackedPerFire: 0, // Placeholder - POL value / FIRE supply
+    fireCirculatingSupply: Number(polStats.fireCirculatingSupply) / Math.pow(10, TOKEN_DECIMALS),
+    liquidityBackedPerFire: polStats.liquidityBackedPerFire,
+  } : {
+    // Fallback values while loading
+    polLpTokens: 0,
+    polValueUsd: 0,
+    polPercentOfPool: 0,
+    treasuryValueUsd: 0,
+    fireCirculatingSupply: 0,
+    liquidityBackedPerFire: 0,
   };
 
   return (

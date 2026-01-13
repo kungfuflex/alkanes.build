@@ -65,11 +65,13 @@ export default function CreateProposalPage() {
     setIsSubmitting(true);
 
     try {
-      // Create message for signing
+      // Create message for signing - MUST match server verification exactly
+      // Server verifies: JSON.stringify({ title, body: proposalBody, choices, author })
       const message = JSON.stringify({
-        action: "create_proposal",
         title: title.trim(),
-        timestamp: Date.now(),
+        body: body.trim(),
+        choices: validChoices,
+        author: address,
       });
 
       // Sign the message

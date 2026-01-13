@@ -131,9 +131,9 @@ async function fetchStakingStats(): Promise<StakingStats> {
 }
 
 /**
- * Fetch user's LP token balance
+ * Fetch user's LP token balance from a single address
  */
-async function fetchLpBalance(address: string): Promise<bigint> {
+async function fetchLpBalanceForAddress(address: string): Promise<bigint> {
   const tokens = getRelatedTokens();
   const lpId = `${tokens.dieselFrbtcLp.block}:${tokens.dieselFrbtcLp.tx}`;
 
@@ -149,6 +149,24 @@ async function fetchLpBalance(address: string): Promise<bigint> {
   const lpToken = data.tokens?.find((t: { runeId: string }) => t.runeId === lpId);
 
   return lpToken ? BigInt(lpToken.balance) : BigInt(0);
+}
+
+/**
+ * Fetch user's LP token balance from both addresses (taproot and payment)
+ * LP tokens can be on either address type
+ */
+async function fetchLpBalance(taprootAddress: string, paymentAddress?: string): Promise<bigint> {
+  // Fetch from taproot address
+  const taprootBalance = await fetchLpBalanceForAddress(taprootAddress);
+
+  // If no payment address or same as taproot, return taproot balance only
+  if (!paymentAddress || paymentAddress === taprootAddress) {
+    return taprootBalance;
+  }
+
+  // Fetch from payment address and sum both
+  const paymentBalance = await fetchLpBalanceForAddress(paymentAddress);
+  return taprootBalance + paymentBalance;
 }
 
 // ============================================================================
@@ -185,13 +203,14 @@ export function useStakingStats(enabled = true) {
 
 /**
  * Hook to fetch user's LP token balance
+ * Queries both taproot and payment addresses since LP tokens can be on either
  */
 export function useLpBalance(enabled = true) {
-  const { address, isConnected } = useWallet();
+  const { address, paymentAddress, isConnected } = useWallet();
 
   return useQuery({
-    queryKey: ['lp-balance', address],
-    queryFn: () => fetchLpBalance(address!),
+    queryKey: ['lp-balance', address, paymentAddress],
+    queryFn: () => fetchLpBalance(address!, paymentAddress),
     enabled: enabled && isConnected && !!address,
     staleTime: 30000,
     refetchInterval: 60000,
@@ -221,6 +240,70 @@ export function usePositionRewards(positionId: number | undefined, enabled = tru
     enabled: enabled && isConnected && !!address && positionId !== undefined,
     staleTime: 15000, // 15 seconds - rewards change frequently
     refetchInterval: 30000,
+  });
+}
+
+// ============================================================================
+// POL/Treasury Hooks
+// ============================================================================
+
+/**
+ * POL stats API response type
+ */
+interface POLStatsResponse {
+  polLpTokens: string;
+  polValueUsd: number;
+  polPercentOfPool: number;
+  treasuryValueUsd: number;
+  fireCirculatingSupply: string;
+  liquidityBackedPerFire: number;
+}
+
+/**
+ * POL stats with bigint fields
+ */
+export interface POLStats {
+  polLpTokens: bigint;
+  polValueUsd: number;
+  polPercentOfPool: number;
+  treasuryValueUsd: number;
+  fireCirculatingSupply: bigint;
+  liquidityBackedPerFire: number;
+}
+
+/**
+ * Fetch Protocol Owned Liquidity stats from API
+ */
+async function fetchPOLStats(): Promise<POLStats> {
+  const response = await fetch('/api/fire/treasury/pol');
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || 'Failed to fetch POL stats');
+  }
+
+  const data: POLStatsResponse = await response.json();
+
+  return {
+    polLpTokens: BigInt(data.polLpTokens),
+    polValueUsd: data.polValueUsd,
+    polPercentOfPool: data.polPercentOfPool,
+    treasuryValueUsd: data.treasuryValueUsd,
+    fireCirculatingSupply: BigInt(data.fireCirculatingSupply),
+    liquidityBackedPerFire: data.liquidityBackedPerFire,
+  };
+}
+
+/**
+ * Hook to fetch Protocol Owned Liquidity statistics
+ */
+export function usePOLStats(enabled = true) {
+  return useQuery({
+    queryKey: ['fire-treasury', 'pol'],
+    queryFn: fetchPOLStats,
+    enabled,
+    staleTime: 120000, // 2 minutes - treasury data changes less frequently
+    refetchInterval: 300000, // Refresh every 5 minutes
   });
 }
 
@@ -331,10 +414,11 @@ export function useStake() {
 
       try {
         // Execute the stake transaction via AlkanesClient
-        // Using txAddress (p2wpkh) for better WASM compatibility
+        // Pass BOTH addresses so WASM can find LP tokens on either
         // Note: traceEnabled is disabled as it causes false failures when trace is empty
         const result = await executeStake(client, params, {
-          address: txAddress,
+          address: address!,           // taproot address
+          paymentAddress: paymentAddress, // p2wpkh address (LP tokens often here)
           feeRate: 2,
         });
         console.log('[useStake] Stake successful:', result);
@@ -444,6 +528,43 @@ export function useExtendLock() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fire-staking', 'user', address] });
+    },
+  });
+}
+
+/**
+ * Hook for initializing the staking contract (admin function)
+ *
+ * This should only be called once per contract deployment.
+ * Only works if the contract has not been initialized yet.
+ */
+export function useInitializeStaking() {
+  const queryClient = useQueryClient();
+  const { address, client } = useWallet();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!address || !client) {
+        throw new Error('Wallet not connected');
+      }
+
+      console.log('[useInitializeStaking] Starting initialization...');
+
+      // Import the initialization function
+      const { initializeStakingContract } = await import('@/lib/fire/transactions');
+
+      // Initialize with default contracts from constants
+      const result = await initializeStakingContract(client);
+
+      console.log('[useInitializeStaking] Initialization result:', result);
+      return result;
+    },
+    onSuccess: () => {
+      // Invalidate all staking queries after initialization
+      queryClient.invalidateQueries({ queryKey: ['fire-staking'] });
+    },
+    onError: (error) => {
+      console.error('[useInitializeStaking] Initialization failed:', error);
     },
   });
 }

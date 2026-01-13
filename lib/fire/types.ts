@@ -173,6 +173,38 @@ export interface RelatedTokens {
 }
 
 // ============================================================================
+// Treasury/POL Types
+// ============================================================================
+
+/**
+ * Treasury query opcodes
+ */
+export enum TreasuryQueryOpcode {
+  GetAllocations = 20,
+  GetVestingInfo = 21,
+  GetBackingInfo = 22,
+  GetTreasuryStats = 23,
+}
+
+/**
+ * Protocol Owned Liquidity (POL) statistics
+ */
+export interface POLStats {
+  /** LP tokens held by treasury */
+  polLpTokens: bigint;
+  /** Value of POL in USD */
+  polValueUsd: number;
+  /** POL as percentage of total pool */
+  polPercentOfPool: number;
+  /** Total treasury value in USD */
+  treasuryValueUsd: number;
+  /** Circulating FIRE supply */
+  fireCirculatingSupply: bigint;
+  /** Backing value per FIRE token */
+  liquidityBackedPerFire: number;
+}
+
+// ============================================================================
 // UI State Types
 // ============================================================================
 
