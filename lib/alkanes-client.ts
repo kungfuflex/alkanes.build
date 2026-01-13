@@ -121,6 +121,8 @@ export const KNOWN_TOKENS: Record<string, { symbol: string; name: string; decima
   '2:56801': { symbol: 'bUSD', name: 'Bitcoin USD', decimals: 8 },
   '2:68441': { symbol: 'DIESEL/bUSD LP', name: 'DIESEL/bUSD LP Token', decimals: 8 },
   '2:77087': { symbol: 'DIESEL/frBTC LP', name: 'DIESEL/frBTC LP Token', decimals: 8 },
+  // Regtest LP token (different pool ID than mainnet)
+  '2:3': { symbol: 'DIESEL/frBTC LP', name: 'DIESEL/frBTC LP Token (regtest)', decimals: 8 },
 };
 
 /** Pool configurations */
