@@ -28,9 +28,34 @@ import {
 } from './price-fetcher';
 import { alkanesClient } from '../alkanes-client';
 
-// Re-export pool configs as POOLS for backwards compatibility
-// Uses the same config from candle-fetcher module
-export const POOLS = {
+// Network detection
+const isRegtest = process.env.NEXT_PUBLIC_NETWORK === 'regtest';
+
+// Re-export pool configs as POOLS - network aware
+// Regtest: 2:3 (DIESEL/frBTC only - no bUSD pool on regtest)
+// Mainnet: 2:77087 (DIESEL/frBTC), 2:68441 (DIESEL/bUSD)
+export const POOLS = isRegtest ? {
+  DIESEL_FRBTC: {
+    id: '2:3',
+    block: 2,
+    tx: 3,
+    name: 'DIESEL/frBTC',
+    token0: { block: 2, tx: 0, symbol: 'DIESEL', decimals: POOL_CONFIGS.DIESEL_FRBTC.token0Decimals },
+    token1: { block: 32, tx: 0, symbol: 'frBTC', decimals: POOL_CONFIGS.DIESEL_FRBTC.token1Decimals },
+    protobufPayload: POOL_CONFIGS.DIESEL_FRBTC.protobufPayload,
+  },
+  // Note: DIESEL/bUSD pool does not exist on regtest
+  // We include it with null-ish values to maintain type compatibility
+  DIESEL_BUSD: {
+    id: 'regtest:unavailable',
+    block: 0,
+    tx: 0,
+    name: 'DIESEL/bUSD (N/A on regtest)',
+    token0: { block: 2, tx: 0, symbol: 'DIESEL', decimals: POOL_CONFIGS.DIESEL_BUSD.token0Decimals },
+    token1: { block: 0, tx: 0, symbol: 'bUSD', decimals: POOL_CONFIGS.DIESEL_BUSD.token1Decimals },
+    protobufPayload: '', // Empty - will fail gracefully
+  },
+} as const : {
   DIESEL_FRBTC: {
     id: POOL_CONFIGS.DIESEL_FRBTC.id,
     block: 2,

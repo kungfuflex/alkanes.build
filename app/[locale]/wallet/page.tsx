@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -171,7 +171,67 @@ export default function WalletDashboardPage() {
   const isBrowserWallet = !!browserWallet;
 
   // Fetch wallet balances for the connected address
+  // For keystore wallets, also check the payment address (native segwit) since tokens may be on either address
   const { data: balances, isLoading: balancesLoading, refetch: refetchBalances } = useWalletBalances(address);
+  const { data: paymentBalances, isLoading: paymentBalancesLoading, refetch: refetchPaymentBalances } = useWalletBalances(
+    paymentAddress !== address ? paymentAddress : undefined
+  );
+
+  // Merge balances from both addresses
+  const mergedBalances = useMemo(() => {
+    if (!balances && !paymentBalances) return undefined;
+
+    const primary = balances || { btcBalance: 0, btcBalanceFormatted: '0', tokens: [], address: '', timestamp: 0 };
+    const payment = paymentBalances;
+
+    if (!payment) return primary;
+
+    // Merge BTC balances
+    const totalBtc = primary.btcBalance + payment.btcBalance;
+
+    // Merge token balances - combine tokens from both addresses
+    const tokenMap = new Map<string, typeof primary.tokens[0]>();
+
+    // Add primary address tokens
+    for (const token of primary.tokens) {
+      tokenMap.set(token.runeId, token);
+    }
+
+    // Add payment address tokens (or combine if already exists)
+    for (const token of payment.tokens) {
+      const existing = tokenMap.get(token.runeId);
+      if (existing) {
+        // Combine balances
+        const combinedBalance = BigInt(existing.balance) + BigInt(token.balance);
+        tokenMap.set(token.runeId, {
+          ...existing,
+          balance: combinedBalance.toString(),
+          balanceFormatted: Number(combinedBalance) / Math.pow(10, existing.decimals),
+        });
+      } else {
+        tokenMap.set(token.runeId, token);
+      }
+    }
+
+    return {
+      btcBalance: totalBtc,
+      btcBalanceFormatted: (totalBtc / 100000000).toFixed(8),
+      tokens: Array.from(tokenMap.values()),
+      address: primary.address,
+      timestamp: Date.now(),
+    };
+  }, [balances, paymentBalances]);
+
+  // Combined loading state
+  const isBalancesLoading = balancesLoading || paymentBalancesLoading;
+
+  // Combined refetch
+  const handleRefetchBalances = () => {
+    refetchBalances();
+    if (paymentAddress !== address) {
+      refetchPaymentBalances();
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -283,16 +343,16 @@ export default function WalletDashboardPage() {
               Balances
             </h2>
             <button
-              onClick={() => refetchBalances()}
-              disabled={balancesLoading}
+              onClick={handleRefetchBalances}
+              disabled={isBalancesLoading}
               className="p-2 rounded-lg text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] hover:bg-[color:var(--sf-surface)] transition-colors disabled:opacity-50"
               title="Refresh balances"
             >
-              <RefreshCw size={16} className={balancesLoading ? "animate-spin" : ""} />
+              <RefreshCw size={16} className={isBalancesLoading ? "animate-spin" : ""} />
             </button>
           </div>
 
-          {balancesLoading ? (
+          {isBalancesLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
                 <div
@@ -312,7 +372,7 @@ export default function WalletDashboardPage() {
                 </div>
               ))}
             </div>
-          ) : balances ? (
+          ) : mergedBalances ? (
             <div className="space-y-3">
               {/* BTC Balance */}
               <div className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]">
@@ -328,17 +388,17 @@ export default function WalletDashboardPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-[color:var(--sf-text)]">
-                      {formatBtcBalance(balances.btcBalance)}
+                      {formatBtcBalance(mergedBalances.btcBalance)}
                     </div>
                     <div className="text-xs text-[color:var(--sf-muted)]">
-                      {balances.btcBalance.toLocaleString()} sats
+                      {mergedBalances.btcBalance.toLocaleString()} sats
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Token Balances */}
-              {balances.tokens.map((token) => (
+              {mergedBalances.tokens.map((token) => (
                 <div
                   key={token.runeId}
                   className="p-4 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)]"
@@ -382,7 +442,7 @@ export default function WalletDashboardPage() {
                 </div>
               ))}
 
-              {balances.tokens.length === 0 && (
+              {mergedBalances.tokens.length === 0 && (
                 <div className="text-center py-6 text-[color:var(--sf-muted)]">
                   No alkane tokens found
                 </div>

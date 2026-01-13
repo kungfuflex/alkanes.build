@@ -259,9 +259,20 @@ export function formatAlkaneId(id: AlkaneId | string): string {
  */
 class AlkanesClient {
   private rpcUrl: string;
+  private network: 'mainnet' | 'regtest' | 'testnet' | 'signet';
 
   constructor() {
-    this.rpcUrl = process.env.ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
+    this.rpcUrl = process.env.ALKANES_RPC_URL
+      || process.env.SANDSHREW_API_URL
+      || 'https://mainnet.subfrost.io/v4/buildalkanes';
+
+    // Detect network from environment
+    const envNetwork = process.env.NEXT_PUBLIC_NETWORK;
+    if (envNetwork === 'regtest' || envNetwork === 'testnet' || envNetwork === 'signet') {
+      this.network = envNetwork;
+    } else {
+      this.network = 'mainnet';
+    }
   }
 
   /**
@@ -272,12 +283,19 @@ class AlkanesClient {
   }
 
   /**
+   * Get the current network
+   */
+  getNetwork(): string {
+    return this.network;
+  }
+
+  /**
    * Create a fresh provider for each request
    * This avoids WASM threading/aliasing issues in serverless environments
    */
   private async createProvider(): Promise<AlkanesProvider> {
     const provider = new AlkanesProvider({
-      network: 'mainnet',
+      network: this.network,
       rpcUrl: this.rpcUrl,
     });
     await provider.initialize();
@@ -370,10 +388,13 @@ class AlkanesClient {
     const provider = await this.createProvider();
 
     // Execute both operations with the shared provider
+    console.log('[AlkanesClient] Fetching balances for:', address);
     const [utxos, alkaneBalances] = await Promise.all([
       provider.esplora.getAddressUtxos(address),
       provider.getAlkaneBalance(address),
     ]);
+    console.log('[AlkanesClient] UTXOs count:', Array.isArray(utxos) ? utxos.length : 0);
+    console.log('[AlkanesClient] Alkane balances raw:', JSON.stringify(alkaneBalances, null, 2));
 
     // Handle case where utxos might not be an array (e.g., empty response or error)
     const utxoArray = Array.isArray(utxos) ? utxos : [];

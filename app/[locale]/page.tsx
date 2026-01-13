@@ -22,9 +22,9 @@ export default function HomePage() {
             {/* DIESEL Logo */}
             <div className="flex justify-center mb-6">
               <img
-                src="/logo.png"
-                alt="DIESEL"
-                className="w-20 h-20 shadow-lg animate-pulse-glow"
+                src="/alkanes-mark.png"
+                alt="ALKANES"
+                className="h-20 w-auto object-contain"
               />
             </div>
 

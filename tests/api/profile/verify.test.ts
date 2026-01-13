@@ -28,6 +28,22 @@ vi.mock("bitcoin-address-validation", () => ({
   },
 }));
 
+// Mock BIP-322 verification for tests
+vi.mock("@/lib/bip322", () => ({
+  verifyMessage: (address: string, message: string, signature: string) => {
+    // In tests, accept any 64+ byte signature as valid
+    try {
+      const sigBuffer = Buffer.from(signature, "base64");
+      if (sigBuffer.length >= 64) {
+        return { valid: true, addressType: address.startsWith("bc1p") ? "p2tr" : "p2wpkh" };
+      }
+    } catch {
+      // Invalid base64
+    }
+    return { valid: false, error: "Invalid signature format" };
+  },
+}));
+
 // Import after mocking
 import { POST } from "@/app/api/profile/verify/route";
 import { prisma } from "@/lib/prisma";
@@ -193,7 +209,8 @@ describe("POST /api/profile/verify", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid signature format");
+    expect(data.error).toBe("Invalid signature");
+    expect(data.details).toBeDefined();
   });
 
   it("returns 400 when signature format is invalid (< 64 bytes)", async () => {

@@ -1,45 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validate } from "bitcoin-address-validation";
+import { verifyMessage } from "@/lib/bip322";
 
 // Verification message must be recent (within 5 minutes)
 const MAX_MESSAGE_AGE = 5 * 60 * 1000;
-
-/**
- * Verify a signature (used by keystore wallets and browser wallets)
- * Validates signature format - actual cryptographic verification would require
- * the public key which we don't have stored.
- */
-function verifySignatureFormat(
-  signatureBase64: string,
-  address: string
-): boolean {
-  try {
-    // Decode the signature
-    const signature = Buffer.from(signatureBase64, "base64");
-
-    // For taproot addresses (bc1p...), the signature is a raw ECDSA or Schnorr signature
-    // Schnorr signatures are 64 bytes, ECDSA can be 64-72 bytes (DER encoded)
-    if (address.startsWith("bc1p") || address.startsWith("tb1p")) {
-      // Taproot address - signature should be 64 bytes (Schnorr) or 64-72 (ECDSA DER)
-      if (signature.length >= 64 && signature.length <= 72) {
-        return true;
-      }
-    }
-
-    // For other address types (bc1q, legacy, etc.), check signature format
-    // ECDSA signatures are typically 64-72 bytes when DER encoded
-    // BIP-322 signatures may be longer as they include witness data
-    if (signature.length >= 64) {
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error("Signature verification error:", error);
-    return false;
-  }
-}
 
 /**
  * POST /api/profile/verify
@@ -85,19 +50,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the signature
-    if (!signature || signature.length < 10) {
+    // Verify the BIP-322 signature cryptographically
+    const verificationResult = verifyMessage(address, message, signature);
+    if (!verificationResult.valid) {
+      console.error("Signature verification failed:", verificationResult.error);
       return NextResponse.json(
-        { error: "Invalid signature format" },
-        { status: 400 }
-      );
-    }
-
-    // Try to verify the signature format
-    const isValidSignature = verifySignatureFormat(signature, address);
-    if (!isValidSignature) {
-      return NextResponse.json(
-        { error: "Invalid signature" },
+        {
+          error: "Invalid signature",
+          details: verificationResult.error
+        },
         { status: 400 }
       );
     }

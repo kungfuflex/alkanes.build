@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -14,6 +14,7 @@ import {
   formatTimeRemaining,
   formatRelativeTime,
 } from "@/lib/utils";
+import { alkanesClient } from "@/lib/alkanes-client";
 import { ArrowLeft, ExternalLink, Check, AlertCircle } from "lucide-react";
 
 interface Vote {
@@ -52,10 +53,46 @@ export default function ProposalDetailPage() {
   const params = useParams();
   const proposalId = params.id as string;
   const queryClient = useQueryClient();
-  const { isConnected, address, signMessage, onConnectModalOpenChange } = useWallet();
+  const { isConnected, address, paymentAddress, signMessage, onConnectModalOpenChange } = useWallet();
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
+  const [dieselBalance, setDieselBalance] = useState<bigint>(BigInt(0));
+
+  // Fetch DIESEL balance when connected - check both taproot and native segwit addresses
+  useEffect(() => {
+    async function fetchBalance() {
+      if (!isConnected || !address) {
+        setDieselBalance(BigInt(0));
+        return;
+      }
+      try {
+        let totalDiesel = BigInt(0);
+
+        // Fetch from primary address
+        const balances = await alkanesClient.getWalletBalances(address);
+        const diesel = balances.tokens.find(t => t.runeId === '2:0');
+        if (diesel) {
+          totalDiesel += diesel.balance;
+        }
+
+        // Also fetch from payment address if different (for keystore wallets)
+        if (paymentAddress && paymentAddress !== address) {
+          const paymentBalances = await alkanesClient.getWalletBalances(paymentAddress);
+          const paymentDiesel = paymentBalances.tokens.find(t => t.runeId === '2:0');
+          if (paymentDiesel) {
+            totalDiesel += paymentDiesel.balance;
+          }
+        }
+
+        setDieselBalance(totalDiesel);
+      } catch (err) {
+        console.error('Failed to fetch DIESEL balance:', err);
+        setDieselBalance(BigInt(0));
+      }
+    }
+    fetchBalance();
+  }, [isConnected, address, paymentAddress]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["proposal", proposalId],
@@ -77,6 +114,7 @@ export default function ProposalDetailPage() {
   const voteMutation = useMutation({
     mutationFn: async ({ choice }: { choice: number }) => {
       if (!address) throw new Error("Not connected");
+      if (dieselBalance <= BigInt(0)) throw new Error("No DIESEL balance to vote with");
 
       // Create vote message
       const message = JSON.stringify({
@@ -88,7 +126,7 @@ export default function ProposalDetailPage() {
       // Sign the message
       const signature = await signMessage(message);
 
-      // Submit vote
+      // Submit vote with voting power
       const res = await fetch("/api/governance/vote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,6 +135,7 @@ export default function ProposalDetailPage() {
           choice,
           voter: address,
           voterSig: signature,
+          votingPower: dieselBalance.toString(),
         }),
       });
 
@@ -357,14 +396,23 @@ export default function ProposalDetailPage() {
                       <Check size={20} className="inline mr-2 text-green-500" />
                       {t("governance.youVoted")} {proposal.choices[userVote.choice]}
                     </div>
+                  ) : dieselBalance <= BigInt(0) ? (
+                    <div className="text-center text-[color:var(--sf-muted)] py-2">
+                      No DIESEL balance to vote with
+                    </div>
                   ) : (
-                    <button
-                      onClick={handleVote}
-                      disabled={selectedChoice === null || isVoting}
-                      className="w-full btn-primary disabled:opacity-50"
-                    >
-                      {isVoting ? t("governance.voting") : t("governance.castVote")}
-                    </button>
+                    <>
+                      <div className="text-center text-sm text-[color:var(--sf-muted)] mb-2">
+                        Your voting power: {formatDiesel(dieselBalance)} DIESEL
+                      </div>
+                      <button
+                        onClick={handleVote}
+                        disabled={selectedChoice === null || isVoting}
+                        className="w-full btn-primary disabled:opacity-50"
+                      >
+                        {isVoting ? t("governance.voting") : t("governance.castVote")}
+                      </button>
+                    </>
                   )}
 
                   {voteError && (

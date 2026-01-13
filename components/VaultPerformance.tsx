@@ -163,9 +163,9 @@ function VaultRow({ vault, tvlLabel }: { vault: Vault; tvlLabel: string }) {
     <div className="flex items-center justify-between p-3 rounded-xl bg-[color:var(--sf-surface)]/50 border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)]/40 transition-colors cursor-pointer">
       <div className="flex items-center gap-3">
         <img
-          src="/logo.png"
+          src="/alkanes-mark.png"
           alt={vault.name}
-          className="w-10 h-10 rounded-xl"
+          className="h-10 w-auto object-contain"
         />
         <div>
           <p className="font-semibold text-[color:var(--sf-text)]">{vault.name}</p>

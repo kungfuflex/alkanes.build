@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// Mock BIP-322 verification for tests
+vi.mock("@/lib/bip322", () => ({
+  verifyMessage: () => ({ valid: true, addressType: "p2wpkh" }),
+}));
+
 // Mock prisma module - must be before imports
 vi.mock("@/lib/prisma", () => {
   return {

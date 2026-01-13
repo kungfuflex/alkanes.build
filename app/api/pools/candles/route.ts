@@ -13,6 +13,40 @@ export const dynamic = 'force-dynamic';
 const candleCache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 60 * 1000; // 1 minute
 
+// Mock candle data generator for when RPC is unavailable
+function generateMockCandles(poolKey: PoolKey, limit: number) {
+  const pool = POOLS[poolKey];
+  const basePrice = poolKey === 'DIESEL_FRBTC' ? 0.00005234 : 4.85;
+  const candles = [];
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  for (let i = limit - 1; i >= 0; i--) {
+    const volatility = 0.05; // 5% daily volatility
+    const randomChange = (Math.random() - 0.5) * volatility;
+    const open = basePrice * (1 + randomChange);
+    const close = basePrice * (1 + (Math.random() - 0.5) * volatility);
+    const high = Math.max(open, close) * (1 + Math.random() * 0.02);
+    const low = Math.min(open, close) * (1 - Math.random() * 0.02);
+
+    candles.push({
+      timestamp: now - i * dayMs,
+      open,
+      high,
+      low,
+      close,
+    });
+  }
+
+  return {
+    pool: pool.name,
+    poolId: pool.id,
+    interval: 'daily',
+    currentHeight: 878000,
+    candles,
+  };
+}
+
 /**
  * GET /api/pools/candles
  * Query params:
@@ -119,6 +153,21 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Candles API error:', error);
+
+    // Return mock candles when RPC is unavailable
+    const poolParam = request.nextUrl.searchParams.get('pool');
+    const limitParam = request.nextUrl.searchParams.get('limit') || '30';
+    if (poolParam && Object.keys(POOLS).includes(poolParam)) {
+      console.log('Returning mock candle data due to RPC error');
+      const mockData = generateMockCandles(poolParam as PoolKey, parseInt(limitParam, 10));
+      return NextResponse.json({
+        success: true,
+        cached: false,
+        mock: true,
+        data: mockData,
+      });
+    }
+
     return NextResponse.json(
       {
         success: false,
