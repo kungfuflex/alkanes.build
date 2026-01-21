@@ -485,7 +485,17 @@ export function AreaPriceChart({
           time: (c.timestamp / 1000) as Time,
           value: c.close,
         }))
-        .sort((a, b) => (a.time as number) - (b.time as number));
+        .sort((a, b) => (a.time as number) - (b.time as number))
+        // Remove duplicates by time, keeping the last one
+        .reduce((acc, curr, index, arr) => {
+          if (index === 0 || curr.time !== arr[index - 1].time) {
+            acc.push(curr);
+          } else {
+            // If duplicate, replace with current (keeps last value for same time)
+            acc[acc.length - 1] = curr;
+          }
+          return acc;
+        }, [] as Array<{ time: Time; value: number }>);
 
       series.setData(formattedData);
       chart.timeScale().fitContent();

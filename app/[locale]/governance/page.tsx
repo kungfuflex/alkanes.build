@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@/context/WalletContext";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ViewToggle } from "@/components/governance/ViewToggle";
 import {
   formatAddress,
   formatDiesel,
@@ -34,6 +35,7 @@ interface Proposal {
 export default function GovernancePage() {
   const t = useTranslations();
   const { isConnected, address, onConnectModalOpenChange } = useWallet();
+  const [view, setView] = useState<"proposals" | "voters">("proposals");
   const [filter, setFilter] = useState<string>("all");
 
   const { data, isLoading, error } = useQuery({
@@ -69,7 +71,7 @@ export default function GovernancePage() {
               {t("governance.subtitle")}
             </p>
           </div>
-          {isConnected && (
+          {isConnected && view === "proposals" && (
             <Link
               href="/governance/create"
               className="btn-primary"
@@ -79,25 +81,35 @@ export default function GovernancePage() {
           )}
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {filters.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === key
-                  ? "bg-[color:var(--sf-primary)] text-black"
-                  : "bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)] hover:text-[color:var(--sf-primary)]"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        {/* View Toggle */}
+        <div className="mb-6">
+          <ViewToggle view={view} onViewChange={setView} />
         </div>
 
-        {/* Proposals List */}
-        {isLoading ? (
+        {/* Filters - only show for proposals */}
+        {view === "proposals" && (
+          <div className="flex gap-2 mb-6 flex-wrap">
+            {filters.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filter === key
+                    ? "bg-[color:var(--sf-primary)] text-black"
+                    : "bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)] hover:text-[color:var(--sf-primary)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Content based on view */}
+        {view === "proposals" ? (
+          <>
+            {/* Proposals List */}
+            {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div
@@ -120,7 +132,7 @@ export default function GovernancePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-3">
             {data?.proposals?.map((proposal: Proposal) => (
               <ProposalCard
                 key={proposal.id}
@@ -139,6 +151,10 @@ export default function GovernancePage() {
               />
             ))}
           </div>
+        )}
+          </>
+        ) : (
+          <VotersView />
         )}
       </main>
 
@@ -163,7 +179,17 @@ function ProposalCard({
   stateLabels: Record<string, string>;
 }) {
   const totalVotes = BigInt(proposal.totalVotes || "0");
-  const scoresArray = Array.isArray(proposal.scores) ? proposal.scores : [];
+  // Handle scores - it might be a JSON string or already an array
+  let scoresArray: string[] = [];
+  if (typeof proposal.scores === "string") {
+    try {
+      scoresArray = JSON.parse(proposal.scores);
+    } catch {
+      scoresArray = [];
+    }
+  } else if (Array.isArray(proposal.scores)) {
+    scoresArray = proposal.scores;
+  }
   const scores = scoresArray.map((s) => BigInt(s || "0"));
   const maxScore = scores.reduce((a, b) => (a > b ? a : b), BigInt(0));
 
@@ -175,11 +201,42 @@ function ProposalCard({
     CANCELLED: "badge-closed",
   }[proposal.state];
 
+  // Find For and Against indices for progress bar
+  // Support multiple naming conventions: "For"/"Against", "Approve"/"Reject", etc.
+  const forIndex = proposal.choices.findIndex(
+    (c) => {
+      const lower = c.toLowerCase();
+      return lower === "for" || lower === "approve" || lower === "yes";
+    }
+  );
+  const againstIndex = proposal.choices.findIndex(
+    (c) => {
+      const lower = c.toLowerCase();
+      return lower === "against" || lower === "reject" || lower === "no";
+    }
+  );
+  const hasForAgainst = forIndex !== -1 && againstIndex !== -1;
+  const forScore = hasForAgainst ? scores[forIndex] || BigInt(0) : BigInt(0);
+  const againstScore = hasForAgainst
+    ? scores[againstIndex] || BigInt(0)
+    : BigInt(0);
+  const forPercentage =
+    hasForAgainst && totalVotes > BigInt(0)
+      ? Number((forScore * BigInt(100)) / totalVotes)
+      : hasForAgainst
+      ? 0
+      : 0;
+
+  // Debug: log if progress bar should show but doesn't
+  if (proposal.state === "ACTIVE" && !hasForAgainst) {
+    console.log("Progress bar not showing - choices:", proposal.choices, "forIndex:", forIndex, "againstIndex:", againstIndex);
+  }
+
   return (
-    <Link href={`/governance/${proposal.id}`}>
+    <Link href={`/governance/${proposal.id}`} className="block">
       <div className="glass-card p-6 hover:shadow-lg transition-all cursor-pointer group">
         <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <span className={`badge ${stateClass}`}>
                 {stateLabels[proposal.state]}
@@ -188,47 +245,26 @@ function ProposalCard({
                 {byLabel} {formatAddress(proposal.author)}
               </span>
             </div>
-            <h2 className="text-xl font-semibold mb-2 text-[color:var(--sf-text)] group-hover:text-[color:var(--sf-primary)] transition-colors">
+            <h2 className="text-xl font-semibold text-[color:var(--sf-text)] group-hover:text-[color:var(--sf-primary)] transition-colors">
               {proposal.title}
             </h2>
-            <p className="text-[color:var(--sf-muted)] line-clamp-2">
-              {proposal.body}
-            </p>
           </div>
+
+          {/* Progress Bar - Right side, compact */}
+          {proposal.state === "ACTIVE" && hasForAgainst && (
+            <div className="flex-shrink-0 flex items-center gap-2">
+              <div className="relative h-2 w-32 bg-gray-500/50 rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-green-500 transition-all duration-300"
+                  style={{ width: `${Math.max(forPercentage, 0)}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium text-[color:var(--sf-text)] whitespace-nowrap">
+                {forPercentage.toFixed(1)}%
+              </span>
+            </div>
+          )}
         </div>
-
-        {/* Results Preview */}
-        {totalVotes > BigInt(0) && (
-          <div className="space-y-2 mb-4">
-            {proposal.choices.map((choice, index) => {
-              const score = scores[index] || BigInt(0);
-              const percentage =
-                totalVotes > BigInt(0)
-                  ? Number((score * BigInt(100)) / totalVotes)
-                  : 0;
-              const isWinning = score === maxScore && maxScore > BigInt(0);
-
-              return (
-                <div key={index} className="relative">
-                  <div
-                    className={`absolute inset-0 rounded ${
-                      isWinning
-                        ? "bg-green-500/20"
-                        : "bg-[color:var(--sf-surface)]"
-                    }`}
-                    style={{ width: `${percentage}%` }}
-                  />
-                  <div className="relative flex justify-between px-3 py-1.5 text-sm">
-                    <span className="text-[color:var(--sf-text)]">{choice}</span>
-                    <span className="font-medium text-[color:var(--sf-text)]">
-                      {percentage.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between text-sm text-[color:var(--sf-muted)]">
@@ -246,5 +282,105 @@ function ProposalCard({
         </div>
       </div>
     </Link>
+  );
+}
+
+function VotersView() {
+  const t = useTranslations();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["voters"],
+    queryFn: async () => {
+      const res = await fetch(`/api/governance/voters`);
+      if (!res.ok) throw new Error("Failed to fetch voters");
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="glass-card overflow-hidden">
+        <div className="p-6">
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="h-12 bg-[color:var(--sf-surface)] rounded animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="glass-card p-6 text-center">
+        <p className="text-red-500">{t("governance.error")}</p>
+      </div>
+    );
+  }
+
+  if (!data?.voters || data.voters.length === 0) {
+    return (
+      <div className="glass-card p-6 text-center">
+        <p className="text-[color:var(--sf-muted)]">
+          {t("governance.noVoters")}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="glass-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[color:var(--sf-outline)]">
+              <th className="text-left py-4 px-6 text-sm font-semibold text-[color:var(--sf-text)]">
+                {t("governance.voters.rank")}
+              </th>
+              <th className="text-left py-4 px-6 text-sm font-semibold text-[color:var(--sf-text)]">
+                {t("governance.voters.address")}
+              </th>
+              <th className="text-right py-4 px-6 text-sm font-semibold text-[color:var(--sf-text)]">
+                {t("governance.voters.votingPower")}
+              </th>
+              <th className="text-right py-4 px-6 text-sm font-semibold text-[color:var(--sf-text)]">
+                {t("governance.voters.votes")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.voters.map((voter: any, index: number) => (
+              <tr
+                key={voter.voter}
+                className="border-b border-[color:var(--sf-outline)] hover:bg-[color:var(--sf-surface)]/50 transition-colors"
+              >
+                <td className="py-4 px-6 text-sm text-[color:var(--sf-muted)]">
+                  #{index + 1}
+                </td>
+                <td className="py-4 px-6">
+                  <span className="text-sm font-medium text-[color:var(--sf-text)]">
+                    {formatAddress(voter.voter)}
+                  </span>
+                </td>
+                <td className="py-4 px-6 text-right">
+                  <span className="text-sm font-semibold text-[color:var(--sf-text)]">
+                    {formatDiesel(BigInt(voter.totalVotingPower || "0"))} DIESEL
+                  </span>
+                </td>
+                <td className="py-4 px-6 text-right">
+                  <span className="text-sm text-[color:var(--sf-muted)]">
+                    {voter.voteCount} {voter.voteCount !== 1 ? t("governance.proposal.votes") : t("governance.proposal.vote")}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

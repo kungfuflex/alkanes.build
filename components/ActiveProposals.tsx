@@ -198,7 +198,7 @@ function ProposalCard({
           </div>
           <div className="h-2 rounded-full bg-[color:var(--sf-outline)] overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-green-500 to-green-400"
+              className="h-full bg-gradient-to-r from-green-500 to-green-400"
               style={{ width: `${forPercentage}%` }}
             />
           </div>
