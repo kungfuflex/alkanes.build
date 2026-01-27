@@ -32,18 +32,18 @@ export interface CandlestickChartProps {
   onCrosshairMove?: (price: number | null, time: Time | null) => void;
 }
 
-// DIESEL theme colors matching globals.css
-const DIESEL_THEME = {
+// Theme colors matching globals.css
+const CHART_THEME = {
   background: "transparent",
   textColor: "#888888",
-  gridColor: "rgba(51, 51, 51, 0.5)",
-  borderColor: "#333333",
-  upColor: "#22c55e", // Green for bullish
-  downColor: "#ef4444", // Red for bearish
-  wickUpColor: "#22c55e",
-  wickDownColor: "#ef4444",
-  crosshairColor: "#f59e0b", // DIESEL orange
-  primaryColor: "#f59e0b",
+  gridColor: "rgba(38, 38, 38, 0.5)",
+  borderColor: "#262626",
+  upColor: "#4ade80",
+  downColor: "#f87171",
+  wickUpColor: "#4ade80",
+  wickDownColor: "#f87171",
+  crosshairColor: "#888888",
+  lineColor: "#888888",
 };
 
 export function CandlestickChart({
@@ -80,43 +80,43 @@ export function CandlestickChart({
 
     const container = chartContainerRef.current;
 
-    // Create chart with DIESEL theme
+    // Create chart
     const chart = createChart(container, {
       layout: {
-        background: { type: ColorType.Solid, color: DIESEL_THEME.background },
-        textColor: DIESEL_THEME.textColor,
+        background: { type: ColorType.Solid, color: CHART_THEME.background },
+        textColor: CHART_THEME.textColor,
         fontFamily: "system-ui, sans-serif",
       },
       width: container.clientWidth,
       height: height,
       grid: {
-        vertLines: { color: DIESEL_THEME.gridColor, style: 1 },
-        horzLines: { color: DIESEL_THEME.gridColor, style: 1 },
+        vertLines: { color: CHART_THEME.gridColor, style: 1 },
+        horzLines: { color: CHART_THEME.gridColor, style: 1 },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: {
-          color: DIESEL_THEME.crosshairColor,
+          color: CHART_THEME.crosshairColor,
           width: 1,
           style: 2,
-          labelBackgroundColor: DIESEL_THEME.primaryColor,
+          labelBackgroundColor: "#333333",
         },
         horzLine: {
-          color: DIESEL_THEME.crosshairColor,
+          color: CHART_THEME.crosshairColor,
           width: 1,
           style: 2,
-          labelBackgroundColor: DIESEL_THEME.primaryColor,
+          labelBackgroundColor: "#333333",
         },
       },
       rightPriceScale: {
-        borderColor: DIESEL_THEME.borderColor,
+        borderColor: CHART_THEME.borderColor,
         scaleMargins: {
           top: 0.1,
           bottom: 0.1,
         },
       },
       timeScale: {
-        borderColor: DIESEL_THEME.borderColor,
+        borderColor: CHART_THEME.borderColor,
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 5,
@@ -138,10 +138,10 @@ export function CandlestickChart({
 
     // Candlestick series options
     const candlestickOptions: CandlestickSeriesPartialOptions = {
-      upColor: DIESEL_THEME.upColor,
-      downColor: DIESEL_THEME.downColor,
-      wickUpColor: DIESEL_THEME.wickUpColor,
-      wickDownColor: DIESEL_THEME.wickDownColor,
+      upColor: CHART_THEME.upColor,
+      downColor: CHART_THEME.downColor,
+      wickUpColor: CHART_THEME.wickUpColor,
+      wickDownColor: CHART_THEME.wickDownColor,
       borderVisible: false,
       priceFormat: {
         type: "price",
@@ -241,7 +241,7 @@ export function CandlestickChart({
       {currentPrice !== null && (
         <div className="absolute top-2 right-2 z-10 px-3 py-1 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-sm">
           <span className="text-[color:var(--sf-muted)]">Price: </span>
-          <span className="text-[color:var(--sf-primary)] font-mono font-bold">
+          <span className="text-[color:var(--sf-text)] font-mono font-bold">
             {currentPrice.toFixed(8)}
           </span>
         </div>
@@ -250,9 +250,9 @@ export function CandlestickChart({
       {/* Chart container */}
       <div
         ref={chartContainerRef}
-        className="rounded-xl overflow-hidden"
+        className="rounded-lg overflow-hidden"
         style={{
-          background: "linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(20, 20, 20, 0.9) 100%)",
+          background: "var(--sf-surface)",
           border: "1px solid var(--sf-outline)",
         }}
       />
@@ -337,10 +337,10 @@ export function MiniCandlestickChart({
     });
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: DIESEL_THEME.upColor,
-      downColor: DIESEL_THEME.downColor,
-      wickUpColor: DIESEL_THEME.wickUpColor,
-      wickDownColor: DIESEL_THEME.wickDownColor,
+      upColor: CHART_THEME.upColor,
+      downColor: CHART_THEME.downColor,
+      wickUpColor: CHART_THEME.wickUpColor,
+      wickDownColor: CHART_THEME.wickDownColor,
       borderVisible: false,
     });
 
@@ -380,10 +380,8 @@ export function MiniCandlestickChart({
   return (
     <div
       ref={chartContainerRef}
-      className={`rounded-lg overflow-hidden ${className}`}
-      style={{
-        background: "linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)",
-      }}
+      className={`overflow-hidden ${className}`}
+      style={{ height }}
     />
   );
 }
@@ -404,6 +402,8 @@ export function AreaPriceChart({
 }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const [hoverPrice, setHoverPrice] = useState<number | null>(null);
+  const [hoverTime, setHoverTime] = useState<string | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -413,21 +413,21 @@ export function AreaPriceChart({
     const chart = createChart(container, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: DIESEL_THEME.textColor,
+        textColor: "transparent",
       },
       width: container.clientWidth,
       height: height,
       grid: {
         vertLines: { visible: false },
-        horzLines: { color: DIESEL_THEME.gridColor, style: 1 },
+        horzLines: { visible: false },
       },
       crosshair: {
         mode: CrosshairMode.Magnet,
         vertLine: {
-          color: DIESEL_THEME.crosshairColor,
+          color: "rgba(255, 255, 255, 0.3)",
           width: 1,
           style: 2,
-          labelBackgroundColor: DIESEL_THEME.primaryColor,
+          labelVisible: false,
         },
         horzLine: {
           visible: false,
@@ -435,23 +435,15 @@ export function AreaPriceChart({
         },
       },
       rightPriceScale: {
-        borderVisible: false,
-        scaleMargins: {
-          top: 0.2,
-          bottom: 0.1,
-        },
+        visible: false,
+      },
+      leftPriceScale: {
+        visible: false,
       },
       timeScale: {
-        borderVisible: false,
-        timeVisible: true,
-        secondsVisible: false,
+        visible: false,
       },
-      handleScroll: {
-        mouseWheel: false,
-        pressedMouseMove: false,
-        horzTouchDrag: false,
-        vertTouchDrag: false,
-      },
+      handleScroll: false,
       handleScale: false,
     });
 
@@ -459,14 +451,14 @@ export function AreaPriceChart({
     const isUptrend =
       data.length >= 2 && data[data.length - 1].close >= data[0].open;
 
-    const lineColor = isUptrend ? DIESEL_THEME.upColor : DIESEL_THEME.downColor;
+    const lineColor = isUptrend ? CHART_THEME.upColor : CHART_THEME.downColor;
 
     const series = chart.addSeries(AreaSeries, {
       lineColor: lineColor,
       topColor: showGradient
         ? isUptrend
-          ? "rgba(34, 197, 94, 0.4)"
-          : "rgba(239, 68, 68, 0.4)"
+          ? "rgba(74, 222, 128, 0.2)"
+          : "rgba(248, 113, 113, 0.2)"
         : "transparent",
       bottomColor: "transparent",
       lineWidth: 2,
@@ -485,11 +477,40 @@ export function AreaPriceChart({
           time: (c.timestamp / 1000) as Time,
           value: c.close,
         }))
-        .sort((a, b) => (a.time as number) - (b.time as number));
+        .sort((a, b) => (a.time as number) - (b.time as number))
+        // Remove duplicates by time, keeping the last one
+        .reduce((acc, curr, index, arr) => {
+          if (index === 0 || curr.time !== arr[index - 1].time) {
+            acc.push(curr);
+          } else {
+            acc[acc.length - 1] = curr;
+          }
+          return acc;
+        }, [] as Array<{ time: Time; value: number }>);
 
       series.setData(formattedData);
       chart.timeScale().fitContent();
     }
+
+    // Subscribe to crosshair move for hover details
+    chart.subscribeCrosshairMove((param) => {
+      if (param.time && param.seriesData.size > 0) {
+        const priceData = param.seriesData.get(series);
+        if (priceData && "value" in priceData) {
+          setHoverPrice(priceData.value);
+          const date = new Date((param.time as number) * 1000);
+          setHoverTime(date.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }));
+        }
+      } else {
+        setHoverPrice(null);
+        setHoverTime(null);
+      }
+    });
 
     chartRef.current = chart;
 
@@ -508,13 +529,20 @@ export function AreaPriceChart({
   }, [data, height, showGradient]);
 
   return (
-    <div
-      ref={chartContainerRef}
-      className={`rounded-xl overflow-hidden ${className}`}
-      style={{
-        background: "linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(20, 20, 20, 0.9) 100%)",
-        border: "1px solid var(--sf-outline)",
-      }}
-    />
+    <div className={`relative ${className}`}>
+      {hoverPrice !== null && (
+        <div className="absolute top-1 left-1 z-10 px-2 py-1 rounded bg-[color:var(--sf-surface)]/90 border border-[color:var(--sf-outline)] text-xs">
+          <span className="text-[color:var(--sf-text)] font-mono">{hoverPrice.toFixed(8)}</span>
+          {hoverTime && (
+            <span className="text-[color:var(--sf-muted)] ml-2">{hoverTime}</span>
+          )}
+        </div>
+      )}
+      <div
+        ref={chartContainerRef}
+        className="overflow-hidden"
+        style={{ height }}
+      />
+    </div>
   );
 }

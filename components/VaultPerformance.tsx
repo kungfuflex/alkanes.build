@@ -93,66 +93,58 @@ export function VaultPerformance() {
     : null;
 
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="glass-card overflow-hidden w-full">
       {/* Header */}
-      <div className="card-header flex items-center justify-between">
-        <h3 className="font-bold text-lg text-[color:var(--sf-text)]">{t("title")}</h3>
+      <div className="card-header flex items-center justify-between gap-2">
+        <h3 className="font-semibold text-[color:var(--sf-text)] truncate">{t("title")}</h3>
         <Link
           href="/vaults"
-          className="text-sm text-[color:var(--sf-primary)] hover:text-[color:var(--sf-boost-label)] transition-colors"
+          className="text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors whitespace-nowrap flex-shrink-0"
         >
           {tCommon("viewAll")} →
         </Link>
       </div>
 
       {/* Pool List */}
-      <div className="p-4">
+      <div className="p-4 space-y-2 overflow-hidden">
         {loading ? (
-          <div className="space-y-3">
+          <>
             {[1, 2].map((i) => (
-              <div key={i} className="h-16 rounded-xl bg-[color:var(--sf-surface)]/50 animate-pulse" />
+              <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
+                <div className="h-4 bg-[color:var(--sf-outline)] rounded w-3/4 mb-2" />
+                <div className="h-3 bg-[color:var(--sf-outline)] rounded w-1/2" />
+              </div>
             ))}
-          </div>
+          </>
         ) : error ? (
-          <div className="text-center py-4 text-[color:var(--sf-muted)]">
+          <div className="p-4 text-center text-[color:var(--sf-muted)]">
             <p className="text-sm">{error}</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <>
             {vaults.map((vault) => (
               <VaultRow key={vault.id} vault={vault} tvlLabel={t("tvl")} />
             ))}
-          </div>
+          </>
         )}
 
         {/* Total TVL */}
-        <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-[var(--sf-boost-bg-from)] to-[var(--sf-boost-bg-to)] border border-[color:var(--sf-primary)]/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-[color:var(--sf-boost-label)] uppercase tracking-wider font-bold">{t("totalTvl")}</p>
-              <p className="text-2xl font-bold text-[color:var(--sf-boost-value)]">
-                {totalTvlUsd ? formatUsd(totalTvlUsd) : `${formatCompact(totalDieselAmount)} DIESEL`}
-              </p>
-              {totalTvlUsd && (
-                <p className="text-xs text-[color:var(--sf-muted)]">
-                  {formatCompact(totalDieselAmount)} DIESEL
+        {!loading && !error && (
+          <div className="mt-4 pt-4 border-t border-[color:var(--sf-outline)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-[color:var(--sf-muted)] mb-1">{t("totalTvl")}</p>
+                <p className="text-xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums">
+                  {totalTvlUsd ? formatUsd(totalTvlUsd) : `${formatCompact(totalDieselAmount)} DIESEL`}
                 </p>
-              )}
-            </div>
-            <div className="text-right">
-              {pools && (
-                <p className="text-xs text-[color:var(--sf-muted)]">
-                  Block #{pools.currentHeight.toLocaleString()}
-                </p>
-              )}
-              {btcPrice && (
-                <p className="text-xs text-[color:var(--sf-muted)]">
-                  BTC: {formatUsd(btcPrice.usd)}
-                </p>
-              )}
+              </div>
+              <div className="text-right text-xs text-[color:var(--sf-muted)]">
+                {pools && <p>Block #{pools.currentHeight.toLocaleString()}</p>}
+                {btcPrice && <p>BTC: {formatUsd(btcPrice.usd)}</p>}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -160,28 +152,31 @@ export function VaultPerformance() {
 
 function VaultRow({ vault, tvlLabel }: { vault: Vault; tvlLabel: string }) {
   return (
-    <div className="flex items-center justify-between p-3 rounded-xl bg-[color:var(--sf-surface)]/50 border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)]/40 transition-colors cursor-pointer">
-      <div className="flex items-center gap-3">
+    <Link
+      href="/vaults"
+      className="flex items-center justify-between p-3 rounded-lg bg-black/20 backdrop-blur-sm border border-white/5 hover:bg-black/30 transition-colors group gap-2 overflow-hidden"
+    >
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <img
           src="/logo.png"
           alt={vault.name}
-          className="w-10 h-10 rounded-xl"
+          className="w-8 h-8 rounded-lg flex-shrink-0"
         />
-        <div>
-          <p className="font-semibold text-[color:var(--sf-text)]">{vault.name}</p>
-          <p className="text-xs text-[color:var(--sf-muted)]">
+        <div className="min-w-0">
+          <p className="font-medium text-sm text-[color:var(--sf-text)] truncate">{vault.name}</p>
+          <p className="text-xs text-[color:var(--sf-muted)] truncate">
             {tvlLabel}: {vault.tvlUsd || vault.tvl}
           </p>
         </div>
       </div>
-      <div className="text-right">
-        <p className="font-bold text-[color:var(--sf-primary)]">
+      <div className="text-right flex-shrink-0">
+        <p className="font-medium text-sm text-[color:var(--sf-text)] font-mono tabular-nums">
           {vault.priceUsd || `${vault.priceNative} ${vault.token1Symbol}`}
         </p>
-        <p className="text-xs text-[color:var(--sf-muted)]">
+        <p className="text-xs text-[color:var(--sf-muted)] font-mono">
           {vault.priceNative} {vault.token1Symbol}
         </p>
       </div>
-    </div>
+    </Link>
   );
 }

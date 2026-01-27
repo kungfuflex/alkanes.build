@@ -3,11 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useQuery } from "@tanstack/react-query";
-import {
-  formatAddress,
-  formatTimeRemaining,
-  formatRelativeTime,
-} from "@/lib/utils";
+import { formatAddress, formatTimeRemaining, formatRelativeTime } from "@/lib/utils";
 
 interface Proposal {
   id: string;
@@ -16,23 +12,18 @@ interface Proposal {
   start: string;
   end: string;
   state: "PENDING" | "ACTIVE" | "CLOSED" | "EXECUTED" | "CANCELLED";
-  scores: string[];
+  scores: string[] | string;
   totalVotes: string;
-  _count: {
-    votes: number;
-  };
+  _count: { votes: number };
 }
 
 export function ActiveProposals() {
   const t = useTranslations("dashboard.proposals");
   const tGov = useTranslations("governance");
-  const tCommon = useTranslations("common");
 
-  // Fetch active and pending proposals from API
   const { data, isLoading, error } = useQuery({
     queryKey: ["activeProposals"],
     queryFn: async () => {
-      // Fetch both active and pending proposals
       const [activeRes, pendingRes] = await Promise.all([
         fetch("/api/governance/proposals?state=active&limit=3"),
         fetch("/api/governance/proposals?state=pending&limit=3"),
@@ -47,124 +38,75 @@ export function ActiveProposals() {
         pendingRes.json(),
       ]);
 
-      // Combine and sort: active first, then pending, limit to 3 total
-      const combined = [
-        ...activeData.proposals,
-        ...pendingData.proposals,
-      ].slice(0, 3);
-
-      return combined as Proposal[];
+      return [...activeData.proposals, ...pendingData.proposals].slice(0, 3) as Proposal[];
     },
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
   });
 
   const proposals = data || [];
 
   return (
-    <div className="glass-card overflow-hidden">
-      {/* Header */}
-      <div className="card-header flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center animate-pulse-glow">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h3 className="font-bold text-lg text-[color:var(--sf-text)]">{t("title")}</h3>
-        </div>
+    <div className="glass-card overflow-hidden w-full">
+      <div className="card-header flex items-center justify-between gap-2">
+        <h3 className="font-semibold text-[color:var(--sf-text)] truncate">{t("title")}</h3>
         <Link
           href="/governance"
-          className="btn-primary text-sm !py-2 !px-4"
+          className="text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors whitespace-nowrap flex-shrink-0"
         >
-          {tCommon("viewAll")} →
+          View all →
         </Link>
       </div>
 
-      {/* Proposals List */}
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-2 overflow-hidden">
         {isLoading ? (
-          // Loading skeleton
-          <>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="p-4 rounded-xl bg-[color:var(--sf-surface)]/50 border border-[color:var(--sf-outline)] animate-pulse"
-              >
-                <div className="h-5 bg-[color:var(--sf-surface)] rounded w-3/4 mb-3" />
-                <div className="h-2 bg-[color:var(--sf-surface)] rounded w-full mb-3" />
-                <div className="h-4 bg-[color:var(--sf-surface)] rounded w-1/2" />
-              </div>
-            ))}
-          </>
+          [1, 2, 3].map((i) => (
+            <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
+              <div className="h-4 bg-[color:var(--sf-outline)] rounded w-3/4 mb-2" />
+              <div className="h-3 bg-[color:var(--sf-outline)] rounded w-1/2" />
+            </div>
+          ))
         ) : error ? (
-          <div className="p-4 text-center text-[color:var(--sf-muted)]">
-            {tGov("error")}
-          </div>
+          <div className="p-4 text-center text-[color:var(--sf-muted)]">{tGov("error")}</div>
         ) : proposals.length === 0 ? (
-          <div className="p-4 text-center text-[color:var(--sf-muted)]">
-            {tGov("noProposals")}
-          </div>
+          <div className="p-4 text-center text-[color:var(--sf-muted)]">{tGov("noProposals")}</div>
         ) : (
           proposals.map((proposal) => (
-            <ProposalCard
+            <ProposalRow
               key={proposal.id}
               proposal={proposal}
-              forLabel={tGov("proposal.for")}
-              againstLabel={tGov("proposal.against")}
-              byLabel={t("by", { author: formatAddress(proposal.author) })}
-              endsLabel={t("ends", { time: formatTimeRemaining(proposal.end) })}
-              startsLabel={t("starts", { time: formatRelativeTime(proposal.start) })}
               stateLabel={tGov(`states.${proposal.state}`)}
             />
           ))
         )}
       </div>
-
-      {/* CTA Banner */}
-      <div className="p-4 bg-gradient-to-r from-[var(--sf-boost-bg-from)] to-[var(--sf-boost-bg-to)] border-t border-[color:var(--sf-primary)]/20">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-semibold text-[color:var(--sf-text)]">{t("cta.title")}</p>
-            <p className="text-sm text-[color:var(--sf-muted)]">{t("cta.description")}</p>
-          </div>
-          <Link href="/governance" className="btn-secondary !py-2 !px-4 text-sm">
-            {t("cta.button")}
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }
 
-function ProposalCard({
-  proposal,
-  forLabel,
-  againstLabel,
-  byLabel,
-  endsLabel,
-  startsLabel,
-  stateLabel
-}: {
-  proposal: Proposal;
-  forLabel: string;
-  againstLabel: string;
-  byLabel: string;
-  endsLabel: string;
-  startsLabel: string;
-  stateLabel: string;
-}) {
-  // Calculate vote percentages from scores (assumes first choice is "For", second is "Against")
-  // Defensive check - scores might be undefined/null from API
-  const scoresArray = Array.isArray(proposal.scores) ? proposal.scores : [];
+function ProposalRow({ proposal, stateLabel }: { proposal: Proposal; stateLabel: string }) {
+  // Handle both array and JSON string formats for scores
+  let scoresArray: string[] = [];
+  if (Array.isArray(proposal.scores)) {
+    scoresArray = proposal.scores;
+  } else if (typeof proposal.scores === "string") {
+    try {
+      scoresArray = JSON.parse(proposal.scores);
+    } catch {
+      scoresArray = [];
+    }
+  }
   const scores = scoresArray.map((s) => BigInt(s || "0"));
-  const totalVotes = BigInt(proposal.totalVotes || "0");
+
+  // Binary voting: For (scores[0]) vs Against (scores[1])
+  const forVotes = scores[0] || BigInt(0);
+  const againstVotes = scores[1] || BigInt(0);
+  const totalVotes = forVotes + againstVotes;
 
   let forPercentage = 50;
   let againstPercentage = 50;
-
-  if (totalVotes > BigInt(0) && scores.length >= 2) {
-    forPercentage = Number((scores[0] * BigInt(100)) / totalVotes);
-    againstPercentage = Number((scores[1] * BigInt(100)) / totalVotes);
+  if (totalVotes > BigInt(0)) {
+    forPercentage = Number((forVotes * BigInt(100)) / totalVotes);
+    againstPercentage = 100 - forPercentage;
   }
 
   const stateClass = {
@@ -175,40 +117,46 @@ function ProposalCard({
     CANCELLED: "badge-closed",
   }[proposal.state];
 
+  const hasVotes = totalVotes > BigInt(0);
+
+  // Match governance page segment count
+  const segmentCount = 160;
+
   return (
     <Link
       href={`/governance/${proposal.id}`}
-      className="block p-4 rounded-xl bg-[color:var(--sf-surface)]/50 border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-primary)]/40 transition-all hover:shadow-lg group"
+      className="block p-3 rounded-lg bg-black/20 backdrop-blur-sm border border-white/5 hover:bg-black/30 transition-colors group overflow-hidden"
     >
-      <div className="flex items-start justify-between mb-3">
-        <h4 className="font-semibold text-[color:var(--sf-text)] group-hover:text-[color:var(--sf-primary)] transition-colors line-clamp-2 flex-1 mr-3">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <h4 className="font-medium text-sm text-[color:var(--sf-text)] truncate flex-1 min-w-0">
           {proposal.title}
         </h4>
-        <span className={`badge ${stateClass} flex-shrink-0`}>
-          {stateLabel}
-        </span>
+        <span className={`badge ${stateClass} text-[10px] flex-shrink-0`}>{stateLabel}</span>
       </div>
 
-      {/* Vote Progress Bar */}
-      {proposal.state === "ACTIVE" && totalVotes > BigInt(0) && (
-        <div className="mb-3">
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-green-500">{forLabel}: {forPercentage}%</span>
-            <span className="text-red-500">{againstLabel}: {againstPercentage}%</span>
+      {proposal.state === "ACTIVE" && (
+        <div className="mt-3 flex items-center gap-2 overflow-hidden">
+          <div className="flex-1 flex gap-px min-w-0 overflow-hidden">
+            {Array.from({ length: segmentCount }).map((_, i) => {
+              const segmentThreshold = ((i + 1) / segmentCount) * 100;
+              const isFilled = hasVotes && forPercentage >= segmentThreshold;
+              return (
+                <div
+                  key={i}
+                  className={`flex-1 h-2.5 rounded-[1px] transition-colors min-w-0 ${
+                    isFilled
+                      ? "bg-[#4ade80]"
+                      : "bg-[#3a3a3a]"
+                  }`}
+                />
+              );
+            })}
           </div>
-          <div className="h-2 rounded-full bg-[color:var(--sf-outline)] overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-green-500 to-green-400"
-              style={{ width: `${forPercentage}%` }}
-            />
-          </div>
+          <span className="text-[10px] text-[color:var(--sf-muted)] tabular-nums whitespace-nowrap flex-shrink-0">
+            {hasVotes ? `${forPercentage}%` : "No votes"}
+          </span>
         </div>
       )}
-
-      <div className="flex items-center justify-between text-xs text-[color:var(--sf-muted)]">
-        <span>{byLabel}</span>
-        <span>{proposal.state === "PENDING" ? startsLabel : endsLabel}</span>
-      </div>
     </Link>
   );
 }

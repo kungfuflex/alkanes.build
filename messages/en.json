@@ -115,7 +115,18 @@
       "CANCELLED": "Cancelled"
     },
     "noProposals": "No proposals found",
-    "error": "Failed to load proposals"
+    "noVoters": "No voters found",
+    "error": "Failed to load proposals",
+    "tabs": {
+      "proposals": "Proposals",
+      "voters": "Voters"
+    },
+    "voters": {
+      "rank": "Rank",
+      "address": "Address",
+      "votingPower": "Voting Power",
+      "votes": "Votes"
+    }
   },
   "forum": {
     "title": "Discussions",
