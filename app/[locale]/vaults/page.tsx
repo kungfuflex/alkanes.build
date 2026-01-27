@@ -1,10 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { usePoolPrices, useBtcPrice, usePoolCandles, formatUsd, formatCompact } from "@/hooks/usePriceData";
+import { AreaPriceChart, type CandleDataPoint } from "@/components/charts";
 
 interface Vault {
   id: string;
@@ -28,7 +28,7 @@ function formatReserve(reserve: string, decimals: number): number {
 export default function VaultsPage() {
   const t = useTranslations();
   const { data: pools, isLoading: poolsLoading, error: poolsError } = usePoolPrices();
-  const { data: btcPrice, isLoading: btcLoading } = useBtcPrice();
+  const { data: btcPrice } = useBtcPrice();
 
   const loading = poolsLoading;
   const error = poolsError?.message || null;
@@ -45,10 +45,10 @@ export default function VaultsPage() {
           priceUsd: btcPrice
             ? formatUsd(pools.pools.DIESEL_FRBTC.price * btcPrice.usd)
             : null,
-          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6))} DIESEL`,
+          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 8))} DIESEL`,
           tvlUsd: btcPrice
             ? formatUsd(
-                formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) *
+                formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 8) *
                   pools.pools.DIESEL_FRBTC.price *
                   btcPrice.usd
               )
@@ -65,9 +65,9 @@ export default function VaultsPage() {
           poolKey: "DIESEL_BUSD",
           priceNative: pools.pools.DIESEL_BUSD.price.toFixed(4),
           priceUsd: formatUsd(pools.pools.DIESEL_BUSD.price),
-          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6))} DIESEL`,
+          tvl: `${formatCompact(formatReserve(pools.pools.DIESEL_BUSD.reserve0, 8))} DIESEL`,
           tvlUsd: formatUsd(
-            formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6) *
+            formatReserve(pools.pools.DIESEL_BUSD.reserve0, 8) *
               pools.pools.DIESEL_BUSD.price
           ),
           token0Symbol: "DIESEL",
@@ -80,16 +80,16 @@ export default function VaultsPage() {
 
   // Calculate total DIESEL in pools and USD value
   const totalDieselAmount = pools
-    ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) +
-      formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6)
+    ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 8) +
+      formatReserve(pools.pools.DIESEL_BUSD.reserve0, 8)
     : 0;
 
   const totalTvlUsd =
     pools && btcPrice
-      ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 6) *
+      ? formatReserve(pools.pools.DIESEL_FRBTC.reserve0, 8) *
           pools.pools.DIESEL_FRBTC.price *
           btcPrice.usd +
-        formatReserve(pools.pools.DIESEL_BUSD.reserve0, 6) *
+        formatReserve(pools.pools.DIESEL_BUSD.reserve0, 8) *
           pools.pools.DIESEL_BUSD.price
       : null;
 
@@ -97,66 +97,61 @@ export default function VaultsPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2 text-[color:var(--sf-text)]">
+      <main className="flex-1 py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          {/* Page Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-[color:var(--sf-text)]">
               {t("dashboard.vaults.title")}
             </h1>
-            <p className="text-[color:var(--sf-muted)]">
+            <p className="text-sm text-[color:var(--sf-muted)]">
               Liquidity pools for DIESEL token pairs
             </p>
           </div>
-        </div>
 
-        {/* Stats Summary */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <div className="glass-card p-6">
-            <p className="text-sm text-[color:var(--sf-muted)] mb-1">{t("dashboard.vaults.totalTvl")}</p>
-            <p className="text-2xl font-bold text-[color:var(--sf-primary)]">
-              {totalTvlUsd ? formatUsd(totalTvlUsd) : `${formatCompact(totalDieselAmount)} DIESEL`}
-            </p>
-            {totalTvlUsd && (
-              <p className="text-sm text-[color:var(--sf-muted)]">
-                {formatCompact(totalDieselAmount)} DIESEL
+          {/* Stats Summary */}
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
+            <div className="glass-card p-4">
+              <p className="text-xs text-[color:var(--sf-muted)] mb-1">{t("dashboard.vaults.totalTvl")}</p>
+              <p className="text-xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums">
+                {totalTvlUsd ? formatUsd(totalTvlUsd) : `${formatCompact(totalDieselAmount)} DIESEL`}
               </p>
-            )}
+            </div>
+            <div className="glass-card p-4">
+              <p className="text-xs text-[color:var(--sf-muted)] mb-1">Active Pools</p>
+              <p className="text-xl font-bold text-[color:var(--sf-text)]">{vaults.length}</p>
+            </div>
+            <div className="glass-card p-4">
+              <p className="text-xs text-[color:var(--sf-muted)] mb-1">Current Block</p>
+              <p className="text-xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums">
+                {pools ? `#${pools.currentHeight.toLocaleString()}` : "..."}
+              </p>
+            </div>
           </div>
-          <div className="glass-card p-6">
-            <p className="text-sm text-[color:var(--sf-muted)] mb-1">Active Pools</p>
-            <p className="text-2xl font-bold text-[color:var(--sf-text)]">{vaults.length}</p>
-          </div>
-          <div className="glass-card p-6">
-            <p className="text-sm text-[color:var(--sf-muted)] mb-1">Current Block</p>
-            <p className="text-2xl font-bold text-[color:var(--sf-text)]">
-              {pools ? `#${pools.currentHeight.toLocaleString()}` : "..."}
-            </p>
-          </div>
-        </div>
 
-        {/* Vaults List */}
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2].map((i) => (
-              <div key={i} className="glass-card p-6 animate-pulse">
-                <div className="h-8 bg-[color:var(--sf-surface)] rounded w-1/4 mb-4" />
-                <div className="h-4 bg-[color:var(--sf-surface)] rounded w-1/2 mb-2" />
-                <div className="h-32 bg-[color:var(--sf-surface)] rounded" />
-              </div>
-            ))}
-          </div>
-        ) : error ? (
-          <div className="glass-card p-6 text-center">
-            <p className="text-red-500">{error}</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {vaults.map((vault) => (
-              <VaultCard key={vault.id} vault={vault} btcPrice={btcPrice?.usd} />
-            ))}
-          </div>
-        )}
+          {/* Vaults List */}
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="glass-card p-5 animate-pulse">
+                  <div className="h-6 bg-[color:var(--sf-outline)] rounded w-1/4 mb-4" />
+                  <div className="h-4 bg-[color:var(--sf-outline)] rounded w-1/2 mb-4" />
+                  <div className="h-24 bg-[color:var(--sf-outline)] rounded" />
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="glass-card p-5 text-center">
+              <p className="text-[color:var(--sf-muted)]">{error}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {vaults.map((vault) => (
+                <VaultCard key={vault.id} vault={vault} btcPrice={btcPrice?.usd} />
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
       <Footer />
@@ -169,146 +164,94 @@ function VaultCard({ vault, btcPrice }: { vault: Vault; btcPrice?: number }) {
   const { data: candles, isLoading: candlesLoading } = usePoolCandles(vault.poolKey, "daily", 14);
 
   // Calculate price change from candles
-  let priceChange: number | null = null;
   let priceChangePercent: number | null = null;
   if (candles && candles.candles.length >= 2) {
     const firstCandle = candles.candles[0];
     const lastCandle = candles.candles[candles.candles.length - 1];
-    priceChange = lastCandle.close - firstCandle.open;
+    const priceChange = lastCandle.close - firstCandle.open;
     priceChangePercent = firstCandle.open > 0 ? (priceChange / firstCandle.open) * 100 : 0;
   }
 
+  const isPositive = priceChangePercent !== null && priceChangePercent >= 0;
+
   return (
-    <div className="glass-card overflow-hidden">
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--sf-primary)] to-[var(--sf-primary-pressed)] flex items-center justify-center">
-              <span className="text-black font-bold text-lg">{vault.symbol.charAt(0)}</span>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-[color:var(--sf-text)]">{vault.name}</h2>
-              <p className="text-sm text-[color:var(--sf-muted)]">{vault.symbol}</p>
-            </div>
+    <div className="glass-card">
+      {/* Header */}
+      <div className="card-header flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[color:var(--sf-outline)] flex items-center justify-center">
+            <span className="text-[color:var(--sf-text)] font-semibold">{vault.symbol.charAt(0)}</span>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-[color:var(--sf-primary)]">
-              {vault.priceUsd || `${vault.priceNative} ${vault.token1Symbol}`}
-            </p>
-            <p className="text-sm text-[color:var(--sf-muted)]">
-              {vault.priceNative} {vault.token1Symbol}
-            </p>
-            {priceChangePercent !== null && (
-              <p className={`text-sm font-medium ${priceChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}% (14d)
-              </p>
-            )}
+          <div>
+            <h2 className="font-semibold text-[color:var(--sf-text)]">{vault.name}</h2>
+            <p className="text-xs text-[color:var(--sf-muted)]">{vault.symbol}</p>
           </div>
+        </div>
+        {priceChangePercent !== null && (
+          <span className={`badge ${isPositive ? 'badge-active' : 'badge-danger'}`}>
+            {isPositive ? '+' : ''}{priceChangePercent.toFixed(1)}%
+          </span>
+        )}
+      </div>
+
+      <div className="p-5">
+        {/* Price */}
+        <div className="mb-4">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums">
+              {vault.priceNative}
+            </span>
+            <span className="text-sm text-[color:var(--sf-muted)]">{vault.token1Symbol}</span>
+          </div>
+          {vault.priceUsd && (
+            <div className="text-lg text-[color:var(--sf-muted)] font-mono tabular-nums">
+              {vault.priceUsd}
+            </div>
+          )}
         </div>
 
         {/* Price Chart */}
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-[color:var(--sf-muted)] mb-3">14 Day Price History</h3>
+        <div className="mb-4">
           {candlesLoading ? (
-            <div className="h-32 rounded-lg bg-[color:var(--sf-surface)]/50 animate-pulse" />
+            <div className="h-24 rounded-lg bg-[color:var(--sf-outline)] animate-pulse" />
           ) : candles && candles.candles.length > 0 ? (
-            <PriceChart candles={candles.candles} />
+            <AreaPriceChart
+              data={candles.candles as CandleDataPoint[]}
+              height={96}
+              showGradient={true}
+            />
           ) : (
-            <div className="h-32 rounded-lg bg-[color:var(--sf-surface)]/50 flex items-center justify-center">
-              <p className="text-sm text-[color:var(--sf-muted)]">No price history available</p>
+            <div className="h-24 rounded-lg bg-[color:var(--sf-bg-end)] flex items-center justify-center">
+              <p className="text-xs text-[color:var(--sf-muted)]">No price history</p>
             </div>
           )}
         </div>
 
         {/* Pool Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-lg bg-[color:var(--sf-surface)]/50">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
             <p className="text-xs text-[color:var(--sf-muted)] mb-1">{t("dashboard.vaults.tvl")}</p>
-            <p className="font-bold text-[color:var(--sf-text)]">{vault.tvlUsd || vault.tvl}</p>
-          </div>
-          <div className="p-4 rounded-lg bg-[color:var(--sf-surface)]/50">
-            <p className="text-xs text-[color:var(--sf-muted)] mb-1">{vault.token0Symbol} Reserve</p>
-            <p className="font-bold text-[color:var(--sf-text)]">
-              {formatCompact(formatReserve(vault.reserve0, 6))}
+            <p className="text-sm font-medium text-[color:var(--sf-text)] font-mono tabular-nums">
+              {vault.tvlUsd || vault.tvl}
             </p>
           </div>
-          <div className="p-4 rounded-lg bg-[color:var(--sf-surface)]/50">
-            <p className="text-xs text-[color:var(--sf-muted)] mb-1">{vault.token1Symbol} Reserve</p>
-            <p className="font-bold text-[color:var(--sf-text)]">
-              {formatCompact(formatReserve(vault.reserve1, vault.token1Symbol === 'frBTC' ? 8 : 6))}
+          <div>
+            <p className="text-xs text-[color:var(--sf-muted)] mb-1">{vault.token0Symbol}</p>
+            <p className="text-sm font-medium text-[color:var(--sf-text)] font-mono tabular-nums">
+              {formatCompact(formatReserve(vault.reserve0, 8))}
             </p>
           </div>
-          <div className="p-4 rounded-lg bg-[color:var(--sf-surface)]/50">
+          <div>
+            <p className="text-xs text-[color:var(--sf-muted)] mb-1">{vault.token1Symbol}</p>
+            <p className="text-sm font-medium text-[color:var(--sf-text)] font-mono tabular-nums">
+              {formatCompact(formatReserve(vault.reserve1, 8))}
+            </p>
+          </div>
+          <div>
             <p className="text-xs text-[color:var(--sf-muted)] mb-1">Pool ID</p>
-            <p className="font-mono text-sm text-[color:var(--sf-text)]">{vault.poolKey}</p>
+            <p className="text-sm font-mono text-[color:var(--sf-text)]">{vault.poolKey}</p>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-interface Candle {
-  timestamp: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
-
-function PriceChart({ candles }: { candles: Candle[] }) {
-  if (candles.length === 0) return null;
-
-  const prices = candles.map(c => c.close);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const priceRange = maxPrice - minPrice || 1;
-
-  const chartHeight = 128;
-  const chartWidth = 100; // percentage
-  const padding = 8;
-
-  // Create SVG path for line chart
-  const points = candles.map((candle, i) => {
-    const x = (i / (candles.length - 1)) * 100;
-    const y = chartHeight - padding - ((candle.close - minPrice) / priceRange) * (chartHeight - 2 * padding);
-    return `${x},${y}`;
-  });
-  const linePath = `M ${points.join(' L ')}`;
-
-  // Create area path
-  const areaPath = `${linePath} L 100,${chartHeight} L 0,${chartHeight} Z`;
-
-  const isPositive = candles[candles.length - 1].close >= candles[0].open;
-  const strokeColor = isPositive ? '#22c55e' : '#ef4444';
-  const fillColor = isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)';
-
-  return (
-    <div className="relative h-32 rounded-lg bg-[color:var(--sf-surface)]/30 overflow-hidden">
-      <svg
-        viewBox={`0 0 100 ${chartHeight}`}
-        preserveAspectRatio="none"
-        className="w-full h-full"
-      >
-        {/* Area fill */}
-        <path d={areaPath} fill={fillColor} />
-        {/* Line */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="2"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-
-      {/* Price labels */}
-      <div className="absolute top-2 left-2 text-xs text-[color:var(--sf-muted)]">
-        High: {maxPrice.toFixed(maxPrice < 0.01 ? 8 : 4)}
-      </div>
-      <div className="absolute bottom-2 left-2 text-xs text-[color:var(--sf-muted)]">
-        Low: {minPrice.toFixed(minPrice < 0.01 ? 8 : 4)}
       </div>
     </div>
   );

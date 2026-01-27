@@ -6,29 +6,17 @@
 :root {
   /* Force dark mode by default */
   --sf-bg-start: #0a0a0a;
-  --sf-bg-end: #141414;
-  --sf-surface: #1a1a1a;
+  --sf-bg-end: #111111;
+  --sf-surface: #161616;
   --sf-text: #f5f5f5;
   --sf-muted: #888888;
-  --sf-primary: #f59e0b;
-  --sf-primary-pressed: #d97706;
-  --sf-outline: #333333;
+  --sf-primary: #d4854a;
+  --sf-primary-pressed: #c07540;
+  --sf-outline: #262626;
 
-  /* Glass Effect */
-  --sf-glass-bg: rgba(20, 20, 20, 0.9);
-  --sf-glass-border: rgba(245, 158, 11, 0.2);
-
-  /* Rainbow Gradient (DIESEL 2.0 branding) */
-  --diesel-rainbow: linear-gradient(90deg, #ef4444, #f97316, #eab308, #22c55e, #3b82f6, #8b5cf6, #ec4899);
-
-  /* Brand colors */
-  --alkane-primary: #0070c5;
-  --alkane-secondary: #0c8ee7;
-  --alkane-accent: #36aaf6;
-
-  /* DIESEL token */
-  --diesel-primary: #f59e0b;
-  --diesel-secondary: #d97706;
+  /* Glass Effect - subtle, neutral */
+  --sf-glass-bg: rgba(18, 18, 18, 0.95);
+  --sf-glass-border: rgba(255, 255, 255, 0.06);
 
   /* Info Card Colors */
   --sf-info-gray-bg: rgba(55, 65, 81, 0.4);
@@ -38,108 +26,90 @@
   --sf-info-red-bg: rgba(127, 29, 29, 0.4);
   --sf-info-yellow-bg: rgba(113, 63, 18, 0.4);
 
-  /* Boost Section */
-  --sf-boost-bg-from: rgba(245, 158, 11, 0.15);
-  --sf-boost-bg-to: rgba(217, 119, 6, 0.1);
-  --sf-boost-label: #fcd34d;
-  --sf-boost-value: #fef3c7;
-  --sf-boost-icon-from: #f59e0b;
-  --sf-boost-icon-to: #d97706;
 }
 
 /* Base styles */
-html {
+html, body {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  max-width: 100vw;
+  background: #0d0d0d;
 }
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
-  background: linear-gradient(180deg, var(--sf-bg-start) 0%, var(--sf-bg-end) 100%);
   min-height: 100vh;
   color: var(--sf-text);
 }
 
-/* Rainbow bar accent */
-.diesel-rainbow-bar {
-  height: 3px;
-  background: var(--diesel-rainbow);
-  border-radius: 2px;
+/* Prevent horizontal overflow globally */
+#__next,
+main {
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
-.diesel-rainbow-bar-thick {
-  height: 4px;
-  background: var(--diesel-rainbow);
-  border-radius: 2px;
-}
-
-/* Glass effect utility */
+/* Card styles - clean, minimal */
 .glass {
-  background: var(--sf-glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid var(--sf-glass-border);
+  background: var(--sf-surface);
+  border: 1px solid var(--sf-outline);
+}
+
+/* Header with subtle blur */
+.header-fade {
+  background: transparent;
 }
 
 .glass-card {
-  @apply glass rounded-2xl;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  @apply glass rounded-lg;
 }
 
 .glass-card-hover {
-  @apply glass-card transition-all duration-200;
+  @apply glass-card transition-colors duration-200;
 }
 
 .glass-card-hover:hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px);
+  border-color: var(--sf-muted);
 }
 
 /* Card header section */
 .card-header {
-  @apply px-6 py-4 border-b-2;
-  border-color: var(--sf-glass-border);
-  background: rgba(26, 26, 26, 0.4);
+  @apply px-5 py-4 border-b border-[color:var(--sf-outline)];
 }
 
-/* Primary button (DIESEL orange) */
+/* Primary button - neutral with orange accent */
 .btn-primary {
   @apply px-6 py-3 font-semibold rounded-lg transition-all duration-200;
-  background: linear-gradient(135deg, var(--sf-primary) 0%, var(--sf-primary-pressed) 100%);
-  color: #000;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  background: #fff;
+  color: #111;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  background: #f0f0f0;
 }
 
-/* Secondary button */
+/* Secondary button - outlined */
 .btn-secondary {
   @apply px-6 py-3 font-semibold rounded-lg transition-all duration-200;
-  background: var(--sf-surface);
+  background: transparent;
   color: var(--sf-text);
-  border: 2px solid var(--sf-outline);
+  border: 1px solid var(--sf-outline);
 }
 
 .btn-secondary:hover {
-  border-color: var(--sf-primary);
-  color: var(--sf-primary);
+  border-color: var(--sf-text);
 }
 
 /* Frost button (Subfrost cyan/ice blue) */
 .btn-frost {
   @apply px-6 py-3 font-semibold rounded-lg transition-all duration-200 inline-flex items-center gap-2;
-  background: linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #22d3ee 100%);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
-  border: none;
+  background: transparent;
+  color: var(--sf-text);
+  border: 1px solid var(--sf-outline);
 }
 
 .btn-frost:hover {
-  filter: brightness(1.15);
-  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5), 0 0 30px rgba(34, 211, 238, 0.3);
-  transform: translateY(-1px);
+  border-color: var(--sf-text);
 }
 
 /* Focus ring */
@@ -151,8 +121,8 @@ body {
 /* Stats grid pattern */
 .stats-grid {
   @apply grid gap-4 p-4 rounded-xl;
-  background: rgba(26, 26, 26, 0.5);
-  border: 1px solid var(--sf-outline);
+  background: rgba(20, 20, 20, 0.5);
+  border: 1px solid var(--sf-glass-border);
 }
 
 .stat-item {
@@ -171,7 +141,7 @@ body {
 
 .stat-value-lg {
   @apply font-bold text-2xl;
-  color: var(--sf-primary);
+  color: var(--sf-text);
 }
 
 /* Code blocks */
@@ -187,8 +157,8 @@ code {
 
 :not(pre) > code {
   @apply px-1.5 py-0.5 rounded;
-  background: var(--sf-surface);
-  color: var(--sf-primary);
+  background: var(--sf-outline);
+  color: var(--sf-text);
 }
 
 /* Animations */
@@ -212,17 +182,9 @@ code {
   animation: shimmer 2s infinite linear;
 }
 
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(245, 158, 11, 0.5);
-  }
-}
-
+/* Removed pulse-glow animation for cleaner look */
 .animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+  /* No animation */
 }
 
 /* Scrollbar styling - dark theme */
@@ -284,17 +246,17 @@ code {
 }
 
 .prose a {
-  color: var(--sf-primary);
+  color: var(--sf-text);
   text-decoration: underline;
 }
 
 .prose a:hover {
-  color: var(--sf-boost-label);
+  color: var(--sf-muted);
 }
 
 .prose blockquote {
   @apply pl-4 italic my-4;
-  border-left: 4px solid var(--sf-primary);
+  border-left: 4px solid var(--sf-outline);
   color: var(--sf-muted);
 }
 
@@ -319,7 +281,7 @@ code {
 }
 
 .proposal-card:hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .vote-button {
@@ -337,7 +299,7 @@ code {
 .vote-button-abstain {
   @apply text-white;
   background: var(--sf-surface);
-  border: 2px solid var(--sf-outline);
+  border: 1px solid var(--sf-outline);
 }
 
 .vote-button-abstain:hover {
@@ -346,36 +308,37 @@ code {
 
 /* Proposal state badges */
 .badge {
-  @apply px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide;
+  @apply px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide;
 }
 
 .badge-active {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
 }
 
 .badge-pending {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
 }
 
 .badge-closed {
-  background: rgba(107, 114, 128, 0.2);
+  background: rgba(107, 114, 128, 0.15);
   color: #9ca3af;
-  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.badge-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
 }
 
 .badge-executed {
-  background: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
 }
 
 /* Chart placeholder */
 .chart-placeholder {
   @apply rounded-lg flex items-center justify-center;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%);
+  background: var(--sf-surface);
   border: 1px dashed var(--sf-outline);
 }
