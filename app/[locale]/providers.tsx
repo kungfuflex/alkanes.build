@@ -33,6 +33,11 @@ export function Providers({ children }: { children: ReactNode }) {
           queries: {
             staleTime: 60 * 1000, // 1 minute
             refetchOnWindowFocus: false,
+            // Retry indefinitely for intermittent API errors
+            retry: true,
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+            // Keep showing previous data while refetching
+            placeholderData: (prev: unknown) => prev,
           },
         },
       })
