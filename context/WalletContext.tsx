@@ -113,6 +113,7 @@ type WalletContextType = {
   connectBrowserWallet: (walletInfo: BrowserWalletInfo) => Promise<void>;
   disconnect: () => void;
   signPsbt: (psbtBase64: string) => Promise<string>;
+  signTaprootPsbt: (psbtBase64: string) => Promise<string>;
   signMessage: (message: string) => Promise<string>;
 
   // Balance and UTXO methods (now with provider integration)
@@ -175,8 +176,10 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
           console.log('[WalletContext] Restoring keystore wallet...');
           // Create client with mnemonic
           const sdkNetwork = toSdkNetwork(network);
-          const newClient = AlkanesClient.withMnemonic(sessionMnemonic, sdkNetwork);
-          console.log('[WalletContext] Client created, initializing...');
+          console.log('[WalletContext] App network:', network, '-> SDK network:', sdkNetwork);
+          const newClient = AlkanesClient.withMnemonic(sessionMnemonic, sdkNetwork, { addressType: 'p2tr' });
+          console.log('[WalletContext] Client created, provider rpcUrl:', (newClient.provider as any)?.rpcUrl);
+          console.log('[WalletContext] Initializing...');
           await newClient.initialize();
           console.log('[WalletContext] Client initialized');
 
@@ -196,8 +199,9 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
         try {
           console.log('[WalletContext] Reconnecting browser wallet...');
           const sdkNetwork = toSdkNetwork(network);
+          console.log('[WalletContext] App network:', network, '-> SDK network:', sdkNetwork);
           const newClient = await sdkConnectWallet(browserWalletId, sdkNetwork);
-          console.log('[WalletContext] Browser wallet connected');
+          console.log('[WalletContext] Browser wallet connected, provider rpcUrl:', (newClient.provider as any)?.rpcUrl);
           setClient(newClient);
           setWalletType('browser');
           // Restore wallet info from ID
@@ -341,7 +345,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     const { keystore: encrypted, mnemonic } = await createKeystore(password, { network: sdkNetwork });
 
     // Create client with mnemonic
-    const newClient = AlkanesClient.withMnemonic(mnemonic, sdkNetwork);
+    const newClient = AlkanesClient.withMnemonic(mnemonic, sdkNetwork, { addressType: 'p2tr' });
     await newClient.initialize();
 
     // Store encrypted keystore
@@ -371,7 +375,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     const sdkNetwork = toSdkNetwork(network);
 
     // Create client with mnemonic
-    const newClient = AlkanesClient.withMnemonic(keystore.mnemonic, sdkNetwork);
+    const newClient = AlkanesClient.withMnemonic(keystore.mnemonic, sdkNetwork, { addressType: 'p2tr' });
     await newClient.initialize();
 
     // Store mnemonic in session for page navigation persistence
@@ -395,7 +399,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     const sdkNetwork = toSdkNetwork(network);
 
     // Create client with mnemonic
-    const newClient = AlkanesClient.withMnemonic(trimmedMnemonic, sdkNetwork);
+    const newClient = AlkanesClient.withMnemonic(trimmedMnemonic, sdkNetwork, { addressType: 'p2tr' });
     await newClient.initialize();
 
     // Create keystore and encrypt
@@ -456,6 +460,77 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     const signed = await client.signPsbt(psbtBase64, { finalize: true });
     return signed.psbtHex;
   }, [client]);
+
+  // Sign PSBT with taproot inputs (BIP86 derivation with proper key tweaking)
+  const signTaprootPsbt = useCallback(async (psbtBase64: string): Promise<string> => {
+    if (!client) {
+      throw new Error('Wallet not connected');
+    }
+
+    // Get mnemonic from session storage
+    const mnemonic = sessionStorage.getItem(STORAGE_KEYS.SESSION_MNEMONIC);
+    if (!mnemonic) {
+      throw new Error('Wallet session expired. Please unlock wallet again.');
+    }
+
+    // Dynamic imports to avoid SSR issues
+    // @ts-ignore - bip32 is available as transitive dependency
+    const [bitcoin, ecc, bip32Module, bip39] = await Promise.all([
+      import('bitcoinjs-lib'),
+      import('@bitcoinerlab/secp256k1'),
+      import('bip32') as Promise<any>,
+      import('bip39'),
+    ]);
+    const BIP32Factory = bip32Module.default;
+
+    // Initialize ECC library
+    bitcoin.initEccLib(ecc);
+
+    // Determine bitcoin network
+    const btcNetwork = network === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
+
+    // Derive taproot key using BIP86 path
+    const seed = bip39.mnemonicToSeedSync(mnemonic);
+    const bip32 = BIP32Factory(ecc);
+    const root = bip32.fromSeed(seed, btcNetwork);
+
+    // BIP86 path: m/86'/coinType/0'/0/0
+    // coinType: 0 for mainnet, 1 for testnet/regtest
+    const coinType = network === 'mainnet' ? 0 : 1;
+    const taprootPath = `m/86'/${coinType}'/0'/0/0`;
+    const taprootChild = root.derivePath(taprootPath);
+
+    if (!taprootChild.privateKey) {
+      throw new Error('Failed to derive taproot private key');
+    }
+
+    // X-only pubkey for taproot (remove first byte which is the prefix)
+    const xOnlyPubkey = taprootChild.publicKey.slice(1, 33);
+
+    // Tweak the key for taproot key-path spend
+    const tweakedChild = taprootChild.tweak(
+      bitcoin.crypto.taggedHash('TapTweak', xOnlyPubkey)
+    );
+
+    // Parse and sign the PSBT
+    const psbt = bitcoin.Psbt.fromBase64(psbtBase64, { network: btcNetwork });
+
+    console.log('[signTaprootPsbt] Signing', psbt.inputCount, 'inputs with taproot key');
+    console.log('[signTaprootPsbt] Taproot path:', taprootPath);
+    console.log('[signTaprootPsbt] X-only pubkey:', Buffer.from(xOnlyPubkey).toString('hex'));
+
+    // Sign each input with the tweaked taproot key
+    for (let i = 0; i < psbt.inputCount; i++) {
+      try {
+        psbt.signInput(i, tweakedChild);
+        console.log(`[signTaprootPsbt] Signed input ${i}`);
+      } catch (error) {
+        console.warn(`[signTaprootPsbt] Could not sign input ${i}:`, error);
+      }
+    }
+
+    return psbt.toBase64();
+  }, [client, network]);
 
   // Sign message
   const signMessage = useCallback(async (message: string): Promise<string> => {
@@ -595,6 +670,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
       connectBrowserWallet: connectBrowserWalletFn,
       disconnect,
       signPsbt,
+      signTaprootPsbt,
       signMessage,
 
       getBalance,
@@ -627,6 +703,7 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
       connectBrowserWalletFn,
       disconnect,
       signPsbt,
+      signTaprootPsbt,
       signMessage,
       getBalance,
       getUtxos,

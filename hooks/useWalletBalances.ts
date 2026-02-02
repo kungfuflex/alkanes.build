@@ -12,10 +12,21 @@ export interface TokenBalance {
   decimals: number;
 }
 
+export interface RuneBalance {
+  runeId: string;
+  runeName: string;
+  spacedName: string;
+  balance: string;
+  balanceFormatted: number;
+  decimals: number;
+  symbol: string;
+}
+
 export interface WalletBalancesResponse {
   btcBalance: number;           // BTC balance in satoshis
   btcBalanceFormatted: string;  // BTC balance formatted
-  tokens: TokenBalance[];
+  tokens: TokenBalance[];       // Alkanes tokens
+  runes: RuneBalance[];         // Bitcoin Runes (via Hiro API)
   address: string;
   timestamp: number;
 }
@@ -37,18 +48,15 @@ async function getProvider(): Promise<AlkanesProvider> {
   }
 
   providerInitPromise = (async () => {
-    console.log('[useWalletBalances] Initializing AlkanesProvider...');
     try {
       const provider = new AlkanesProvider({
         network: 'mainnet',
         rpcUrl: process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes'
       });
       await provider.initialize();
-      console.log('[useWalletBalances] AlkanesProvider initialized successfully');
       providerInstance = provider;
       return provider;
     } catch (error) {
-      console.error('[useWalletBalances] Failed to initialize provider:', error);
       throw error;
     }
   })();
@@ -86,24 +94,58 @@ async function getTokenMetadata(provider: AlkanesProvider, runeId: string): Prom
 }
 
 /**
+ * Fetch Runes balances from Hiro API
+ */
+async function fetchRunesBalances(address: string): Promise<RuneBalance[]> {
+  try {
+    const res = await fetch(
+      `https://api.hiro.so/runes/v1/addresses/${address}/balances?offset=0&limit=60`
+    );
+    if (!res.ok) {
+      console.warn('[useWalletBalances] Hiro API error:', res.status);
+      return [];
+    }
+    const data = await res.json();
+
+    if (!data.results || !Array.isArray(data.results)) {
+      return [];
+    }
+
+    return data.results.map((item: any) => {
+      const decimals = item.rune?.divisibility ?? 0;
+      const balance = item.balance || '0';
+      const balanceNum = Number(balance) / Math.pow(10, decimals);
+
+      return {
+        runeId: `${item.rune?.id || item.rune_id || ''}`,
+        runeName: item.rune?.name || '',
+        spacedName: item.rune?.spaced_name || item.rune?.name || '',
+        balance,
+        balanceFormatted: balanceNum,
+        decimals,
+        symbol: item.rune?.symbol || '',
+      };
+    });
+  } catch (error) {
+    console.warn('[useWalletBalances] Failed to fetch runes:', error);
+    return [];
+  }
+}
+
+/**
  * Fetch wallet balances using the SDK directly (client-side)
  * This bypasses the API route and uses the SDK's WASM-based protobuf decoding
  */
 async function fetchWalletBalances(address: string): Promise<WalletBalancesResponse> {
-  console.log('[useWalletBalances] Fetching balances for:', address);
-
   try {
     const provider = await getProvider();
-    console.log('[useWalletBalances] Provider ready');
 
-    // Fetch BTC balance and alkane balances in parallel
-    const [utxos, alkaneBalances] = await Promise.all([
+    // Fetch BTC balance, alkane balances, and runes in parallel
+    const [utxos, alkaneBalances, runesBalances] = await Promise.all([
       provider.esplora.getAddressUtxos(address),
       provider.alkanes.getBalance(address),
+      fetchRunesBalances(address),
     ]);
-
-    console.log('[useWalletBalances] UTXOs:', utxos.length);
-    console.log('[useWalletBalances] Alkane balances:', alkaneBalances.length, alkaneBalances);
 
     // Calculate BTC balance from UTXOs
     const btcBalance = utxos.reduce((sum: number, utxo: { value?: number }) => sum + (utxo.value || 0), 0);
@@ -136,12 +178,18 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
       return b.balanceFormatted - a.balanceFormatted;
     });
 
-    console.log('[useWalletBalances] Final tokens:', tokensWithMeta);
+    // Sort runes: UNCOMMON•GOODS first, then by balance
+    runesBalances.sort((a, b) => {
+      if (a.spacedName === 'UNCOMMON•GOODS') return -1;
+      if (b.spacedName === 'UNCOMMON•GOODS') return 1;
+      return b.balanceFormatted - a.balanceFormatted;
+    });
 
     return {
       btcBalance,
       btcBalanceFormatted: (btcBalance / 100000000).toFixed(8),
       tokens: tokensWithMeta,
+      runes: runesBalances,
       address,
       timestamp: Date.now(),
     };
@@ -160,23 +208,14 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
 export function useWalletBalances(address: string | undefined, enabled = true) {
   const isEnabled = enabled && !!address;
 
-  // Debug: Log when the hook is called and what its state is
-  console.log('[useWalletBalances] Hook called:', {
-    address: address?.slice(0, 20) + '...',
-    enabled,
-    isEnabled,
-    hasAddress: !!address
-  });
-
   return useQuery({
     queryKey: ['walletBalances', address],
-    queryFn: () => {
-      console.log('[useWalletBalances] queryFn executing for:', address);
-      return fetchWalletBalances(address!);
-    },
+    queryFn: () => fetchWalletBalances(address!),
     enabled: isEnabled,
-    staleTime: 30000, // Cache for 30 seconds
-    refetchInterval: 60000, // Refresh every minute
+    staleTime: 60000, // Cache for 1 minute
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    refetchIntervalInBackground: true, // Continue refreshing even when tab is not focused
+    refetchOnWindowFocus: true, // Refresh when user returns to tab
   });
 }
 
