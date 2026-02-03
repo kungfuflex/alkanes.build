@@ -2024,7 +2024,7 @@ return {
                   <span className="text-gray-500">BTC:</span> {formatBtcBalance(balances.btcBalance || 0)}
                 </span>
                 <span className="text-cyan-500">
-                  <span className="text-gray-500">DSL:</span> {balances.tokens?.find((t: any) => t.name === 'DIESEL')?.balanceFormatted?.toFixed(2) || '0.00'}
+                  <span className="text-gray-500">DSL:</span> {balances.tokens?.find((t: any) => t.runeId === '2:0')?.balanceFormatted?.toFixed(2) || '0.00'}
                 </span>
                 {balances.runes?.find((r: any) => r.spacedName === 'UNCOMMON•GOODS') && (
                   <span className="text-purple-400">

@@ -18,8 +18,12 @@ function detectNetwork(): "mainnet" | "testnet" | "signet" | "regtest" {
   if (hostname.includes("testnet")) {
     return "testnet";
   }
-  if (hostname.includes("regtest") || hostname.includes("localhost")) {
+  if (hostname.includes("regtest")) {
     return "regtest";
+  }
+  // localhost uses NEXT_PUBLIC_NETWORK env variable
+  if (hostname.includes("localhost")) {
+    return (process.env.NEXT_PUBLIC_NETWORK as any) || "mainnet";
   }
 
   return (process.env.NEXT_PUBLIC_NETWORK as any) || "mainnet";

@@ -1,7 +1,6 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { AlkanesProvider } from '@alkanes/ts-sdk';
 
 export interface TokenBalance {
   runeId: string;
@@ -31,14 +30,68 @@ export interface WalletBalancesResponse {
   timestamp: number;
 }
 
+// WebProvider type from WASM module
+type WebProvider = import('@alkanes/ts-sdk/wasm').WebProvider;
+
 /** Singleton provider for read-only operations */
-let providerInstance: AlkanesProvider | null = null;
-let providerInitPromise: Promise<AlkanesProvider> | null = null;
+let providerInstance: WebProvider | null = null;
+let providerInitPromise: Promise<WebProvider> | null = null;
 
 /** Cache for token metadata to avoid repeated RPC calls */
 const tokenMetadataCache: Map<string, { name: string; symbol: string; decimals: number }> = new Map();
 
-async function getProvider(): Promise<AlkanesProvider> {
+/** Known tokens with hardcoded metadata */
+const KNOWN_TOKENS: Record<string, { name: string; symbol: string; decimals: number }> = {
+  '2:0': { name: 'DIESEL', symbol: 'DIESEL', decimals: 8 },
+  '32:0': { name: 'frBTC', symbol: 'frBTC', decimals: 8 },
+};
+
+/** Convert WASM Map responses to plain objects (serde_wasm_bindgen returns Maps) */
+function mapToObject(value: any): any {
+  if (value instanceof Map) {
+    const obj: Record<string, any> = {};
+    for (const [k, v] of value.entries()) {
+      obj[k] = mapToObject(v);
+    }
+    return obj;
+  }
+  if (Array.isArray(value)) {
+    return value.map(mapToObject);
+  }
+  return value;
+}
+
+/** Extract enriched data from WASM provider response (handles Map and plain object) */
+function extractEnrichedData(rawResult: any): { spendable: any[]; assets: any[]; pending: any[] } | null {
+  if (!rawResult) return null;
+
+  let enrichedData: any;
+  if (rawResult instanceof Map) {
+    const returns = rawResult.get('returns');
+    enrichedData = mapToObject(returns);
+  } else {
+    enrichedData = rawResult?.returns || rawResult;
+  }
+
+  if (!enrichedData) return null;
+
+  // Convert any nested Maps in arrays
+  const toArray = (val: any): any[] => {
+    if (Array.isArray(val)) return val.map(mapToObject);
+    if (val && typeof val === 'object' && Object.keys(val).length > 0) {
+      return Object.values(val).map(mapToObject);
+    }
+    return [];
+  };
+
+  return {
+    spendable: toArray(enrichedData.spendable),
+    assets: toArray(enrichedData.assets),
+    pending: toArray(enrichedData.pending),
+  };
+}
+
+async function getProvider(): Promise<WebProvider> {
   if (providerInstance) {
     return providerInstance;
   }
@@ -49,14 +102,20 @@ async function getProvider(): Promise<AlkanesProvider> {
 
   providerInitPromise = (async () => {
     try {
-      const provider = new AlkanesProvider({
-        network: 'mainnet',
-        rpcUrl: process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes'
+      // Import WASM module directly from local copy
+      const wasm = await import('@alkanes/ts-sdk/wasm');
+
+      // Create WebProvider directly (no AlkanesProvider.initialize() needed)
+      const provider = new wasm.WebProvider('mainnet', {
+        jsonrpc_url: process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes',
+        data_api_url: process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes',
       });
-      await provider.initialize();
+
+      console.log('[useWalletBalances] WebProvider created successfully');
       providerInstance = provider;
       return provider;
     } catch (error) {
+      console.error('[useWalletBalances] Failed to create WebProvider:', error);
       throw error;
     }
   })();
@@ -65,32 +124,24 @@ async function getProvider(): Promise<AlkanesProvider> {
 }
 
 /**
- * Fetch token metadata using reflect API
- * Results are cached to avoid repeated calls
+ * Get token metadata (uses known tokens first, then cache, then API fallback)
  */
-async function getTokenMetadata(provider: AlkanesProvider, runeId: string): Promise<{ name: string; symbol: string; decimals: number }> {
-  // Check cache first
+async function getTokenMetadata(runeId: string): Promise<{ name: string; symbol: string; decimals: number }> {
+  // Check known tokens first
+  if (KNOWN_TOKENS[runeId]) {
+    return KNOWN_TOKENS[runeId];
+  }
+
+  // Check cache
   const cached = tokenMetadataCache.get(runeId);
   if (cached) {
     return cached;
   }
 
-  try {
-    const meta = await provider.alkanes.reflect(runeId);
-    const metadata = {
-      name: meta.name || runeId,
-      symbol: meta.symbol || runeId,
-      decimals: meta.decimals ?? 8,
-    };
-    tokenMetadataCache.set(runeId, metadata);
-    return metadata;
-  } catch (error) {
-    // If reflect fails, return defaults
-    console.warn(`Failed to fetch metadata for ${runeId}:`, error);
-    const fallback = { name: runeId, symbol: runeId, decimals: 8 };
-    tokenMetadataCache.set(runeId, fallback);
-    return fallback;
-  }
+  // Fallback to runeId as name/symbol
+  const fallback = { name: runeId, symbol: runeId, decimals: 8 };
+  tokenMetadataCache.set(runeId, fallback);
+  return fallback;
 }
 
 /**
@@ -133,30 +184,104 @@ async function fetchRunesBalances(address: string): Promise<RuneBalance[]> {
 }
 
 /**
- * Fetch wallet balances using the SDK directly (client-side)
- * This bypasses the API route and uses the SDK's WASM-based protobuf decoding
+ * Fetch alkanes balances via alkanes_protorunesbyaddress RPC
+ * (balances.lua doesn't reliably return alkanes, so we fetch them separately like subfrost-app does)
+ */
+async function fetchAlkanesBalances(address: string): Promise<Array<{ runeId: string; balance: string }>> {
+  try {
+    const rpcUrl = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
+    const res = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'alkanes_protorunesbyaddress',
+        params: [{ address, protocolTag: '1' }],
+      }),
+    });
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    if (data.error || !data.result?.outpoints) return [];
+
+    // Aggregate balances by alkane ID from all outpoints
+    const balanceMap = new Map<string, bigint>();
+    for (const outpoint of data.result.outpoints) {
+      const balances = outpoint.balance_sheet?.cached?.balances || [];
+      for (const bal of balances) {
+        const runeId = `${bal.block}:${bal.tx}`;
+        const amount = BigInt(bal.amount || 0);
+        balanceMap.set(runeId, (balanceMap.get(runeId) || BigInt(0)) + amount);
+      }
+    }
+
+    return Array.from(balanceMap, ([runeId, balance]) => ({ runeId, balance: balance.toString() }));
+  } catch (error) {
+    console.warn('[useWalletBalances] fetchAlkanesBalances failed:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch wallet balances using the WebProvider directly (client-side)
  */
 async function fetchWalletBalances(address: string): Promise<WalletBalancesResponse> {
   try {
     const provider = await getProvider();
 
-    // Fetch BTC balance, alkane balances, and runes in parallel
-    const [utxos, alkaneBalances, runesBalances] = await Promise.all([
-      provider.esplora.getAddressUtxos(address),
-      provider.alkanes.getBalance(address),
+    // Fetch all data in parallel (like subfrost-app does):
+    // 1. getEnrichedBalances for BTC UTXOs
+    // 2. alkanes_protorunesbyaddress for alkanes (separate call, more reliable)
+    // 3. Hiro API for runes
+    const [rawEnrichedData, alkaneBalances, runesBalances] = await Promise.all([
+      provider.getEnrichedBalances(address).catch((err: Error) => {
+        console.warn('[useWalletBalances] getEnrichedBalances failed:', err);
+        return null;
+      }),
+      fetchAlkanesBalances(address),
       fetchRunesBalances(address),
     ]);
 
-    // Calculate BTC balance from UTXOs
-    const btcBalance = utxos.reduce((sum: number, utxo: { value?: number }) => sum + (utxo.value || 0), 0);
+    let btcBalance = 0;
+
+    // Extract and normalize the enriched data (handles Map responses from WASM)
+    const enrichedData = extractEnrichedData(rawEnrichedData);
+    console.log('[useWalletBalances] Extracted enriched data:', enrichedData ? {
+      spendableCount: enrichedData.spendable.length,
+      assetsCount: enrichedData.assets.length,
+      pendingCount: enrichedData.pending.length,
+    } : null);
+
+    if (enrichedData) {
+      // Sum BTC from all UTXOs (spendable + assets + pending)
+      for (const utxo of [...enrichedData.spendable, ...enrichedData.assets, ...enrichedData.pending]) {
+        btcBalance += utxo.value || 0;
+      }
+    }
+
+    console.log('[useWalletBalances] BTC balance:', btcBalance, 'sats, alkanes found:', alkaneBalances.length, alkaneBalances);
+
+    // Fallback: if no enriched data, try esplora for BTC balance
+    if (btcBalance === 0 && !enrichedData) {
+      try {
+        const utxos = await provider.getAddressUtxos(address);
+        if (Array.isArray(utxos)) {
+          btcBalance = utxos.reduce((sum: number, utxo: any) => sum + (utxo.value || 0), 0);
+          console.log('[useWalletBalances] Esplora fallback BTC balance:', btcBalance);
+        }
+      } catch (err) {
+        console.warn('[useWalletBalances] esplora fallback failed:', err);
+      }
+    }
 
     // Fetch metadata for all tokens in parallel
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tokensWithMeta = await Promise.all(
       alkaneBalances.map(async (ab: any) => {
-        const runeId = `${ab.alkane_id.block}:${ab.alkane_id.tx}`;
-        const metadata = await getTokenMetadata(provider, runeId);
-        const balanceValue = typeof ab.balance === 'bigint' ? ab.balance : BigInt(ab.balance);
+        const runeId = ab.runeId;
+        const metadata = await getTokenMetadata(runeId);
+        const balanceValue = typeof ab.balance === 'bigint' ? ab.balance : BigInt(ab.balance || 0);
 
         return {
           runeId,
@@ -168,6 +293,8 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
         };
       })
     );
+
+    console.log('[useWalletBalances] tokensWithMeta:', tokensWithMeta);
 
     // Sort tokens: DIESEL first, then by balance
     tokensWithMeta.sort((a, b) => {
