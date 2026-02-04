@@ -1195,9 +1195,10 @@ const DieselTerminal = () => {
 
       // Find ALL chain starts (TXs that spend from outside our unconfirmed set)
       // Each chain start represents a different source UTXO
+      // NOTE: Chain start may not be a DIESEL tx itself (e.g., a regular tx that starts the chain)
       const chainStarts: Array<{ tx: any; sourceUtxoKey: string; sourceUtxo: { txid: string; vout: number; value: number } }> = [];
 
-      for (const tx of dieselTxs) {
+      for (const tx of unconfirmedTxs) {
         for (const vin of tx.vin) {
           if (!txMap.has(vin.txid)) {
             // This TX spends from a confirmed UTXO - it's a chain start
@@ -1244,7 +1245,29 @@ const DieselTerminal = () => {
 
           // Check if this is a DIESEL mint
           const isDiesel = tx.vout?.some((out: any) => out.scriptpubkey?.startsWith(dieselPrefix));
-          if (!isDiesel) break;
+
+          // If not DIESEL and we haven't found any DIESEL yet, skip to next TX in chain
+          // (chain may start with non-DIESEL tx like a regular transfer)
+          if (!isDiesel) {
+            if (chainTxids.length > 0) {
+              // Already have DIESEL txs, stop here
+              break;
+            }
+            // Skip non-DIESEL tx at start, find next TX that spends from it
+            let nextTxid: string | null = null;
+            for (const [txid, otherTx] of txMap) {
+              if (txid === currentTxid) continue;
+              for (const vin of otherTx.vin) {
+                if (vin.txid === currentTxid && vin.vout === 0) {
+                  nextTxid = txid;
+                  break;
+                }
+              }
+              if (nextTxid) break;
+            }
+            currentTxid = nextTxid!;
+            continue;
+          }
 
           chainTxids.push(currentTxid);
 
