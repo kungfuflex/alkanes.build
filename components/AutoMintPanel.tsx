@@ -53,6 +53,7 @@ export function AutoMintPanel({
   const [minRate, setMinRate] = useState('0.15');
   const [maxRate, setMaxRate] = useState('2.3');
   const [mintCount, setMintCount] = useState('20');
+  const [rbfBuffer, setRbfBuffer] = useState('10');  // RBF buffer % above mempool rate
   const [status, setStatus] = useState<string | null>(null);
 
   // Track if we've already triggered for current conditions
@@ -63,6 +64,8 @@ export function AutoMintPanel({
   const minRateNum = parseFloat(minRate.replace(',', '.')) || 0;
   const maxRateNum = parseFloat(maxRate.replace(',', '.')) || Infinity;
   const mintCountNum = Math.min(parseInt(mintCount) || 0, MAX_CHAIN_LENGTH);
+  const rbfBufferNum = Math.max(0, parseInt(rbfBuffer) || 0);
+  const rbfMultiplier = 1 + rbfBufferNum / 100;  // e.g., 10% -> 1.1
 
   // Check if fee rate is in range (with small epsilon for float comparison)
   const EPSILON = 0.001;
@@ -101,24 +104,25 @@ export function AutoMintPanel({
     }
   }, [feeInRange, enabled]);
 
-  // Reset RBF triggered when effective rate catches up to target (mempool + 10%)
+  // Reset RBF triggered when effective rate catches up to target (mempool + buffer%)
   useEffect(() => {
-    const targetRate = currentFeeRate * 1.1;
+    const targetRate = currentFeeRate * rbfMultiplier;
     if (currentEffectiveRate >= targetRate) {
       setRbfTriggered(false);
     }
-  }, [currentEffectiveRate, currentFeeRate]);
+  }, [currentEffectiveRate, currentFeeRate, rbfMultiplier]);
 
   // Reset triggered when chain is confirmed (hasActiveChain: true → false)
   useEffect(() => {
     if (prevHasActiveChain.current && !hasActiveChain) {
       // Chain was confirmed, reset ALL triggers to allow new cycle
-      // Add small delay to ensure chain data is fully cleared
-      setStatus('READY: chain confirmed, waiting...');
+      // Wait for mempool data to refresh before allowing new mint
+      setStatus('CONFIRMED — refreshing fees...');
       const timer = setTimeout(() => {
         setTriggered(false);
         setRbfTriggered(false);
-      }, 1000); // 1 second delay before allowing new mint
+        setStatus(null);
+      }, 2000); // 2 second delay to allow mempool refresh
       return () => clearTimeout(timer);
     }
     prevHasActiveChain.current = hasActiveChain;
@@ -189,13 +193,13 @@ export function AutoMintPanel({
   }, [enabled]);
 
   // Auto-RBF logic (runs independently of mint triggered state)
-  // Triggers when EFF < NOW * 1.1 (10% buffer) and bumps to NOW * 1.1
+  // Triggers when EFF < NOW * rbfMultiplier and bumps to target
   useEffect(() => {
     if (!enabled || !autoRbf || !hasActiveChain || isMinting || isRbfing || rbfTriggered) return;
     if (!feeInRange) return;
 
-    // Target rate with 10% buffer above current mempool
-    const targetRate = currentFeeRate * 1.1;
+    // Target rate with buffer % above current mempool
+    const targetRate = currentFeeRate * rbfMultiplier;
 
     // Trigger RBF when effective rate drops below target (proactive bump)
     if (currentEffectiveRate < targetRate && currentEffectiveRate > 0) {
@@ -211,37 +215,38 @@ export function AutoMintPanel({
           setRbfTriggered(false); // Allow retry on error
         });
     }
-  }, [enabled, autoRbf, hasActiveChain, isMinting, isRbfing, rbfTriggered, feeInRange, currentEffectiveRate, currentFeeRate, onRbf]);
+  }, [enabled, autoRbf, hasActiveChain, isMinting, isRbfing, rbfTriggered, feeInRange, currentEffectiveRate, currentFeeRate, rbfMultiplier, onRbf]);
 
-  // Update status for active chains (runs independently of triggered state)
+  // Update status when waiting (chains info is in PENDING CHAINS section)
   useEffect(() => {
     if (!enabled || isMinting || isRbfing) return;
 
-    if (chainsCount > 0) {
-      setStatus(`ACTIVE: ${chainsCount} chain${chainsCount > 1 ? 's' : ''}, ${totalChainsTx} TXs`);
-    } else {
+    if (chainsCount === 0) {
       setStatus('WAITING...');
+    } else {
+      // Don't show ACTIVE status here - it's already in PENDING CHAINS
+      setStatus(null);
     }
-  }, [enabled, chainsCount, totalChainsTx, isMinting, isRbfing]);
+  }, [enabled, chainsCount, isMinting, isRbfing]);
 
   if (!isConnected) return null;
 
   return (
-    <div className="border-t border-gray-700">
+    <div className="border-t border-[#252525]">
       {/* Header */}
-      <div className="px-3 py-1.5 bg-gray-800/30 border-b border-gray-700 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs"><span className="text-orange-500">3)</span> <span className="text-white">AUTO-MINT</span></span>
+      <div className="px-2 sm:px-4 py-2 bg-[#0d0d0d] border-b border-[#252525] flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-xs sm:text-sm"><span className="text-orange-500 font-bold">2</span><span className="text-[#404040] mx-1">│</span><span className="text-[#e0e0e0] tracking-wide">AUTO-MINT</span></span>
           {enabled && (
-            <span className={`w-2 h-2 rounded-full ${feeInRange ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
+            <span className={`w-2.5 h-2.5 ${feeInRange ? 'bg-[#00ff88] animate-pulse' : 'bg-[#ffcc00]'}`} />
           )}
         </div>
         <button
           onClick={() => setEnabled(!enabled)}
-          className={`px-3 py-1 text-xs font-bold border transition-colors ${
+          className={`px-4 py-1 text-sm font-bold border transition-colors tracking-wide ${
             enabled
               ? 'bg-orange-500 text-black border-orange-500 hover:bg-orange-400'
-              : 'bg-transparent text-orange-500 border-orange-500 hover:bg-orange-500/20'
+              : 'bg-transparent text-orange-500 border-orange-500 hover:bg-orange-500/10'
           }`}
         >
           {enabled ? 'STOP' : 'START'}
@@ -249,40 +254,54 @@ export function AutoMintPanel({
       </div>
 
       {/* Settings */}
-      <div className="px-3 py-2 space-y-2">
+      <div className="px-2 sm:px-4 py-2 sm:py-3 space-y-2 sm:space-y-3 text-xs sm:text-sm">
         {/* Fee range row */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-gray-500 w-16">FEE RANGE</span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="text-[#505050] w-12 sm:w-20 text-xs group relative cursor-help">
+            <span className="border-b border-dotted border-[#505050]">FEE</span>
+            <div className="absolute top-full left-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-50 normal-case font-normal">
+              Fee range (sat/vB). Mint only when mempool fee is within this range
+            </div>
+          </span>
           <input
             type="number"
             step="0.01"
             min="0"
             value={minRate}
             onChange={(e) => setMinRate(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
+            className="w-14 sm:w-20 bg-[#0a0a0a] border border-[#303030] px-1 sm:px-2 py-1 text-[#e0e0e0] text-center focus:border-orange-500 focus:outline-none"
             placeholder="min"
           />
-          <span className="text-gray-500">-</span>
+          <span className="text-[#303030]">—</span>
           <input
             type="number"
             step="0.1"
             min="0"
             value={maxRate}
             onChange={(e) => setMaxRate(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
+            className="w-14 sm:w-20 bg-[#0a0a0a] border border-[#303030] px-1 sm:px-2 py-1 text-[#e0e0e0] text-center focus:border-orange-500 focus:outline-none"
             placeholder="max"
           />
-          <span className="text-gray-500">sat/vB</span>
+          <span className="text-[#404040] text-xs">s/vB</span>
 
           {/* Current rate indicator */}
-          <span className={`ml-auto ${feeInRange ? 'text-green-400' : 'text-yellow-400'}`}>
-            NOW: {currentFeeRate.toFixed(2)}
+          <span className={`ml-auto flex items-center gap-1.5 group relative ${feeInRange ? 'text-[#00ff88]' : 'text-[#ffcc00]'}`}>
+            <span className={`w-2 h-2 ${feeInRange ? 'bg-[#00ff88]' : 'bg-[#ffcc00]'}`}></span>
+            {currentFeeRate.toFixed(2)}
+            <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-50 normal-case font-normal">
+              Current mempool fee rate. Green = in range, Yellow = outside
+            </div>
           </span>
         </div>
 
         {/* Mint count row */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-gray-500 w-16">MINTS</span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="text-[#505050] w-12 sm:w-20 text-xs group relative cursor-help">
+            <span className="border-b border-dotted border-[#505050]">MINTS</span>
+            <div className="absolute top-full left-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-50 normal-case font-normal">
+              Number of chained mint TXs to create (max 25 due to mempool limit)
+            </div>
+          </span>
           <input
             type="number"
             step="1"
@@ -290,56 +309,75 @@ export function AutoMintPanel({
             max={MAX_CHAIN_LENGTH}
             value={mintCount}
             onChange={(e) => setMintCount(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
+            className="w-14 sm:w-20 bg-[#0a0a0a] border border-[#303030] px-1 sm:px-2 py-1 text-[#e0e0e0] text-center focus:border-orange-500 focus:outline-none"
           />
-          <span className="text-gray-500">/ {MAX_CHAIN_LENGTH} max</span>
-
-          {/* Available slots */}
-          {hasActiveChain && (
-            <span className="ml-auto text-gray-400">
-              AVAILABLE: {availableSlots}
-            </span>
-          )}
+          <span className="text-[#404040] text-xs">/{MAX_CHAIN_LENGTH}</span>
         </div>
 
         {/* Auto-RBF toggle */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-gray-500 w-16">AUTO-RBF</span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="text-[#505050] w-12 sm:w-20 text-xs group relative cursor-help">
+            <span className="border-b border-dotted border-[#505050]">RBF</span>
+            <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-72 pointer-events-none z-50 normal-case font-normal">
+              <div className="text-orange-500 font-bold mb-1">AUTO FEE BUMP</div>
+              <div className="mb-2">Keeps your chain +buffer% above mempool</div>
+              <div className="text-[#606060] border-t border-[#303030] pt-2 mt-2">
+                <div>Example (buffer=10%):</div>
+                <div>• Mempool: 1.0 → Target: 1.1 sat/vB</div>
+                <div>• Your EFF: 1.05 {'<'} 1.1 → RBF triggers</div>
+                <div>• Bumps to 1.1 sat/vB</div>
+              </div>
+            </div>
+          </span>
           <button
             onClick={() => setAutoRbf(!autoRbf)}
-            className={`relative w-10 h-5 border transition-colors ${
+            className={`relative w-12 h-6 border transition-colors ${
               autoRbf
                 ? 'bg-orange-500/20 border-orange-500'
-                : 'bg-gray-800 border-gray-600'
+                : 'bg-[#151515] border-[#303030]'
             }`}
           >
-            <span className={`absolute top-0.5 w-4 h-3.5 transition-all ${
+            <span className={`absolute top-1 w-4 h-4 transition-all ${
               autoRbf
-                ? 'right-0.5 bg-orange-500'
-                : 'left-0.5 bg-gray-500'
+                ? 'right-1 bg-orange-500'
+                : 'left-1 bg-[#404040]'
             }`} />
           </button>
-          <span className={`w-6 ${autoRbf ? 'text-orange-500' : 'text-gray-600'}`}>{autoRbf ? 'ON' : 'OFF'}</span>
-          <span className="text-gray-600">auto-bump rate</span>
+          <span className={`text-xs ${autoRbf ? 'text-orange-500' : 'text-[#404040]'}`}>{autoRbf ? 'ON' : 'OFF'}</span>
+          <span className="text-[#303030] text-xs">+</span>
+          <input
+            type="number"
+            step="1"
+            min="0"
+            max="100"
+            value={rbfBuffer}
+            onChange={(e) => setRbfBuffer(String(Math.floor(Math.abs(parseInt(e.target.value) || 0))))}
+            className="w-12 bg-[#0a0a0a] border border-[#303030] px-1 py-1 text-[#e0e0e0] text-center text-xs focus:border-orange-500 focus:outline-none"
+          />
+          <span className="text-[#404040] text-xs">%</span>
           {hasActiveChain && currentEffectiveRate > 0 && (
-            <span className={`ml-auto ${currentEffectiveRate >= currentFeeRate ? 'text-green-400' : 'text-yellow-400'}`}>
-              EFF: {currentEffectiveRate.toFixed(2)}
+            <span className={`ml-auto flex items-center gap-1.5 group relative ${currentEffectiveRate >= currentFeeRate ? 'text-[#00ff88]' : 'text-[#ffcc00]'}`}>
+              <span className="text-[#505050] text-xs border-b border-dotted border-[#505050] cursor-help">EFF</span>
+              {currentEffectiveRate.toFixed(2)}
+              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-50 normal-case font-normal">
+                Chain effective fee rate. Green = above mempool, Yellow = below
+              </div>
             </span>
           )}
         </div>
 
         {/* Status row */}
         {status && (
-          <div className={`text-xs px-2 py-1 rounded ${
+          <div className={`text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 border-l-2 ${
             status.startsWith('ERROR') || status.startsWith('RBF ERROR')
-              ? 'bg-red-900/30 text-red-400'
+              ? 'bg-[#1a0a0a] border-[#ff4444] text-[#ff4444]'
               : status.startsWith('MINTING') || status.startsWith('RBF:')
-              ? 'bg-yellow-900/30 text-yellow-400'
+              ? 'bg-[#1a1500] border-[#ffcc00] text-[#ffcc00]'
               : status.startsWith('MINTED') || status.startsWith('RBF OK')
-              ? 'bg-green-900/30 text-green-400'
+              ? 'bg-[#0a1a0a] border-[#00ff88] text-[#00ff88]'
               : status.startsWith('ACTIVE')
-              ? 'bg-blue-900/30 text-blue-400'
-              : 'bg-gray-800 text-gray-400'
+              ? 'bg-[#0a0a1a] border-[#00d4ff] text-[#00d4ff]'
+              : 'bg-[#151515] border-[#404040] text-[#707070]'
           }`}>
             {status}
           </div>

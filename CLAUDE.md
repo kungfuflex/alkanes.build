@@ -197,6 +197,48 @@ OP_RETURN for DIESEL mint:
 6a5d1214011400ff7f818cec82d08bc0a88281d215
 ```
 
+### RBF Race Condition — Chain Confirmation Check
+
+**Problem**: When sending an RBF transaction, a block may be mined BEFORE the RBF reaches the mempool:
+1. Original transactions get confirmed in the block
+2. RBF txid never existed in mempool
+3. System waits for confirmation of non-existent RBF txid
+
+**Solution** (implemented in `DieselTerminal.tsx`):
+
+```typescript
+// 1. Check lastTxid (could be RBF replacement)
+const lastTxData = await fetchTx(chainData.cpfpData.lastTxid);
+
+// 2. If lastTxid confirmed → chain is done
+if (lastTxData.result?.status?.confirmed) {
+  removeChain();
+  return;
+}
+
+// 3. If lastTxid not found (RBF didn't make it to mempool)
+const lastTxNotFound = lastTxData.error || !lastTxData.result;
+
+if (lastTxNotFound && chainData.mintResult.txids.length > 0) {
+  // Check the FIRST TX of the original chain
+  const firstTxData = await fetchTx(chainData.mintResult.txids[0]);
+
+  // If first TX confirmed → original chain was mined (RBF lost the race)
+  // If first TX also not found → chain was evicted from mempool
+  if (firstTxData.result?.status?.confirmed || !firstTxData.result) {
+    removeChain();
+    return;
+  }
+}
+
+// 4. If lastTxid not found — remove chain
+if (lastTxNotFound) {
+  removeChain();
+}
+```
+
+**Key point**: We store `mintResult.txids[]` — array of original chain txids. When checking confirmation, first check `lastTxid`, and if not found — check the first TX of the original chain.
+
 ## Environment Variables
 
 ```bash
@@ -211,11 +253,13 @@ NEXT_PUBLIC_ALKANES_RPC_URL  # Alkanes RPC endpoint (default: https://mainnet.su
 - **postgres**: Port 5433 (avoids conflict with standard 5432)
 - **redis**: Port 6380 (avoids conflict with standard 6379)
 
-## TODO / Future Changes
+## Code Cleanup History
 
-### Remove Terminal Mode (when user requests)
-- Delete `/app/[locale]/terminal/page.tsx`
-- Delete `/components/DieselTerminal.tsx`
-- Keep only Autopilot mode at `/app/[locale]/autopilot/page.tsx`
-- The full Terminal with charts, orderbook, manual mint buttons etc. will be removed
-- Only the simplified Autopilot with AutoMintPanel will remain
+### Manual Controls Removed (2025)
+- Removed `showManualControls` constant and all related JSX (was always `false`)
+- Removed manual parameter inputs (block reward, diesel price, tx cost, competition)
+- Removed strategy matrix table
+- Removed `manualMints` state and related calculations
+- Simplified `results` computation to only `isProfitable` boolean
+- Removed unused formatters (`fmt`, `fmtInt`, `fmtPct`)
+- Terminal now shows only: STATUS bar, AUTO-MINT panel, PENDING chains list

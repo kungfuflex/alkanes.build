@@ -291,40 +291,40 @@ function TerminalConnectModal({
   const displayError = localError || error;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90" onClick={onClose}>
       <div
-        className="bg-gray-950 border border-orange-500/50 w-full max-w-md font-mono text-xs"
+        className="bg-[#0a0a0a] border border-orange-500/50 w-full max-w-md font-mono text-sm"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-orange-500/50 bg-orange-500/10">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-orange-500/50 bg-orange-500/10">
           <span className="text-orange-500 font-bold">WALLET CONNECT</span>
-          <button onClick={onClose} className="text-gray-500 hover:text-orange-500">
+          <button onClick={onClose} className="text-[#505050] hover:text-orange-500">
             [ESC]
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4">
+        <div className="p-5">
           {view === 'main' && (
-            <div className="space-y-3">
-              <div className="text-gray-500 mb-4">SELECT ACTION:</div>
+            <div className="space-y-4">
+              <div className="text-[#707070] mb-4">SELECT ACTION:</div>
               <button
                 onClick={() => setView('create')}
-                className="w-full text-left px-3 py-2 border border-gray-800 hover:border-orange-500 hover:bg-orange-500/10 text-green-500"
+                className="w-full text-left px-4 py-3 border border-[#252525] hover:border-orange-500 hover:bg-orange-500/10 text-[#00ff88]"
               >
                 {'>'} CREATE NEW WALLET
               </button>
               <button
                 onClick={() => setView('restore')}
-                className="w-full text-left px-3 py-2 border border-gray-800 hover:border-orange-500 hover:bg-orange-500/10 text-cyan-500"
+                className="w-full text-left px-4 py-3 border border-[#252525] hover:border-orange-500 hover:bg-orange-500/10 text-[#00d4ff]"
               >
                 {'>'} RESTORE FROM MNEMONIC
               </button>
               {hasKeystore && (
                 <button
                   onClick={() => setView('unlock')}
-                  className="w-full text-left px-3 py-2 border border-gray-800 hover:border-orange-500 hover:bg-orange-500/10 text-yellow-500"
+                  className="w-full text-left px-4 py-3 border border-[#252525] hover:border-orange-500 hover:bg-orange-500/10 text-[#ffcc00]"
                 >
                   {'>'} UNLOCK EXISTING WALLET
                 </button>
@@ -333,28 +333,28 @@ function TerminalConnectModal({
           )}
 
           {view === 'unlock' && (
-            <div className="space-y-3">
-              <div className="text-gray-500">ENTER PASSWORD:</div>
+            <div className="space-y-4">
+              <div className="text-[#707070]">ENTER PASSWORD:</div>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleUnlock()}
                 placeholder="********"
-                className="w-full bg-gray-900 border border-gray-800 px-3 py-2 text-green-500 outline-none focus:border-orange-500"
+                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00ff88] outline-none focus:border-orange-500"
                 autoFocus
               />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setView('main')}
-                  className="px-3 py-1 border border-gray-700 text-gray-500 hover:text-orange-500 hover:border-orange-500"
+                  className="px-4 py-2 border border-[#303030] text-[#707070] hover:text-orange-500 hover:border-orange-500"
                 >
                   BACK
                 </button>
                 <button
                   onClick={handleUnlock}
                   disabled={isLoading || !password}
-                  className="flex-1 px-3 py-1 border border-orange-500 text-orange-500 hover:bg-orange-500/20 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/20 disabled:opacity-50"
                 >
                   {isLoading ? 'UNLOCKING...' : 'UNLOCK'}
                 </button>
@@ -363,36 +363,36 @@ function TerminalConnectModal({
           )}
 
           {view === 'restore' && (
-            <div className="space-y-3">
-              <div className="text-gray-500">MNEMONIC PHRASE:</div>
+            <div className="space-y-4">
+              <div className="text-[#707070]">MNEMONIC PHRASE:</div>
               <textarea
                 value={mnemonic}
                 onChange={e => setMnemonic(e.target.value)}
                 placeholder="word1 word2 word3 ..."
                 rows={3}
-                className="w-full bg-gray-900 border border-gray-800 px-3 py-2 text-cyan-500 outline-none focus:border-orange-500 resize-none"
+                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00d4ff] outline-none focus:border-orange-500 resize-none"
                 autoFocus
               />
-              <div className="text-gray-500">PASSWORD (min 8 chars):</div>
+              <div className="text-[#707070]">PASSWORD (min 8 chars):</div>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleRestore()}
                 placeholder="********"
-                className="w-full bg-gray-900 border border-gray-800 px-3 py-2 text-green-500 outline-none focus:border-orange-500"
+                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00ff88] outline-none focus:border-orange-500"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setView('main')}
-                  className="px-3 py-1 border border-gray-700 text-gray-500 hover:text-orange-500 hover:border-orange-500"
+                  className="px-4 py-2 border border-[#303030] text-[#707070] hover:text-orange-500 hover:border-orange-500"
                 >
                   BACK
                 </button>
                 <button
                   onClick={handleRestore}
                   disabled={isLoading}
-                  className="flex-1 px-3 py-1 border border-orange-500 text-orange-500 hover:bg-orange-500/20 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/20 disabled:opacity-50"
                 >
                   {isLoading ? 'RESTORING...' : 'RESTORE'}
                 </button>
@@ -401,40 +401,40 @@ function TerminalConnectModal({
           )}
 
           {view === 'create' && (
-            <div className="space-y-3">
-              <div className="text-gray-500">CREATE NEW WALLET</div>
-              <div className="text-yellow-500/70 text-[10px] px-2 py-1 border border-yellow-500/30 bg-yellow-500/5">
+            <div className="space-y-4">
+              <div className="text-[#707070]">CREATE NEW WALLET</div>
+              <div className="text-[#ffcc00]/80 text-xs px-3 py-2 border border-[#ffcc00]/30 bg-[#ffcc00]/5">
                 A new mnemonic phrase will be generated. Make sure to save it!
               </div>
-              <div className="text-gray-500">PASSWORD (min 8 chars):</div>
+              <div className="text-[#707070]">PASSWORD (min 8 chars):</div>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="********"
-                className="w-full bg-gray-900 border border-gray-800 px-3 py-2 text-green-500 outline-none focus:border-orange-500"
+                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00ff88] outline-none focus:border-orange-500"
                 autoFocus
               />
-              <div className="text-gray-500">CONFIRM PASSWORD:</div>
+              <div className="text-[#707070]">CONFIRM PASSWORD:</div>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleCreate()}
                 placeholder="********"
-                className="w-full bg-gray-900 border border-gray-800 px-3 py-2 text-green-500 outline-none focus:border-orange-500"
+                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00ff88] outline-none focus:border-orange-500"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setView('main')}
-                  className="px-3 py-1 border border-gray-700 text-gray-500 hover:text-orange-500 hover:border-orange-500"
+                  className="px-4 py-2 border border-[#303030] text-[#707070] hover:text-orange-500 hover:border-orange-500"
                 >
                   BACK
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={isLoading || password.length < 8}
-                  className="flex-1 px-3 py-1 border border-green-500 text-green-500 hover:bg-green-500/20 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 border border-[#00ff88] text-[#00ff88] hover:bg-[#00ff88]/20 disabled:opacity-50"
                 >
                   {isLoading ? 'CREATING...' : 'CREATE WALLET'}
                 </button>
@@ -443,27 +443,27 @@ function TerminalConnectModal({
           )}
 
           {view === 'showMnemonic' && (
-            <div className="space-y-3">
-              <div className="text-green-500 font-bold">WALLET CREATED!</div>
-              <div className="text-red-500 text-[10px] px-2 py-1 border border-red-500/30 bg-red-500/5">
+            <div className="space-y-4">
+              <div className="text-[#00ff88] font-bold text-base">WALLET CREATED!</div>
+              <div className="text-[#ff4444]/90 text-xs px-3 py-2 border border-[#ff4444]/30 bg-[#ff4444]/5">
                 ⚠ SAVE THIS MNEMONIC! It cannot be recovered if lost.
               </div>
-              <div className="text-gray-500">YOUR MNEMONIC PHRASE:</div>
+              <div className="text-[#707070]">YOUR MNEMONIC PHRASE:</div>
               <div
-                className="bg-gray-900 border border-gray-800 px-3 py-2 text-cyan-500 font-mono text-xs break-all cursor-pointer hover:border-cyan-500"
+                className="bg-[#050505] border border-[#252525] px-4 py-3 text-[#00d4ff] break-all cursor-pointer hover:border-[#00d4ff]"
                 onClick={copyMnemonic}
               >
                 {generatedMnemonic}
               </div>
               <button
                 onClick={copyMnemonic}
-                className={`w-full px-3 py-1 border ${mnemonicCopied ? 'border-green-500 text-green-500 bg-green-500/10' : 'border-cyan-500 text-cyan-500 hover:bg-cyan-500/20'}`}
+                className={`w-full px-4 py-2 border ${mnemonicCopied ? 'border-[#00ff88] text-[#00ff88] bg-[#00ff88]/10' : 'border-[#00d4ff] text-[#00d4ff] hover:bg-[#00d4ff]/20'}`}
               >
                 {mnemonicCopied ? '✓ COPIED!' : 'COPY MNEMONIC'}
               </button>
               <button
                 onClick={onClose}
-                className="w-full px-3 py-1 border border-orange-500 text-orange-500 hover:bg-orange-500/20"
+                className="w-full px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/20"
               >
                 I SAVED IT - CONTINUE
               </button>
@@ -472,14 +472,14 @@ function TerminalConnectModal({
 
           {/* Error display */}
           {displayError && (
-            <div className="mt-3 px-3 py-2 border border-red-500/50 bg-red-500/10 text-red-500">
+            <div className="mt-4 px-4 py-2 border border-[#ff4444]/50 bg-[#ff4444]/10 text-[#ff4444]">
               ERROR: {displayError}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-3 py-2 border-t border-gray-800 text-gray-600">
+        <div className="px-4 py-2 border-t border-[#252525] text-[#404040] text-xs">
           TURBO DIESEL TERMINAL
         </div>
       </div>
@@ -624,6 +624,28 @@ const DieselTerminal = () => {
   const [seedPassword, setSeedPassword] = useState('');
   const [seedPasswordError, setSeedPasswordError] = useState<string | null>(null);
   const [verifyingSeedPassword, setVerifyingSeedPassword] = useState(false);
+
+  // Handle Esc key to close modals
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showDepositModal) {
+          setShowDepositModal(false);
+          setShowMnemonic(false);
+          setSeedPassword('');
+          setSeedPasswordError(null);
+        }
+        if (showConnectModal) {
+          setShowConnectModal(false);
+        }
+        if (showWalletMenu) {
+          setShowWalletMenu(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [showDepositModal, showConnectModal, showWalletMenu]);
 
   const handleCopyAddress = async () => {
     if (address) {
@@ -1417,31 +1439,64 @@ const DieselTerminal = () => {
         });
         const data = await res.json();
 
-        // Clear if: confirmed OR TX not found (RBF was replaced/evicted)
-        const shouldClear = data.result?.status?.confirmed || data.error || !data.result;
+        // If lastTxid is confirmed, chain is done
+        if (data.result?.status?.confirmed) {
+          clearChainData();
+          return;
+        }
 
-        if (shouldClear) {
-          // Chain is confirmed or TX disappeared, clear all chain data
-          setRbfData(null);
-          setCpfpData(null);
-          setMintResult(null);
-          setRbfFeeRate('');
+        // If lastTxid doesn't exist (RBF didn't make it to mempool),
+        // check if the FIRST tx of the original chain was confirmed instead
+        const lastTxNotFound = data.error || !data.result;
 
-          // Remove from chainsMap
-          if (currentChainUtxoKey) {
-            setChainsMap(prev => {
-              const newMap = new Map(prev);
-              newMap.delete(currentChainUtxoKey);
-              return newMap;
-            });
-            setCurrentChainUtxoKey(null);
+        if (lastTxNotFound && mintResult?.txids && mintResult.txids.length > 0) {
+          const firstTxid = mintResult.txids[0];
+          const firstTxRes = await fetch(RPC_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'esplora_tx',
+              params: [firstTxid],
+            }),
+          });
+          const firstTxData = await firstTxRes.json();
+
+          // If first TX is confirmed, original chain was mined (RBF lost the race)
+          // If first TX also not found, chain was evicted - clear anyway
+          if (firstTxData.result?.status?.confirmed || firstTxData.error || !firstTxData.result) {
+            clearChainData();
+            return;
           }
+        }
 
-          refetchBalances();
+        // If lastTxid not found for any reason, clear the chain
+        if (lastTxNotFound) {
+          clearChainData();
         }
       } catch {
         // Ignore errors, will retry next interval
       }
+    };
+
+    const clearChainData = () => {
+      setRbfData(null);
+      setCpfpData(null);
+      setMintResult(null);
+      setRbfFeeRate('');
+
+      // Remove from chainsMap
+      if (currentChainUtxoKey) {
+        setChainsMap(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(currentChainUtxoKey);
+          return newMap;
+        });
+        setCurrentChainUtxoKey(null);
+      }
+
+      refetchBalances();
     };
 
     // Check immediately
@@ -1450,7 +1505,7 @@ const DieselTerminal = () => {
     // Then check every 30 seconds
     const interval = setInterval(checkConfirmation, 30000);
     return () => clearInterval(interval);
-  }, [cpfpData?.lastTxid, refetchBalances, currentChainUtxoKey, blockHeight]); // blockHeight triggers immediate check on new block
+  }, [cpfpData?.lastTxid, refetchBalances, currentChainUtxoKey, blockHeight, mintResult?.txids]); // blockHeight triggers immediate check on new block
 
   // Check ALL chains in chainsMap for confirmation and remove confirmed ones
   useEffect(() => {
@@ -1461,7 +1516,8 @@ const DieselTerminal = () => {
 
       for (const [utxoKey, chainData] of chainsMap) {
         try {
-          const res = await fetch(RPC_URL, {
+          // Check lastTxid (could be RBF replacement)
+          const lastTxRes = await fetch(RPC_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1471,10 +1527,43 @@ const DieselTerminal = () => {
               params: [chainData.cpfpData.lastTxid],
             }),
           });
-          const data = await res.json();
+          const lastTxData = await lastTxRes.json();
 
-          // Remove if: confirmed OR TX not found (RBF was replaced/evicted)
-          if (data.result?.status?.confirmed || data.error || !data.result) {
+          // If lastTxid is confirmed, chain is done
+          if (lastTxData.result?.status?.confirmed) {
+            confirmedKeys.push(utxoKey);
+            continue;
+          }
+
+          // If lastTxid doesn't exist (RBF didn't make it to mempool),
+          // check if the FIRST tx of the original chain was confirmed instead
+          const lastTxNotFound = lastTxData.error || !lastTxData.result;
+
+          if (lastTxNotFound && chainData.mintResult.txids.length > 0) {
+            const firstTxid = chainData.mintResult.txids[0];
+            const firstTxRes = await fetch(RPC_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'esplora_tx',
+                params: [firstTxid],
+              }),
+            });
+            const firstTxData = await firstTxRes.json();
+
+            // If first TX is confirmed, original chain was mined (RBF lost the race)
+            // If first TX also not found, something is wrong - remove chain anyway
+            if (firstTxData.result?.status?.confirmed || firstTxData.error || !firstTxData.result) {
+              confirmedKeys.push(utxoKey);
+              continue;
+            }
+          }
+
+          // If lastTxid not found and first TX not found/not confirmed,
+          // the chain was likely evicted from mempool entirely - remove it
+          if (lastTxNotFound) {
             confirmedKeys.push(utxoKey);
           }
         } catch {
@@ -1506,19 +1595,27 @@ const DieselTerminal = () => {
     // Check immediately
     checkAllChains();
 
+    // Retry after delays to account for indexer lag after new block
+    const retry1 = setTimeout(checkAllChains, 2000);
+    const retry2 = setTimeout(checkAllChains, 5000);
+    const retry3 = setTimeout(checkAllChains, 10000);
+
     // Then check every 30 seconds
     const interval = setInterval(checkAllChains, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(retry1);
+      clearTimeout(retry2);
+      clearTimeout(retry3);
+      clearInterval(interval);
+    };
   }, [chainsMap.size, currentChainUtxoKey, refetchBalances, blockHeight]); // blockHeight triggers immediate check on new block
 
-  const [blockReward, setBlockReward] = useState(3.15);
+  // DIESEL constants (moved calculation after mempoolStats)
+  const DIESEL_BASE_REWARD = 3.125; // DIESEL units
+  const DIESEL_BASE_REWARD_SATS = 312_500_000; // in smallest units (8 decimals)
   const [dieselPrice, setDieselPrice] = useState(2991);
   const [txCost, setTxCost] = useState(3.92);
   const [competition, setCompetition] = useState(100);
-  const [manualMints, setManualMints] = useState<number | null>(null);
-
-  // UI mode: hide manual controls, show only auto-mint
-  const showManualControls = false;
 
   // Mempool state
   const [mempoolBlocks, setMempoolBlocks] = useState<MempoolBlock[]>([]);
@@ -1712,12 +1809,12 @@ const DieselTerminal = () => {
     }
   }, [autoFee, feeCap]);
 
-  // Initial fetch and interval
+  // Initial fetch and interval + refresh on new block
   useEffect(() => {
     fetchMempool();
     const interval = setInterval(fetchMempool, REFRESH_INTERVAL);
     return () => clearInterval(interval);
-  }, [fetchMempool]);
+  }, [fetchMempool, blockHeight]); // blockHeight triggers immediate refresh on new block
 
   // Derived mempool values
   const mempoolStats = useMemo(() => {
@@ -1731,6 +1828,7 @@ const DieselTerminal = () => {
     return {
       nextBlockTxs: nextBlock.nTx,
       nextBlockVSize: nextBlock.blockVSize,
+      nextBlockFees: nextBlock.totalFees,
       minFee,
       maxFee,
       medianFee,
@@ -1738,6 +1836,21 @@ const DieselTerminal = () => {
       pendingTxs: mempoolBlocks.reduce((sum, b) => sum + b.nTx, 0),
     };
   }, [mempoolBlocks]);
+
+  // DIESEL block reward calculation based on protocol rules
+  // Protocol fee = min(base_reward / 2, tx_fees) — always taken, capped at 50% of base
+  // Distributable = base_reward - protocol_fee
+  // Example: tx_fees = 0.001 BTC → protocol_fee = 0.001, distributable = 3.124 DIESEL
+  const blockReward = useMemo(() => {
+    if (!mempoolStats?.nextBlockFees) return DIESEL_BASE_REWARD;
+
+    const txFeesSats = mempoolStats.nextBlockFees;
+    // Protocol takes min(50% of base reward, total tx fees) — fees always subtracted
+    const protocolFee = Math.min(DIESEL_BASE_REWARD_SATS / 2, txFeesSats);
+    const distributableSats = DIESEL_BASE_REWARD_SATS - protocolFee;
+
+    return distributableSats / 100_000_000; // Convert to DIESEL units
+  }, [mempoolStats?.nextBlockFees]);
 
   // Lua script to scan mempool for DIESEL mints (runs server-side in one request)
   // Checks both ancestor (tx pulls parents) and descendant (child pays for tx via CPFP) fee rates
@@ -1857,129 +1970,20 @@ return {
     return () => clearInterval(interval);
   }, [mempoolStats?.minFee]); // Re-run when minFee changes
 
-  const results = useMemo(() => {
+  // Simplified profitability check - used only for status indicator
+  const isProfitable = useMemo(() => {
     const R = blockReward || 0.001;
     const priceSats = dieselPrice || 1;
     const costSats = txCost || 0.001;
-    // Subtract our active chain from competition only if we're competing for next block
-    // (our effective rate >= mempool min fee)
-    const ourChainLength = rbfData?.chainLength || 0;
-    const weAreCompeting = currentEffectiveRate >= (mempoolStats?.minFee || 0);
-    const chainToSubtract = weAreCompeting ? ourChainLength : 0;
-    const M = Math.max(0, (competition || 0) - chainToSubtract);
+    const M = Math.max(0, competition || 0);
 
     const DIESEL_FEE = 0.05;
-    const dieselFeeDiesel = DIESEL_FEE;
-    const pool = Math.max(0, R - dieselFeeDiesel);
-
-    const Nstar = (R * priceSats) / (2 * costSats);
-
-    // Calculate optimal mints from formula
-    const rawOptimal = M > 0 ? Math.sqrt(Nstar * M) - M : 0;
+    const pool = Math.max(0, R - DIESEL_FEE);
 
     // Check if at least 1 mint is profitable: pool × price / (1 + M) > txCost
     const singleMintRevenue = (pool * priceSats) / (1 + M);
-    const singleMintProfitable = singleMintRevenue > costSats;
-
-    // Determine auto optimal: use formula if it gives >= 1, otherwise check single mint profitability
-    let autoOptimal: number;
-    if (rawOptimal >= 1) {
-      autoOptimal = Math.round(rawOptimal);
-    } else if (singleMintProfitable) {
-      autoOptimal = 1; // Formula says 0, but 1 mint is still profitable
-    } else {
-      autoOptimal = 0;
-    }
-
-    const nOptimal = manualMints !== null ? manualMints : autoOptimal;
-    const isManual = manualMints !== null;
-
-    const txCostDiesel = costSats / priceSats;
-    const totalMints = nOptimal + M;
-
-    let emission = 0;
-    let costDiesel = 0;
-
-    if (nOptimal > 0 && totalMints > 0) {
-      emission = (nOptimal / totalMints) * pool;
-      costDiesel = nOptimal * txCostDiesel;
-    }
-
-    const netProfit = emission - costDiesel;
-    const netProfitSats = netProfit * priceSats;
-    const totalCostSats = nOptimal * costSats;
-    // Real ROI based on actual profit/cost (what you actually earn/lose)
-    const realRoi = totalCostSats > 0 ? (netProfitSats / totalCostSats) * 100 : 0;
-    // Use real ROI for display (actual profit based on current settings)
-    const roi = realRoi;
-    const isProfitable = netProfit > 0;
-    const breakevenM = Nstar / 4;
-    const costPerDsl = emission > 0 ? (nOptimal * costSats) / emission : 0;
-    const breakevenPriceSats = costPerDsl;
-
-    const tableData = [1, 5, 10, 25, 50, 100, 250, 500, 1000].map(m => {
-      const raw = m > 0 ? Math.sqrt(Nstar * m) - m : 0;
-      const singleRev = (pool * priceSats) / (1 + m);
-      const singleProf = singleRev > costSats;
-
-      let n: number;
-      if (raw >= 1) {
-        n = Math.round(raw);
-      } else if (singleProf) {
-        n = 1;
-      } else {
-        n = 0;
-      }
-
-      const totalN = n + m;
-      const em = n > 0 && totalN > 0 ? (n / totalN) * pool : 0;
-      const cost = n * txCostDiesel;
-      const pr = em - cost;
-      const prSats = pr * priceSats;
-      const costSatsRow = n * costSats;
-      const r = costSatsRow > 0 ? (prSats / costSatsRow) * 100 : 0;
-      return { m, n, roi: r, profit: pr, profitable: pr > 0 };
-    });
-
-    return {
-      Nstar,
-      nOptimal,
-      autoOptimal,
-      isManual,
-      totalMints,
-      roi,
-      isProfitable,
-      breakevenM,
-      breakevenPriceSats,
-      txCostDiesel,
-      emission,
-      costDiesel,
-      netProfit,
-      pool,
-      dieselFeeDiesel,
-      tableData
-    };
-  }, [blockReward, dieselPrice, txCost, competition, manualMints, rbfData?.chainLength, currentEffectiveRate, mempoolStats?.minFee]);
-
-  const fmt = (n: number, d = 2) => {
-    if (n === null || n === undefined || !isFinite(n)) return '---';
-    if (Math.abs(n) >= 1000000) return (n/1000000).toFixed(d) + 'M';
-    if (Math.abs(n) >= 1000) return (n/1000).toFixed(d) + 'K';
-    return n.toFixed(d);
-  };
-
-  const fmtInt = (n: number) => {
-    if (n === null || n === undefined || !isFinite(n)) return '---';
-    if (Math.abs(n) >= 1000000) return (n/1000000).toFixed(1) + 'M';
-    if (Math.abs(n) >= 1000) return (n/1000).toFixed(1) + 'K';
-    return Math.round(n).toString();
-  };
-
-  const fmtPct = (n: number) => {
-    if (n === null || n === undefined || !isFinite(n)) return '---';
-    const sign = n >= 0 ? '+' : '';
-    return sign + n.toFixed(2) + '%';
-  };
+    return singleMintRevenue > costSats;
+  }, [blockReward, dieselPrice, txCost, competition]);
 
   // Current time state for elapsed time calculation (updates every second)
   const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000));
@@ -2006,42 +2010,46 @@ return {
   const timestamp = now.toLocaleTimeString('en-US', { hour12: false }) + ' UTC';
 
   return (
-    <div className="min-h-screen bg-black text-gray-300 font-mono p-3 text-xs overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] text-[#b0b0b0] font-mono p-2 sm:p-4 text-xs sm:text-sm overflow-x-hidden selection:bg-orange-500/30">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-orange-500/50 pb-1 mb-3">
-        <div className="flex items-center gap-4">
-          <span className="text-orange-500 font-bold text-lg">DIESEL</span>
-          <span className="text-cyan-500 border border-cyan-500/50 px-2 py-0.5">AUTOPILOT</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {blockHeight && (
-            <span className="text-gray-600 text-xs flex items-center gap-2">
-              <span>
-                BLOCK <span className="text-cyan-500 font-mono">{blockHeight.toLocaleString()}</span>
+            <span className="text-[#606060] text-xs sm:text-sm flex items-center gap-2 sm:gap-3">
+              <span className="flex items-center">
+                <svg className="w-3.5 h-3.5 text-[#707070] mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" />
+                  <path d="M12 12v10" />
+                  <path d="M12 12L2 7" />
+                  <path d="M12 12l10-5" />
+                </svg>
+                <span className="text-[#e0e0e0]">{blockHeight.toLocaleString()}</span>
                 {blockElapsed !== null && (
-                  <span className={`ml-1 ${blockElapsed > 1200 ? 'text-yellow-500' : blockElapsed > 600 ? 'text-orange-500' : 'text-green-500'}`}>
-                    ({formatElapsed(blockElapsed)})
+                  <span className={`ml-1 sm:ml-2 ${blockElapsed > 1200 ? 'text-[#ffcc00]' : blockElapsed > 600 ? 'text-orange-500' : 'text-[#00ff88]'}`}>
+                    +{formatElapsed(blockElapsed)}
                   </span>
                 )}
               </span>
               {avgBlockTime && (
-                <span className="border-l border-gray-700 pl-2 group relative">
-                  <span className="cursor-help border-b border-dotted border-gray-600">AVG</span>
-                  <span className={`font-mono ml-1 ${avgBlockTime > 660 ? 'text-red-500' : avgBlockTime < 540 ? 'text-green-500' : 'text-gray-400'}`}>
-                    {Math.floor(avgBlockTime / 60)}m {Math.floor(avgBlockTime % 60)}s
+                <span className="hidden sm:flex border-l border-[#303030] pl-3 group relative items-center">
+                  <span className="text-[#707070]">AVG</span>
+                  <span className={`ml-1 ${avgBlockTime > 660 ? 'text-[#ff4444]' : avgBlockTime < 540 ? 'text-[#00ff88]' : 'text-[#909090]'}`}>
+                    {Math.floor(avgBlockTime / 60)}:{String(Math.floor(avgBlockTime % 60)).padStart(2, '0')}
                   </span>
                   {blocksUntilAdjustment && (
-                    <span className="text-gray-600 ml-1 cursor-help border-b border-dotted border-gray-700">({blocksUntilAdjustment} to adj)</span>
+                    <span className="text-[#505050] ml-1">/{blocksUntilAdjustment}</span>
                   )}
-                  <div className="absolute top-full left-0 mt-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-64 pointer-events-none z-50">
-                    <div className="text-white mb-1">Average Block Time</div>
-                    <div>Current period avg: {Math.floor(avgBlockTime / 60)}m {Math.floor(avgBlockTime % 60)}s</div>
+                  <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-[#1a1a1a] border border-[#404040] text-sm text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-72 pointer-events-none z-50">
+                    <div className="text-orange-500 mb-1 font-bold">BLOCK TIME ANALYSIS</div>
+                    <div>Period avg: {Math.floor(avgBlockTime / 60)}m {Math.floor(avgBlockTime % 60)}s</div>
                     <div>Target: 10m 0s</div>
-                    {blocksUntilAdjustment && <div>{blocksUntilAdjustment} blocks until difficulty adjustment</div>}
-                    <div className="mt-1">
+                    {blocksUntilAdjustment && <div className="mt-1">{blocksUntilAdjustment} blocks to adjustment</div>}
+                    <div className="mt-2 pt-2 border-t border-[#303030]">
                       {avgBlockTime > 660
-                        ? <span className="text-red-500">● Slow — difficulty will decrease</span>
+                        ? <span className="text-[#ff4444]">▼ SLOW — difficulty decrease expected</span>
                         : avgBlockTime < 540
-                          ? <span className="text-green-500">● Fast — difficulty will increase</span>
-                          : <span className="text-gray-500">● Normal range</span>
+                          ? <span className="text-[#00ff88]">▲ FAST — difficulty increase expected</span>
+                          : <span className="text-[#707070]">● NORMAL RANGE</span>
                       }
                     </div>
                   </div>
@@ -2050,39 +2058,42 @@ return {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-4 text-gray-600">
+        <div className="flex items-center gap-2 sm:gap-4 text-[#606060]">
           {/* Balance display */}
           {isConnected ? (
             balances ? (
-              <div className="flex items-center gap-3 border-r border-gray-700 pr-4 mr-2">
-                <span className="text-yellow-500">
-                  <span className="text-gray-500">BTC:</span> {formatBtcBalance(balances.btcBalance || 0)}
+              <div className="flex items-center gap-2 sm:gap-5 border-r border-[#303030] pr-2 sm:pr-4 mr-1 sm:mr-2">
+                <span className="flex items-center gap-1">
+                  <span className="text-[#707070] text-xs">BTC</span>
+                  <span className="text-[#e0e0e0] text-xs sm:text-sm">{formatBtcBalance(balances.btcBalance || 0)}</span>
                 </span>
-                <span className="text-cyan-500">
-                  <span className="text-gray-500">DIESEL:</span> {balances.tokens?.find((t: any) => t.runeId === '2:0')?.balanceFormatted?.toFixed(2) || '0.00'}
+                <span className="flex items-center gap-1">
+                  <span className="text-[#707070] text-xs">DSL</span>
+                  <span className="text-[#e0e0e0] text-xs sm:text-sm">{balances.tokens?.find((t: any) => t.runeId === '2:0')?.balanceFormatted?.toFixed(2) || '0.00'}</span>
                 </span>
                 {balances.runes?.find((r: any) => r.spacedName === 'UNCOMMON•GOODS') && (
-                  <span className="text-purple-400">
-                    <span className="text-gray-500">UG:</span> {balances.runes.find((r: any) => r.spacedName === 'UNCOMMON•GOODS')?.balanceFormatted?.toLocaleString() || '0'}
+                  <span className="hidden sm:flex items-center gap-1">
+                    <span className="text-[#707070] text-xs">UG</span>
+                    <span className="text-[#e0e0e0]">{balances.runes.find((r: any) => r.spacedName === 'UNCOMMON•GOODS')?.balanceFormatted?.toLocaleString() || '0'}</span>
                   </span>
                 )}
                 <div className="relative">
                   <button
                     onClick={() => setShowWalletMenu(!showWalletMenu)}
-                    className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-2 py-0.5 transition-colors"
+                    className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-2 sm:px-3 py-1 text-xs sm:text-sm tracking-wide transition-colors"
                   >
-                    WALLET ▾
+                    WALLET
                   </button>
                   {showWalletMenu && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowWalletMenu(false)} />
-                      <div className="absolute right-0 top-full mt-1 bg-black border border-orange-500/50 z-50 min-w-32">
+                      <div className="absolute right-0 top-full mt-1 bg-[#0d0d0d] border border-[#404040] z-50 min-w-36">
                         <button
                           onClick={() => {
                             setShowDepositModal(true);
                             setShowWalletMenu(false);
                           }}
-                          className="w-full px-3 py-2 text-left text-orange-500 hover:bg-orange-500/20 border-b border-gray-800"
+                          className="w-full px-4 py-2 text-left text-sm text-orange-500 hover:bg-orange-500/10 border-b border-[#252525]"
                         >
                           MANAGE
                         </button>
@@ -2093,9 +2104,9 @@ return {
                             setDepositCopied(true);
                             setTimeout(() => setDepositCopied(false), 2000);
                           }}
-                          className="w-full px-3 py-2 text-left text-orange-500 hover:bg-orange-500/20 border-b border-gray-800"
+                          className="w-full px-4 py-2 text-left text-sm text-orange-500 hover:bg-orange-500/10 border-b border-[#252525]"
                         >
-                          {depositCopied ? '✓ COPIED' : 'COPY ADDRESS'}
+                          {depositCopied ? '✓ COPIED' : 'COPY ADDR'}
                         </button>
                         <button
                           onClick={() => {
@@ -2104,7 +2115,7 @@ return {
                             setRbfData(null); setCpfpData(null);
                             setShowWalletMenu(false);
                           }}
-                          className="w-full px-3 py-2 text-left text-red-500 hover:bg-red-500/20"
+                          className="w-full px-4 py-2 text-left text-sm text-[#ff4444] hover:bg-[#ff4444]/10"
                         >
                           LOCK
                         </button>
@@ -2114,811 +2125,116 @@ return {
                 </div>
               </div>
             ) : (
-              <span className="text-gray-600 border-r border-gray-700 pr-4 mr-2">Loading...</span>
+              <span className="text-[#505050] border-r border-[#303030] pr-4 mr-2 text-sm">LOADING...</span>
             )
           ) : (
             <button
               onClick={() => setShowConnectModal(true)}
-              className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-2 py-0.5 mr-2 transition-colors"
+              className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-3 py-1 text-sm tracking-wide transition-colors"
             >
-              CONNECT WALLET
+              CONNECT
             </button>
           )}
-          <span>{timestamp}</span>
-          <span className="text-orange-500 flex items-center gap-1">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-            </span>
-            LIVE
-          </span>
+          <span className="text-[#505050] hidden sm:inline">{timestamp}</span>
         </div>
       </div>
 
-      {/* Mempool Status Bar */}
-      <div className="mb-3 border border-gray-800 bg-gray-900/30">
-        <div className="flex items-center justify-between px-3 py-2">
-          <div className="flex items-center gap-4">
-            <span className="text-xs"><span className="text-orange-500">1)</span> <span className="text-white">MEMPOOL</span></span>
+      {/* Combined Mempool & Status Bar */}
+      <div className="mb-2 sm:mb-3 border border-[#252525] bg-[#0d0d0d]">
+        <div className="flex flex-wrap items-center justify-between px-2 sm:px-4 py-2 gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-5">
+            <span className="text-xs sm:text-sm"><span className="text-orange-500 font-bold">1</span><span className="text-[#404040] mx-1">│</span><span className="text-[#e0e0e0] tracking-wide">STATUS</span></span>
+            {/* Mempool stats */}
             {mempoolLoading ? (
-              <span className="text-yellow-500 text-xs animate-pulse">LOADING...</span>
+              <span className="text-[#ffcc00] animate-pulse">LOADING...</span>
             ) : mempoolError ? (
-              <span className="text-red-500 text-xs">ERROR: {mempoolError}</span>
+              <span className="text-[#ff4444]">ERR: {mempoolError}</span>
             ) : mempoolStats ? (
               <>
                 <div className="flex items-center gap-2 group relative">
-                  <span className="text-gray-600 text-xs cursor-help border-b border-dotted border-gray-600">NEXT BLOCK</span>
-                  <span className={`font-mono px-1 rounded ${minFeeFlash} ${feeCap !== null && mempoolStats.minFee > feeCap ? 'text-red-500 line-through' : 'text-cyan-500'}`}>
+                  <span className="text-[#505050] text-xs border-b border-dotted border-[#505050] cursor-help">NEXT</span>
+                  <span className={`${minFeeFlash} ${feeCap !== null && mempoolStats.minFee > feeCap ? 'text-[#ff4444] line-through' : 'text-[#e0e0e0]'}`}>
                     {mempoolStats.minFee.toFixed(2)}
                   </span>
                   {feeCap !== null && mempoolStats.minFee > feeCap && (
-                    <span className="text-yellow-500 font-mono">→ {feeCap.toFixed(2)}</span>
+                    <span className="text-[#e0e0e0]">→{feeCap.toFixed(2)}</span>
                   )}
-                  <span className="text-gray-600 text-xs">sat/vB</span>
-                  <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-56 pointer-events-none z-10">
-                    Next block: {mempoolStats.nextBlockTxs} txs, median {mempoolStats.medianFee.toFixed(2)} sat/vB, max {mempoolStats.maxFee.toFixed(1)} sat/vB
+                  <span className="text-[#404040] text-xs">s/vB</span>
+                  <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-[#1a1a1a] border border-[#404040] text-sm text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-60 pointer-events-none z-50">
+                    <div className="text-orange-500 font-bold mb-1">NEXT BLOCK STATS</div>
+                    <div>TXs: {mempoolStats.nextBlockTxs}</div>
+                    <div>Median: {mempoolStats.medianFee.toFixed(2)} sat/vB</div>
+                    <div>Max: {mempoolStats.maxFee.toFixed(1)} sat/vB</div>
                   </div>
                 </div>
-                <div className="text-gray-600 text-xs">|</div>
+                <span className="text-[#252525] hidden sm:inline">│</span>
                 <div className="flex items-center gap-2 group relative">
-                  <span className="text-gray-600 text-xs cursor-help border-b border-dotted border-gray-600">QUEUE</span>
-                  <span className="text-purple-500 font-mono">{mempoolStats.totalBlocks}</span>
-                  <span className="text-gray-600 text-xs">blocks</span>
-                  <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-10">
-                    {mempoolStats.pendingTxs.toLocaleString()} pending transactions in {mempoolStats.totalBlocks} blocks
+                  <span className="text-[#505050] text-xs border-b border-dotted border-[#505050] cursor-help">QUEUE</span>
+                  <span className="text-[#e0e0e0]">{mempoolStats.totalBlocks}</span>
+                  <span className="text-[#404040] text-xs">blks</span>
+                  <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-[#1a1a1a] border border-[#404040] text-sm text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-52 pointer-events-none z-50">
+                    <div className="text-orange-500 font-bold mb-1">QUEUE DEPTH</div>
+                    <div>{mempoolStats.pendingTxs.toLocaleString()} pending TXs</div>
+                    <div>{mempoolStats.totalBlocks} blocks backlog</div>
                   </div>
                 </div>
-                <div className="text-gray-600 text-xs">|</div>
+                <span className="text-[#252525] hidden sm:inline">│</span>
                 <div className="flex items-center gap-2 group relative">
-                  <span className="text-gray-600 text-xs cursor-help border-b border-dotted border-gray-600">DIESEL/frBTC</span>
+                  <span className="text-[#505050] text-xs border-b border-dotted border-[#505050] cursor-help">DSL</span>
                   {poolPriceLoading ? (
-                    <span className="text-gray-500 font-mono animate-pulse">---</span>
+                    <span className="text-[#404040] animate-pulse">---</span>
                   ) : poolPrice !== null ? (
-                    <span className={`text-orange-500 font-mono px-1 rounded ${poolPriceFlash}`}>
+                    <span className={`text-orange-500 ${poolPriceFlash}`}>
                       {poolPrice.toLocaleString()}
                     </span>
                   ) : (
-                    <span className="text-gray-500 font-mono">---</span>
+                    <span className="text-[#404040]">---</span>
                   )}
-                  <span className="text-gray-600 text-xs">sats</span>
-                  <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-56 pointer-events-none z-10">
-                    Current DIESEL price from DIESEL/frBTC pool. Updates every 5 min.
+                  <span className="text-[#404040] text-xs">sat</span>
+                  <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-[#1a1a1a] border border-[#404040] text-sm text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-56 pointer-events-none z-50">
+                    <div className="text-orange-500 font-bold mb-1">DIESEL SPOT PRICE</div>
+                    <div>From DIESEL/frBTC pool</div>
+                    <div>Updates every 5 min</div>
                   </div>
                 </div>
               </>
             ) : null}
-          </div>
-        </div>
-      </div>
-
-      {/* Competition Stats Bar (shown when manual controls hidden) */}
-      {!showManualControls && (
-        <div className="mb-3 border border-gray-800 bg-gray-900/30">
-          <div className="flex items-center justify-between px-3 py-2">
-            <div className="flex items-center gap-6">
-              <span className="text-xs"><span className="text-orange-500">2)</span> <span className="text-white">STATUS</span></span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500 text-xs">M</span>
-                <span className="text-red-500 font-mono font-bold">{competition}</span>
+            {/* Status stats */}
+            <span className="text-[#252525] hidden sm:inline">│</span>
+            <div className="flex items-center gap-2 group relative">
+              <span className="text-[#505050] text-xs border-b border-dotted border-[#505050] cursor-help">COMP</span>
+              <span className="text-[#ff4444] font-bold">{Math.max(0, competition - Array.from(chainsMap.values()).reduce((sum, c) => sum + c.rbfData.chainLength, 0))}</span>
+              <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-[#1a1a1a] border border-[#404040] text-sm text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-64 pointer-events-none z-50">
+                <div className="text-orange-500 font-bold mb-1">EFFECTIVE COMPETITION</div>
+                <div>Competing mints minus your chains</div>
+                <div className="mt-1 text-[#707070]">Total detected: {competition}</div>
+                <div className="text-[#707070]">Your TXs: {Array.from(chainsMap.values()).reduce((sum, c) => sum + c.rbfData.chainLength, 0)}</div>
               </div>
-              {rbfData && rbfData.chainLength > 0 && currentEffectiveRate >= (mempoolStats?.minFee || 0) && (
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500 text-xs">eff:</span>
-                  <span className="text-purple-400 font-mono">{Math.max(0, competition - rbfData.chainLength)}</span>
-                </div>
-              )}
-              {isScanning ? (
-                <span className="text-xs text-cyan-500 animate-pulse">● SCANNING...</span>
-              ) : detectedCompetition !== null ? (
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs ${detectedCompetitionFlash} text-cyan-500`}>●</span>
-                  <span className="text-cyan-500 font-mono">{detectedCompetition}</span>
-                  <span className="text-gray-500 text-xs">detected</span>
-                </div>
-              ) : null}
             </div>
-            <div className="flex items-center gap-4 text-gray-500 text-xs">
-              <span>N*=<span className="text-orange-500">{fmtInt(results.Nstar)}</span></span>
-              <span className={results.isProfitable ? 'text-green-500' : 'text-red-500'}>
-                ● {results.isProfitable ? 'PROFITABLE' : 'UNPROFITABLE'}
+            {isScanning ? (
+              <span className="text-[#00d4ff] animate-pulse flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-[#00d4ff]"></span>SCAN
               </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showManualControls && (
-      <div className="grid grid-cols-12 gap-3">
-        {/* Left Panel - Inputs */}
-        <div className="col-span-12 lg:col-span-3 border border-gray-800 overflow-hidden">
-          <div className="bg-gray-900/50 px-2 py-1 border-b border-gray-800">
-            <span className="text-orange-500 text-xs">1)</span> PARAMETERS
-          </div>
-          <div className="p-2 space-y-2">
-            <div>
-              <div className="text-gray-500 text-xs uppercase tracking-wider mb-1">Block Reward</div>
-              <div className="flex items-center bg-gray-900/50 border border-gray-800">
-                <input
-                  type="number"
-                  step="any"
-                  value={blockReward}
-                  onChange={(e) => setBlockReward(parseFloat(e.target.value) || 0)}
-                  className="bg-transparent text-orange-500 font-mono text-sm p-2 w-full min-w-0 outline-none"
-                />
-                <span className="text-gray-600 text-xs px-2 border-l border-gray-800 shrink-0">DSL</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-gray-500 text-xs uppercase tracking-wider">DIESEL Target Price</span>
-                {poolPrice !== null && (
-                  <button
-                    onClick={() => setDieselPrice(poolPrice)}
-                    className="text-xs text-orange-500 hover:text-orange-400 border border-orange-500/50 hover:border-orange-400 px-1.5 py-0.5 rounded"
-                  >
-                    POOL: {poolPrice.toLocaleString()}
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center bg-gray-900/50 border border-gray-800">
-                <input
-                  type="number"
-                  step="any"
-                  value={dieselPrice}
-                  onChange={(e) => setDieselPrice(parseFloat(e.target.value) || 0)}
-                  className="bg-transparent text-cyan-500 font-mono text-sm p-2 w-full min-w-0 outline-none"
-                />
-                <span className="text-gray-600 text-xs px-2 border-l border-gray-800 shrink-0">sats</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-gray-500 text-xs uppercase tracking-wider">TX Cost (per mint)</span>
-                {autoFee && mempoolStats && (
-                  <span className={`text-xs ${feeCap !== null && mempoolStats.minFee > feeCap ? 'text-yellow-500' : 'text-green-500'}`}>
-                    ● {feeCap !== null && mempoolStats.minFee > feeCap ? 'CAPPED' : 'LIVE'}
-                  </span>
-                )}
-              </div>
-              <div className={`flex items-center bg-gray-900/50 border rounded ${txCostFlash} ${
-                autoFee
-                  ? (feeCap !== null && mempoolStats && mempoolStats.minFee > feeCap ? 'border-yellow-800' : 'border-green-800')
-                  : 'border-gray-800'
-              }`}>
-                <input
-                  type="number"
-                  step="any"
-                  value={txCost}
-                  onChange={(e) => {
-                    setAutoFee(false);
-                    setTxCost(parseFloat(e.target.value) || 0);
-                  }}
-                  className={`bg-transparent font-mono text-sm p-2 w-full min-w-0 outline-none ${
-                    autoFee
-                      ? (feeCap !== null && mempoolStats && mempoolStats.minFee > feeCap ? 'text-yellow-500' : 'text-green-500')
-                      : 'text-yellow-500'
-                  }`}
-                />
-                <span className="text-gray-600 text-xs px-2 border-l border-gray-800 shrink-0">sats</span>
-              </div>
-              <div className="text-gray-600 text-xs mt-1">
-                = {(txCost / TX_VSIZE).toFixed(2)} sat/vB × {TX_VSIZE} vB
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-gray-500 text-xs uppercase tracking-wider">Competition (M)</span>
-                <div className="flex items-center gap-2">
-                  {/* Show effective M when we have active chain and are competing */}
-                  {rbfData && rbfData.chainLength > 0 && currentEffectiveRate >= (mempoolStats?.minFee || 0) && (
-                    <span className="text-xs text-purple-400" title="Effective M = scanned - our chain">
-                      eff: {Math.max(0, competition - rbfData.chainLength)}
-                    </span>
-                  )}
-                  {isScanning ? (
-                    <span className="text-xs text-cyan-500 animate-pulse">
-                      ● SCANNING...
-                    </span>
-                  ) : detectedCompetition !== null ? (
-                    <span className={`text-xs px-1 rounded ${detectedCompetitionFlash} text-cyan-500`}>
-                      ● {detectedCompetition} detected
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-              <div className={`flex items-center bg-gray-900/50 border border-gray-800 rounded ${competitionFlash}`}>
-                <input
-                  type="number"
-                  step="1"
-                  value={competition}
-                  onChange={(e) => {
-                    setAutoCompetition(false);
-                    setCompetition(parseInt(e.target.value) || 0);
-                  }}
-                  className="bg-transparent text-red-500 font-mono text-sm p-2 w-full min-w-0 outline-none"
-                />
-                <span className="text-gray-600 text-xs px-2 border-l border-gray-800 shrink-0">mints</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-900/50 px-2 py-1 border-y border-gray-800">
-            <span className="text-orange-500 text-xs">2)</span> DERIVED
-          </div>
-          <div className="p-2 space-y-1">
-            <div className="flex justify-between group relative">
-              <span className="text-gray-500 text-xs cursor-help border-b border-dotted border-gray-600">N* THRESHOLD</span>
-              <span className="text-orange-500 font-mono">{fmtInt(results.Nstar)}</span>
-              <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-56 pointer-events-none z-10">
-                N* = R×p/(2×f) = {blockReward}×{dieselPrice}/(2×{txCost}) = {(blockReward * dieselPrice / (2 * txCost)).toFixed(2)}. Profitable when M {'<'} N*/4 = {(results.Nstar/4).toFixed(1)}
-              </div>
-            </div>
-            <div className="flex justify-between group relative">
-              <span className="text-gray-500 text-xs cursor-help border-b border-dotted border-gray-600">BREAKEVEN M</span>
-              <span className="text-gray-400 font-mono">{fmtInt(results.breakevenM)}</span>
-              <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-10">
-                N*/4 = {fmtInt(results.breakevenM)}. If competition is higher — minting is unprofitable at current price.
-              </div>
-            </div>
-            <div className="flex justify-between group relative">
-              <span className="text-gray-500 text-xs cursor-help border-b border-dotted border-gray-600">MINT COST</span>
-              <span className="text-yellow-500 font-mono">{fmt(results.txCostDiesel, 6)} DSL</span>
-              <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-10">
-                Cost of 1 mint in DIESEL: {txCost} sats ÷ {dieselPrice} sats = {fmt(results.txCostDiesel, 6)} DSL
-              </div>
-            </div>
-            {results.nOptimal > 0 && (
-              <div className="flex justify-between group relative mt-2 pt-2 border-t border-gray-800">
-                <span className={`text-xs cursor-help border-b border-dotted ${results.netProfit >= 0 ? 'text-green-400 border-green-600' : 'text-red-400 border-red-600'}`}>MIN PRICE</span>
-                <span className={`font-mono ${results.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>{fmtInt(results.breakevenPriceSats)} sats</span>
-                <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-52 pointer-events-none z-10">
-                  Cost per 1 DSL = Cost/Emission. At price above {fmtInt(results.breakevenPriceSats)} sats — profitable.
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Center Panel - Main Output */}
-        <div className="col-span-12 lg:col-span-5 border border-gray-800">
-          <div className="bg-gray-900/50 px-2 py-1 border-b border-gray-800 flex items-center justify-between">
-            <div>
-              <span className="text-orange-500 text-xs">3)</span> EXECUTION
-            </div>
-            <div className={`text-xs font-mono ${results.isProfitable ? 'text-green-500' : 'text-red-500'}`}>
-              {results.isProfitable ? '● PROFITABLE' : '● UNPROFITABLE'}
-            </div>
-          </div>
-
-          {/* Main execution grid */}
-          <div className="grid grid-cols-2 border-b border-gray-800">
-            {/* Left: Mints input */}
-            <div className="p-3 border-r border-gray-800 group relative">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-gray-500 text-xs cursor-help border-b border-dotted border-gray-600">MINTS (n*)</span>
-                {results.isManual && (
-                  <button
-                    onClick={() => setManualMints(null)}
-                    className="text-xs text-orange-500 hover:text-orange-400"
-                  >
-                    [AUTO:{results.autoOptimal}]
-                  </button>
-                )}
-              </div>
+            ) : detectedCompetition !== null ? (
               <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={results.nOptimal}
-                  onChange={(e) => setManualMints(Math.max(0, parseInt(e.target.value) || 0))}
-                  className={`text-2xl font-bold font-mono bg-transparent w-20 outline-none ${results.isProfitable ? 'text-green-500' : results.nOptimal > 0 ? 'text-orange-500' : 'text-gray-600'}`}
-                />
-                <span className="text-gray-600 text-xs">TX</span>
+                <span className={`w-2 h-2 bg-[#00d4ff] ${detectedCompetitionFlash}`}></span>
+                <span className="text-[#00d4ff]">{detectedCompetition}</span>
+                <span className="text-[#505050] text-xs">detected</span>
               </div>
-              <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-52 pointer-events-none z-10">
-                {results.isManual
-                  ? `Manual mode. Optimal = ${results.autoOptimal}. Click [AUTO] to reset.`
-                  : `Optimal mints at M=${competition}. Edit to override.`
-                }
-              </div>
-            </div>
-            {/* Right: Cost */}
-            <div className="p-3 group relative">
-              <div className="text-gray-500 text-xs mb-1 cursor-help border-b border-dotted border-gray-600 inline-block">TOTAL COST</div>
-              <div className="text-2xl font-bold font-mono text-yellow-500">
-                {fmtInt(results.nOptimal * txCost)}
-                <span className="text-sm text-gray-600 ml-1">sats</span>
-              </div>
-              <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-10">
-                {results.nOptimal} × {fmt(txCost, 2)} = {fmtInt(results.nOptimal * txCost)} sats
-              </div>
-            </div>
+            ) : null}
           </div>
-
-          {/* ROI / Profit row */}
-          <div className="grid grid-cols-3 border-b border-gray-800 text-center">
-            <div className="p-2 border-r border-gray-800 group relative">
-              <div className="text-gray-600 text-xs cursor-help border-b border-dotted border-gray-600 inline-block">ROI</div>
-              <div className={`text-lg font-mono font-bold ${results.roi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {fmtPct(results.roi)}
-              </div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-10 text-left">
-                Return on Investment = Profit / Cost = {fmtInt(results.netProfit * dieselPrice)} / {fmtInt(results.nOptimal * txCost)} sats
-              </div>
-            </div>
-            <div className="p-2 border-r border-gray-800 group relative">
-              <div className="text-gray-600 text-xs cursor-help border-b border-dotted border-gray-600 inline-block">NET PROFIT</div>
-              <div className={`text-lg font-mono font-bold ${results.netProfit >= 0 ? 'text-cyan-500' : 'text-red-500'}`}>
-                {results.netProfit >= 0 ? '+' : ''}{fmtInt(results.netProfit * dieselPrice)} <span className="text-xs text-gray-600">sats</span>
-              </div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-52 pointer-events-none z-10 text-left">
-                (Emission - Cost) × price = ({fmt(results.emission, 4)} - {fmt(results.costDiesel, 4)}) × {dieselPrice}
-              </div>
-            </div>
-            <div className="p-2 group relative">
-              <div className="text-gray-600 text-xs cursor-help border-b border-dotted border-gray-600 inline-block">EMISSION</div>
-              <div className="text-lg font-mono font-bold text-purple-400">
-                {fmt(results.emission, 2)} <span className="text-xs text-gray-600">DSL</span>
-              </div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-10 text-left">
-                (n*/N) × pool = ({results.nOptimal}/{results.totalMints}) × {fmt(results.pool, 2)}
-              </div>
-            </div>
-          </div>
-
-          {/* Active chain / Mint controls */}
-          <div className="p-2 bg-gray-900/30">
-            {/* Error display */}
-            {mintError && (
-              <div className="mb-2 px-2 py-1 border-l-2 border-red-500 bg-red-500/10 text-red-500 text-xs">
-                {mintError}
-              </div>
-            )}
-
-            {/* Active chain info */}
-            {mintResult && (
-              <div className="mb-2 border border-gray-700 bg-gray-900/50">
-                <div className="flex items-center justify-between px-2 py-1 border-b border-gray-700 bg-gray-800/50">
-                  <span className="text-gray-400 text-xs">ACTIVE CHAIN</span>
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={`https://mempool.space/tx/${mintResult.txids[mintResult.txids.length - 1]}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-cyan-500 hover:text-cyan-400 text-xs"
-                    >
-                      VIEW ↗
-                    </a>
-                    <button
-                      onClick={() => { setRbfData(null); setCpfpData(null); setMintResult(null); setRbfFeeRate(''); }}
-                      className="text-gray-500 hover:text-red-400 text-xs"
-                    >
-                      [CLEAR]
-                    </button>
-                  </div>
-                </div>
-                <div className="px-2 py-1 grid grid-cols-3 gap-2 text-xs">
-                  <div className="group relative">
-                    <span className="text-gray-500 cursor-help border-b border-dotted border-gray-600">TXs:</span>
-                    <span className={`ml-1 font-mono ${
-                      mintResult.txids.length >= 25 ? 'text-red-500' :
-                      mintResult.txids.length >= 20 ? 'text-yellow-500' : 'text-green-500'
-                    }`}>
-                      {mintResult.txids.length}<span className="text-gray-600">/25</span>
-                    </span>
-                    <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-10">
-                      Chain length. Max 25 unconfirmed TXs allowed.
-                    </div>
-                  </div>
-                  <div className="group relative">
-                    <span className="text-gray-500 cursor-help border-b border-dotted border-gray-600">FEES:</span>
-                    <span className="text-yellow-500 ml-1 font-mono">{mintResult.totalFee}</span>
-                    <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-36 pointer-events-none z-10">
-                      Total fees (sats)
-                    </div>
-                  </div>
-                  <div className="group relative">
-                    <span className="text-gray-500 cursor-help border-b border-dotted border-gray-600">RATE:</span>
-                    <span className={`ml-1 font-mono ${mempoolStats && currentEffectiveRate < mempoolStats.minFee ? 'text-red-500' : 'text-cyan-500'}`}>
-                      {currentEffectiveRate.toFixed(2)}
-                      {mempoolStats && currentEffectiveRate < mempoolStats.minFee && ' ▼'}
-                    </span>
-                    <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-10">
-                      Effective rate (sat/vB) = {mintResult.totalFee} / {mintResult.txids.length * TX_VSIZE} vB
-                    </div>
-                  </div>
-                </div>
-                {/* Low fee warning */}
-                {mempoolStats && currentEffectiveRate < mempoolStats.minFee && rbfData && rbfData.totalVsize > 0 && (
-                  <div className="px-2 py-1 border-t border-red-500/30 bg-red-500/10 flex items-center justify-between">
-                    <span className="text-red-500 text-xs">
-                      ⚠ LOW FEE: {currentEffectiveRate.toFixed(2)} {'<'} {mempoolStats.minFee.toFixed(2)} sat/vB
-                    </span>
-                    <button
-                      onClick={() => {
-                        setRbfFeeRate(mempoolStats.minFee.toFixed(2));
-                      }}
-                      className="px-2 py-0.5 bg-red-500/20 border border-red-500/50 text-red-400 text-xs hover:bg-red-500/30"
-                    >
-                      BUMP → {mempoolStats.minFee.toFixed(2)}
-                    </button>
-                  </div>
-                )}
-                {/* Fee bump controls (RBF & CPFP) */}
-                {rbfData && rbfData.totalVsize > 0 && (
-                  <div className="border-t border-gray-700">
-                    {/* Header */}
-                    <div className="px-3 py-1.5 bg-gray-800/30 border-b border-gray-700 flex items-center justify-between">
-                      <span className="text-gray-400 text-xs font-bold">FEE BUMP</span>
-                      <span className="text-gray-500 text-xs">target rate (sat/vB):</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={rbfFeeRate}
-                        onChange={(e) => setRbfFeeRate(e.target.value)}
-                        placeholder={currentEffectiveRate.toFixed(2)}
-                        className="w-20 px-2 py-1 bg-gray-900 border border-gray-600 text-cyan-400 font-mono text-xs outline-none focus:border-cyan-500 text-center"
-                        disabled={isRbfing}
-                      />
-                    </div>
-
-                    {/* RBF row */}
-                    <div className="px-3 py-2 flex items-center gap-3 border-b border-gray-800">
-                      <span className="text-yellow-500 text-xs font-bold w-12">RBF</span>
-                      <span className="text-gray-500 text-xs group relative cursor-help border-b border-dotted border-gray-600">
-                        Replace last TX
-                        <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-56 pointer-events-none z-10 font-normal">
-                          Replace-By-Fee: replaces last TX with higher fee version. Same chain length.
-                        </div>
-                      </span>
-                      <span className="text-gray-600 text-xs">
-                        min: <span className="text-yellow-500/70">{minEffectiveRate.toFixed(2)}</span>
-                      </span>
-                      <div className="ml-auto flex items-center gap-2">
-                        {mempoolStats && (
-                          <button
-                            onClick={() => {
-                              const targetRate = Math.max(mempoolStats.minFee * 1.1, minEffectiveRate);
-                              handleRbf(targetRate);
-                            }}
-                            disabled={isRbfing}
-                            className="px-2 py-1 bg-green-500/20 text-green-500 text-xs font-bold disabled:opacity-50 border-2 border-t-green-300/60 border-l-green-300/60 border-b-green-900 border-r-green-900 active:border-t-green-900 active:border-l-green-900 active:border-b-green-300/60 active:border-r-green-300/60 hover:bg-green-500/30"
-                          >
-                            +10%
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleRbf()}
-                          disabled={isRbfing || !rbfFeeRate}
-                          className="px-3 py-1 bg-yellow-500/20 text-yellow-500 text-xs font-bold disabled:opacity-50 border-2 border-t-yellow-300/60 border-l-yellow-300/60 border-b-yellow-900 border-r-yellow-900 active:border-t-yellow-900 active:border-l-yellow-900 active:border-b-yellow-300/60 active:border-r-yellow-300/60 hover:bg-yellow-500/30"
-                        >
-                          {isRbfing ? 'REPLACING...' : 'REPLACE'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* CPFP row */}
-                    {cpfpData && (
-                      <div className="px-3 py-2 flex items-center gap-3">
-                        <span className="text-purple-500 text-xs font-bold w-12">CPFP</span>
-                        <span className="text-gray-500 text-xs group relative cursor-help border-b border-dotted border-gray-600">
-                          Add child TX
-                          <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-56 pointer-events-none z-10 font-normal">
-                            Child-Pays-For-Parent: adds new TX to pull up package rate. +1 mint.
-                          </div>
-                        </span>
-                        <span className={`text-xs font-mono group relative cursor-help border-b border-dotted ${
-                          (25 - (rbfData?.chainLength || 0)) <= 3
-                            ? 'text-red-500 border-red-500/50'
-                            : (25 - (rbfData?.chainLength || 0)) <= 10
-                              ? 'text-yellow-500 border-yellow-500/50'
-                              : 'text-gray-500 border-gray-600'
-                        }`}>
-                          [{25 - (rbfData?.chainLength || 0)}/25]
-                          <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-10 font-normal">
-                            Remaining slots (max 25 TXs)
-                          </div>
-                        </span>
-                        {cpfpPreview && (
-                          <span className="text-gray-500 text-xs">
-                            → <span className="text-purple-400">{cpfpPreview.actualRate.toFixed(2)}</span>
-                            <span className="text-gray-600 ml-1">(+{cpfpPreview.actualChildFee} sats)</span>
-                          </span>
-                        )}
-                        <div className="ml-auto">
-                          {(25 - (rbfData?.chainLength || 0)) > 0 ? (
-                            <button
-                              onClick={() => handleCpfp()}
-                              disabled={isRbfing || !rbfFeeRate}
-                              className="px-3 py-1 bg-purple-500/20 text-purple-500 text-xs font-bold disabled:opacity-50 border-2 border-t-purple-300/60 border-l-purple-300/60 border-b-purple-900 border-r-purple-900 active:border-t-purple-900 active:border-l-purple-900 active:border-b-purple-300/60 active:border-r-purple-300/60 hover:bg-purple-500/30"
-                            >
-                              {isRbfing ? 'ADDING...' : 'ADD CHILD'}
-                            </button>
-                          ) : (
-                            <span className="text-red-500/70 text-xs">CHAIN FULL</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* UTXO selector */}
-            {isConnected && (
-              <div className="mb-2">
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <button
-                    onClick={() => {
-                      setShowUtxoSelector(!showUtxoSelector);
-                      if (!showUtxoSelector && availableUtxos.length === 0) {
-                        fetchUtxos();
-                      }
-                    }}
-                    className="text-gray-500 hover:text-cyan-400"
-                  >
-                    {showUtxoSelector ? '▼' : '▶'} UTXO {selectedUtxo ? `(${(selectedUtxo.value / 100000000).toFixed(8)} BTC)` : '(auto)'}
-                    {chainsMap.size > 0 && <span className="text-purple-400 ml-1">[{chainsMap.size} chain{chainsMap.size > 1 ? 's' : ''}]</span>}
-                  </button>
-                  {selectedUtxo && (
-                    <button
-                      onClick={() => setSelectedUtxo(null)}
-                      className="text-gray-600 hover:text-red-400"
-                    >
-                      [clear]
-                    </button>
-                  )}
-                </div>
-                {showUtxoSelector && (
-                  <div className="border border-gray-700 bg-gray-900/50 max-h-48 overflow-y-auto">
-                    {/* Active chains section */}
-                    {chainsMap.size > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-[10px] text-purple-400 bg-purple-900/20 border-b border-gray-700">
-                          ACTIVE CHAINS
-                        </div>
-                        {Array.from(chainsMap.entries()).map(([utxoKey, chainData]) => {
-                          const isSelected = currentChainUtxoKey === utxoKey;
-                          const effectiveRate = chainData.rbfData.totalFees / chainData.rbfData.totalVsize;
-                          return (
-                            <button
-                              key={`chain-${utxoKey}`}
-                              onClick={() => {
-                                // Load this chain's data
-                                setMintResult(chainData.mintResult);
-                                setRbfData(chainData.rbfData);
-                                setCpfpData(chainData.cpfpData);
-                                setCurrentChainUtxoKey(utxoKey);
-                                // Clear selectedUtxo to prevent useEffect from overwriting chain data
-                                setSelectedUtxo(null);
-                                // Don't close selector - user may want to switch between chains
-                              }}
-                              className={`w-full px-2 py-1 text-xs text-left hover:bg-gray-800 flex justify-between items-center ${
-                                isSelected
-                                  ? 'bg-purple-900/40 text-purple-300'
-                                  : 'bg-purple-900/20 text-purple-400'
-                              }`}
-                            >
-                              <span className="font-mono truncate" style={{ maxWidth: '100px' }}>
-                                {utxoKey.split(':')[0].slice(0, 8)}...
-                              </span>
-                              <span className="flex items-center gap-2">
-                                <span className="text-purple-300">
-                                  {chainData.rbfData.chainLength}tx
-                                </span>
-                                <span className="text-gray-500">
-                                  {effectiveRate.toFixed(2)} sat/vB
-                                </span>
-                                <span className="text-yellow-500">
-                                  {chainData.rbfData.totalFees} sats
-                                </span>
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </>
-                    )}
-
-                    {/* Available UTXOs section */}
-                    <div className="px-2 py-1 text-[10px] text-gray-500 bg-gray-800/50 border-b border-gray-700">
-                      {chainsMap.size > 0 ? 'NEW CHAIN FROM UTXO' : 'AVAILABLE UTXOS'}
-                    </div>
-                    {loadingUtxos ? (
-                      <div className="p-2 text-xs text-gray-500">Loading UTXOs...</div>
-                    ) : availableUtxos.length === 0 ? (
-                      <div className="p-2 text-xs text-gray-500">No UTXOs available</div>
-                    ) : (
-                      availableUtxos.map((utxo) => {
-                        const utxoKey = `${utxo.txid}:${utxo.vout}`;
-                        const hasChain = chainsMap.has(utxoKey);
-                        const chainData = hasChain ? chainsMap.get(utxoKey) : null;
-                        return (
-                          <button
-                            key={utxoKey}
-                            onClick={() => {
-                              setSelectedUtxo(utxo);
-                              setShowUtxoSelector(false);
-                            }}
-                            className={`w-full px-2 py-1 text-xs text-left hover:bg-gray-800 flex justify-between items-center ${
-                              selectedUtxo?.txid === utxo.txid && selectedUtxo?.vout === utxo.vout
-                                ? 'bg-cyan-900/30 text-cyan-400'
-                                : hasChain
-                                  ? 'bg-purple-900/20 text-purple-300'
-                                  : 'text-gray-400'
-                            }`}
-                          >
-                            <span className="font-mono truncate" style={{ maxWidth: '140px' }}>
-                              {utxo.txid.slice(0, 8)}...:{utxo.vout}
-                            </span>
-                            <span className="flex items-center gap-2">
-                              {hasChain && chainData && (
-                                <span className="text-purple-400 text-[10px]">
-                                  {chainData.rbfData.chainLength}tx
-                                </span>
-                              )}
-                              <span className="text-yellow-500">
-                                {utxo.value.toLocaleString()}
-                              </span>
-                            </span>
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="flex gap-2">
-              {isConnected ? (
-                <>
-                  {!mintResult && !isMinting && (
-                    <button
-                      onClick={detectExistingChain}
-                      className="flex-1 py-1.5 text-xs border border-gray-700 text-gray-400 hover:text-cyan-400 hover:border-cyan-500/50"
-                    >
-                      DETECT CHAIN
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleMint(results.nOptimal, txCost / TX_VSIZE)}
-                    disabled={isMinting || results.nOptimal <= 0}
-                    className={`flex-1 py-1.5 text-xs font-bold transition-colors border-2 ${
-                      isMinting
-                        ? 'bg-yellow-500/10 text-yellow-500 border-t-yellow-300/60 border-l-yellow-300/60 border-b-yellow-900 border-r-yellow-900'
-                        : results.nOptimal > 0
-                          ? results.isProfitable
-                            ? 'bg-green-500/10 text-green-500 border-t-green-300/60 border-l-green-300/60 border-b-green-900 border-r-green-900 hover:bg-green-500/20 active:border-t-green-900 active:border-l-green-900 active:border-b-green-300/60 active:border-r-green-300/60'
-                            : 'bg-orange-500/10 text-orange-500 border-t-orange-300/60 border-l-orange-300/60 border-b-orange-900 border-r-orange-900 hover:bg-orange-500/20 active:border-t-orange-900 active:border-l-orange-900 active:border-b-orange-300/60 active:border-r-orange-300/60'
-                          : 'bg-gray-800/50 text-gray-600 border-t-gray-600 border-l-gray-600 border-b-gray-900 border-r-gray-900 cursor-not-allowed'
-                    }`}
-                  >
-                    {isMinting
-                      ? `MINTING ${mintProgress.current}/${mintProgress.total}`
-                      : results.nOptimal > 0
-                        ? `MINT ${results.nOptimal} TX`
-                        : 'n* = 0'
-                    }
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setShowConnectModal(true)}
-                  className="flex-1 py-1.5 text-xs font-bold border border-orange-500/50 text-orange-500 bg-orange-500/10 hover:bg-orange-500/20"
-                >
-                  CONNECT WALLET
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Details row */}
-          <div className="grid grid-cols-4 border-t border-gray-800 text-xs">
-            <div className="p-2 border-r border-gray-800 group relative">
-              <span className="text-gray-600 cursor-help border-b border-dotted border-gray-600">POOL</span>
-              <div className="text-purple-400 font-mono">{fmt(results.pool, 3)}</div>
-              <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-10">
-                R - fee = {blockReward} - {fmt(results.dieselFeeDiesel, 2)} = {fmt(results.pool, 3)} DSL
-              </div>
-            </div>
-            <div className="p-2 border-r border-gray-800 group relative">
-              <span className="text-gray-600 cursor-help border-b border-dotted border-gray-600">FEE</span>
-              <div className="text-gray-500 font-mono">{fmt(results.dieselFeeDiesel, 2)}</div>
-              <div className="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-40 pointer-events-none z-10">
-                DIESEL protocol fee (5% of block reward)
-              </div>
-            </div>
-            <div className="p-2 border-r border-gray-800 group relative">
-              <span className="text-gray-600 cursor-help border-b border-dotted border-gray-600">COST/DSL</span>
-              <div className="text-yellow-500 font-mono">{results.emission > 0 ? fmtInt((results.nOptimal * txCost) / results.emission) : '---'}</div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-10">
-                Cost per 1 DSL = {fmtInt(results.nOptimal * txCost)} / {fmt(results.emission, 3)} sats
-              </div>
-            </div>
-            <div className="p-2 group relative">
-              <span className="text-gray-600 cursor-help border-b border-dotted border-gray-600">MIN PRICE</span>
-              <div className={`font-mono ${results.isProfitable ? 'text-green-500' : 'text-red-500'}`}>{fmtInt(results.breakevenPriceSats)}</div>
-              <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-10">
-                Breakeven price. Profitable when DSL {'>'} {fmtInt(results.breakevenPriceSats)} sats
-              </div>
-            </div>
-          </div>
-
-          {/* Formula */}
-          <div className="border-t border-gray-800 px-2 py-1 bg-gray-900/50 text-xs">
-            <span className="text-gray-600">n* = √(N*·M) - M = </span>
-            <span className="text-orange-500/80">√({fmtInt(results.Nstar)}×{competition}) - {competition}</span>
-            <span className="text-gray-600"> = </span>
-            <span className="text-white font-bold">{results.autoOptimal}</span>
-            {results.isManual && <span className="text-gray-500 ml-2">(manual: {results.nOptimal})</span>}
-          </div>
-        </div>
-
-        {/* Right Panel - Table */}
-        <div className="col-span-12 lg:col-span-4 border border-gray-800">
-          <div className="bg-gray-900/50 px-2 py-1 border-b border-gray-800">
-            <span className="text-orange-500 text-xs">4)</span> STRATEGY MATRIX
-          </div>
-
-          <div className="grid grid-cols-4 text-xs border-b border-gray-800 bg-gray-900/30">
-            <div className="p-2 text-gray-500">M</div>
-            <div className="p-2 text-gray-500 text-right">n*</div>
-            <div className="p-2 text-gray-500 text-right">ROI</div>
-            <div className="p-2 text-gray-500 text-right">PROFIT</div>
-          </div>
-
-          <div className="overflow-y-auto" style={{ maxHeight: '280px' }}>
-            {results.tableData.map((row, i) => (
-              <div
-                key={row.m}
-                className={`grid grid-cols-4 text-xs border-b border-gray-800/50 ${row.m === competition ? 'bg-orange-500/20 border-l-2 border-l-orange-500' : i % 2 === 0 ? 'bg-gray-900/20' : ''}`}
-              >
-                <div className="p-2 text-gray-400">{row.m}</div>
-                <div className={`p-2 text-right ${row.profitable ? 'text-orange-500' : 'text-gray-600'}`}>{row.n}</div>
-                <div className={`p-2 text-right ${row.roi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {fmtPct(row.roi)}
-                </div>
-                <div className={`p-2 text-right ${row.profitable ? 'text-cyan-500' : 'text-gray-600'}`}>{fmt(row.profit, 3)}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="p-2 text-xs text-gray-600 border-t border-gray-800">
-            <span className="text-orange-500">▌</span> CURRENT M={competition}
-          </div>
+          {/* Profit indicator */}
+          <span className={`flex items-center gap-1.5 ${isProfitable ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
+            <span className={`w-2 h-2 ${isProfitable ? 'bg-[#00ff88]' : 'bg-[#ff4444]'}`}></span>
+            {isProfitable ? 'PROFIT' : 'LOSS'}
+          </span>
         </div>
       </div>
-      )}
 
-      {/* Bottom Bar */}
-      {showManualControls && (
-      <div className="mt-3 border border-gray-800 p-2 grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-        <div>
-          <span className="text-gray-600">THRESHOLD </span>
-          <span className="text-orange-500">N* = Rp/2f</span>
-        </div>
-        <div>
-          <span className="text-gray-600">OPTIMAL </span>
-          <span className="text-orange-500">n* = √(N*M) - M</span>
-        </div>
-        <div>
-          <span className="text-gray-600">BREAKEVEN </span>
-          <span className="text-orange-500">M {'<'} N*/4</span>
-        </div>
-        <div>
-          <span className="text-gray-600">MIN PRICE </span>
-          <span className="text-orange-500">p {'>'} 8fM/R</span>
-        </div>
-      </div>
-      )}
 
       {/* Auto-mint panel */}
       {isConnected ? (
-        <div className="mt-2 border border-gray-700 bg-gray-900/50">
+        <div className="mt-2 sm:mt-3 border border-[#252525] bg-[#0d0d0d]">
           <AutoMintPanel
             currentFeeRate={mempoolStats?.minFee || 0}
             currentEffectiveRate={currentEffectiveRate}
@@ -2938,36 +2254,66 @@ return {
           />
         </div>
       ) : (
-        <div className="mt-2 border border-gray-700 bg-gray-900/50 p-4 text-center">
-          <div className="text-gray-500 text-xs mb-3">Connect wallet to enable auto-mint</div>
+        <div className="mt-3 border border-[#252525] bg-[#0d0d0d] p-4 text-center">
+          <div className="text-[#505050] text-sm mb-3">CONNECT WALLET TO ENABLE AUTO-MINT</div>
           <button
             onClick={() => setShowConnectModal(true)}
-            className="px-6 py-2 text-xs font-bold border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black transition-colors"
+            className="px-6 py-2 text-sm font-bold border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black tracking-wide transition-colors"
           >
-            CONNECT WALLET
+            CONNECT
           </button>
         </div>
       )}
 
       {/* Active Chains List */}
       {isConnected && chainsMap.size > 0 && (
-        <div className="mt-2 border border-gray-800 bg-gray-900/30">
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 bg-gray-900/50">
-            <span className="text-xs"><span className="text-orange-500">4)</span> <span className="text-white">PENDING CHAINS</span></span>
-            <span className="text-gray-600 text-xs">{chainsMap.size} active</span>
+        <div className="mt-2 sm:mt-3 border border-[#252525] bg-[#0d0d0d] relative z-10 overflow-visible">
+          <div className="flex items-center justify-between px-2 sm:px-4 py-2 border-b border-[#252525] bg-[#0a0a0a]">
+            <span className="text-xs sm:text-sm"><span className="text-orange-500 font-bold">3</span><span className="text-[#404040] mx-1">│</span><span className="text-[#e0e0e0] tracking-wide">PENDING</span></span>
+            <span className="text-[#505050] text-xs">{chainsMap.size} CHAIN{chainsMap.size > 1 ? 'S' : ''}</span>
           </div>
-          {/* Table header */}
-          <div className="grid grid-cols-12 gap-1 px-3 py-1 text-xs text-gray-600 border-b border-gray-800/50 bg-gray-900/30">
-            <div className="col-span-1 text-center">TXs</div>
-            <div className="col-span-2 text-right">ROI</div>
-            <div className="col-span-2 text-right">EXP</div>
-            <div className="col-span-2 text-right">COST</div>
-            <div className="col-span-2 text-right">PROFIT</div>
-            <div className="col-span-1 text-right">RATE</div>
-            <div className="col-span-2 text-right">ACTIONS</div>
+          {/* Table header - outside scroll container for tooltips */}
+          <div className="grid grid-cols-12 gap-2 px-2 sm:px-4 py-2 text-xs text-[#505050] border-b border-[#1a1a1a] bg-[#080808] uppercase tracking-wider">
+            <div className="col-span-1 text-center group relative cursor-help">
+              <span className="border-b border-dotted border-[#505050]">TX</span>
+              <div className="absolute top-full left-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-32 pointer-events-none z-[100] normal-case">
+                Transactions in chain (max 25)
+              </div>
+            </div>
+            <div className="col-span-2 text-right group relative cursor-help">
+              <span className="border-b border-dotted border-[#505050]">ROI</span>
+              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-40 pointer-events-none z-[100] normal-case">
+                Return on Investment (profit / cost × 100%)
+              </div>
+            </div>
+            <div className="col-span-2 text-right group relative cursor-help">
+              <span className="border-b border-dotted border-[#505050]">EXP</span>
+              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-[100] normal-case">
+                Expected DIESEL emission share from block reward
+              </div>
+            </div>
+            <div className="col-span-2 text-right group relative cursor-help">
+              <span className="border-b border-dotted border-[#505050]">COST</span>
+              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-36 pointer-events-none z-[100] normal-case">
+                Total fees paid in satoshis
+              </div>
+            </div>
+            <div className="col-span-2 text-right group relative cursor-help">
+              <span className="border-b border-dotted border-[#505050]">P&L</span>
+              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-40 pointer-events-none z-[100] normal-case">
+                Profit/Loss in satoshis (emission × price - cost)
+              </div>
+            </div>
+            <div className="col-span-1 text-right group relative cursor-help">
+              <span className="border-b border-dotted border-[#505050]">RATE</span>
+              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-40 pointer-events-none z-[100] normal-case">
+                Effective fee rate (sat/vB). Red = below next block
+              </div>
+            </div>
+            <div className="col-span-2 text-right">ACT</div>
           </div>
           {/* Chains list */}
-          <div className="max-h-40 overflow-y-auto">
+          <div className="max-h-48 overflow-y-auto">
             {Array.from(chainsMap.entries()).map(([utxoKey, chainData]) => {
               const n = chainData.rbfData.chainLength;
               const effectiveRate = chainData.rbfData.totalVsize > 0
@@ -2990,40 +2336,40 @@ return {
               return (
                 <div
                   key={utxoKey}
-                  className={`grid grid-cols-12 gap-1 px-3 py-1.5 text-xs border-b border-gray-800/30 hover:bg-gray-800/30 ${
-                    isSelected ? 'bg-blue-900/20 border-l-2 border-l-blue-500' : ''
+                  className={`grid grid-cols-12 gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm border-b border-[#151515] hover:bg-[#151515] ${
+                    isSelected ? 'bg-[#0a1020] border-l-2 border-l-[#00d4ff]' : ''
                   }`}
                 >
-                  <div className={`col-span-1 text-center font-mono ${
-                    n >= 25 ? 'text-red-500' : n >= 20 ? 'text-yellow-500' : 'text-green-500'
+                  <div className={`col-span-1 text-center ${
+                    n >= 25 ? 'text-[#ff4444]' : n >= 20 ? 'text-[#ffcc00]' : 'text-[#00ff88]'
                   }`}>
-                    {n}<span className="text-gray-600">/25</span>
+                    {n}<span className="text-[#303030]">/25</span>
                   </div>
-                  <div className={`col-span-2 text-right font-mono font-bold ${roi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className={`col-span-2 text-right font-bold ${roi >= 0 ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
                     {roi >= 0 ? '+' : ''}{roi.toFixed(0)}%
                   </div>
-                  <div className="col-span-2 text-right font-mono text-purple-400">
-                    {emission.toFixed(2)} <span className="text-gray-600">DSL</span>
+                  <div className="col-span-2 text-right text-[#e0e0e0]">
+                    {emission.toFixed(2)}<span className="text-[#404040] text-xs ml-1">D</span>
                   </div>
-                  <div className="col-span-2 text-right font-mono text-yellow-500">
-                    {costSats} <span className="text-gray-600">sat</span>
+                  <div className="col-span-2 text-right text-[#e0e0e0]">
+                    {costSats}<span className="text-[#404040] text-xs ml-1">s</span>
                   </div>
-                  <div className={`col-span-2 text-right font-mono ${isProfitable ? 'text-cyan-500' : 'text-red-500'}`}>
-                    {profitSats >= 0 ? '+' : ''}{Math.round(profitSats)} <span className="text-gray-600">sat</span>
+                  <div className={`col-span-2 text-right ${isProfitable ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
+                    {profitSats >= 0 ? '+' : ''}{Math.round(profitSats)}<span className="text-[#404040] text-xs ml-1">s</span>
                   </div>
-                  <div className={`col-span-1 text-right font-mono ${isLowFee ? 'text-red-500' : 'text-gray-400'}`}>
+                  <div className={`col-span-1 text-right ${isLowFee ? 'text-[#ff4444]' : 'text-[#e0e0e0]'}`}>
                     {effectiveRate.toFixed(2)}
-                    {isLowFee && '▼'}
+                    {isLowFee && <span className="text-[#ff4444]">▼</span>}
                   </div>
-                  <div className="col-span-2 text-right flex items-center justify-end gap-1">
+                  <div className="col-span-2 text-right">
                     <a
                       href={`https://mempool.space/tx/${chainData.cpfpData.lastTxid}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-1.5 py-0.5 text-orange-500 border border-orange-500/50 hover:bg-orange-500/20 transition-colors"
+                      className="px-2 py-1 text-xs text-orange-500 border border-orange-500/30 hover:bg-orange-500/10 transition-colors"
                       title={utxoKey}
                     >
-                      VIEW ↗
+                      VIEW↗
                     </a>
                   </div>
                 </div>
@@ -3033,22 +2379,8 @@ return {
         </div>
       )}
 
-      <div className="mt-2 flex justify-between text-xs text-gray-600 border-t border-gray-800 pt-2">
-        <div>TURBO DIESEL TERMINAL v12</div>
-        {showManualControls && (
-        <div className="flex gap-6">
-          <span>N*=<span className="text-orange-500">{fmtInt(results.Nstar)}</span></span>
-          <span>
-            M=<span className="text-red-500">{competition}</span>
-            {rbfData && rbfData.chainLength > 0 && currentEffectiveRate >= (mempoolStats?.minFee || 0) && (
-              <span className="text-purple-400">-{rbfData.chainLength}={Math.max(0, competition - rbfData.chainLength)}</span>
-            )}
-          </span>
-          <span className={results.isProfitable ? 'text-green-500' : 'text-red-500'}>
-            ● {results.isProfitable ? 'PROFITABLE' : 'UNPROFITABLE'}
-          </span>
-        </div>
-        )}
+      <div className="mt-2 sm:mt-3 text-xs text-[#404040] border-t border-[#1a1a1a] pt-2">
+        <div className="tracking-wider">TURBO DIESEL TERMINAL <span className="text-[#505050] italic">v12</span></div>
       </div>
 
       {/* Connect Wallet Modal */}
@@ -3065,40 +2397,40 @@ return {
 
       {/* Deposit Modal */}
       {showDepositModal && address && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-orange-500/50 max-w-md w-full">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 bg-gray-800/50">
-              <span className="text-orange-500 font-bold">WALLET</span>
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0a0a0a] border border-orange-500/50 max-w-md w-full font-mono">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-[#252525] bg-[#0d0d0d]">
+              <span className="text-orange-500 font-bold text-sm tracking-wide">WALLET MANAGER</span>
               <button
                 onClick={() => { setShowDepositModal(false); setShowMnemonic(false); setSeedPassword(''); setSeedPasswordError(null); }}
-                className="text-gray-500 hover:text-white"
+                className="text-[#505050] hover:text-orange-500 text-sm"
               >
-                [X]
+                [ESC]
               </button>
             </div>
             <div className="p-4">
               {/* Deposit Section */}
-              <div className="text-gray-400 text-xs mb-2">DEPOSIT ADDRESS:</div>
-              <div className="bg-black border border-gray-700 p-3 mb-3">
-                <div className="text-cyan-500 font-mono text-xs break-all select-all">
+              <div className="text-[#505050] text-xs mb-2 tracking-wide">DEPOSIT ADDRESS</div>
+              <div className="bg-[#050505] border border-[#252525] p-3 mb-3">
+                <div className="text-[#00d4ff] text-sm break-all select-all">
                   {address}
                 </div>
               </div>
               <button
                 onClick={handleCopyAddress}
-                className={`w-full py-2 border text-xs font-bold transition-colors mb-4 ${
+                className={`w-full py-2 border text-sm font-bold transition-colors mb-4 ${
                   depositCopied
-                    ? 'border-green-500 text-green-500 bg-green-500/10'
-                    : 'border-cyan-500/50 text-cyan-500 hover:bg-cyan-500/10'
+                    ? 'border-[#00ff88] text-[#00ff88] bg-[#00ff88]/5'
+                    : 'border-[#00d4ff]/50 text-[#00d4ff] hover:bg-[#00d4ff]/5'
                 }`}
               >
-                {depositCopied ? '✓ ADDRESS COPIED' : 'COPY ADDRESS'}
+                {depositCopied ? '✓ COPIED' : 'COPY ADDRESS'}
               </button>
 
               {/* Backup Section */}
               {wallet && (
-                <div className="border-t border-gray-700 pt-4">
-                  <div className="text-gray-400 text-xs mb-2">BACKUP SEED PHRASE:</div>
+                <div className="border-t border-[#252525] pt-4">
+                  <div className="text-[#505050] text-xs mb-2 tracking-wide">BACKUP SEED</div>
                   {!showMnemonic ? (
                     <div>
                       <div className="flex gap-2 mb-2">
@@ -3106,8 +2438,8 @@ return {
                           type="password"
                           value={seedPassword}
                           onChange={(e) => { setSeedPassword(e.target.value); setSeedPasswordError(null); }}
-                          placeholder="Enter password to reveal"
-                          className="flex-1 px-3 py-2 bg-black border border-gray-700 text-white text-xs outline-none focus:border-yellow-500"
+                          placeholder="Password to reveal"
+                          className="flex-1 px-3 py-2 bg-[#050505] border border-[#252525] text-[#e0e0e0] text-sm outline-none focus:border-[#ffcc00]"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && seedPassword) {
                               // Verify by trying to get mnemonic
@@ -3142,19 +2474,19 @@ return {
                             }
                           }}
                           disabled={verifyingSeedPassword || !seedPassword}
-                          className="px-4 py-2 border border-yellow-500/50 text-yellow-500 text-xs hover:bg-yellow-500/10 disabled:opacity-50"
+                          className="px-4 py-2 border border-[#ffcc00]/50 text-[#ffcc00] text-sm hover:bg-[#ffcc00]/5 disabled:opacity-50"
                         >
                           {verifyingSeedPassword ? '...' : 'REVEAL'}
                         </button>
                       </div>
                       {seedPasswordError && (
-                        <div className="text-red-500 text-xs">{seedPasswordError}</div>
+                        <div className="text-[#ff4444] text-sm">{seedPasswordError}</div>
                       )}
                     </div>
                   ) : (
                     <>
-                      <div className="bg-black border border-red-500/50 p-3 mb-3">
-                        <div className="text-red-400 font-mono text-xs break-all select-all">
+                      <div className="bg-[#050505] border border-[#ff4444]/30 p-3 mb-3">
+                        <div className="text-[#ff6666] text-sm break-all select-all">
                           {wallet.exportMnemonic()}
                         </div>
                       </div>
@@ -3165,23 +2497,24 @@ return {
                             setMnemonicCopied(true);
                             setTimeout(() => setMnemonicCopied(false), 2000);
                           }}
-                          className={`flex-1 py-2 border text-xs font-bold transition-colors ${
+                          className={`flex-1 py-2 border text-sm font-bold transition-colors ${
                             mnemonicCopied
-                              ? 'border-green-500 text-green-500 bg-green-500/10'
-                              : 'border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10'
+                              ? 'border-[#00ff88] text-[#00ff88] bg-[#00ff88]/5'
+                              : 'border-[#ffcc00]/50 text-[#ffcc00] hover:bg-[#ffcc00]/5'
                           }`}
                         >
                           {mnemonicCopied ? '✓ COPIED' : 'COPY SEED'}
                         </button>
                         <button
                           onClick={() => { setShowMnemonic(false); setSeedPassword(''); }}
-                          className="flex-1 py-2 border border-gray-700 text-gray-400 text-xs hover:bg-gray-800"
+                          className="flex-1 py-2 border border-[#252525] text-[#707070] text-sm hover:bg-[#151515]"
                         >
                           HIDE
                         </button>
                       </div>
-                      <div className="mt-2 text-red-500/80 text-xs">
-                        ● Never share your seed phrase. Anyone with it can steal your funds.
+                      <div className="mt-2 text-[#ff4444]/80 text-xs flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-[#ff4444]"></span>
+                        Never share seed phrase. Anyone with it can steal your funds.
                       </div>
                     </>
                   )}
@@ -3191,7 +2524,7 @@ return {
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => { setShowDepositModal(false); setShowMnemonic(false); setSeedPassword(''); setSeedPasswordError(null); }}
-                  className="flex-1 py-2 border border-gray-700 text-gray-400 text-xs hover:bg-gray-800"
+                  className="flex-1 py-2 border border-[#252525] text-[#707070] text-sm hover:bg-[#151515]"
                 >
                   CLOSE
                 </button>
