@@ -197,6 +197,48 @@ OP_RETURN for DIESEL mint:
 6a5d1214011400ff7f818cec82d08bc0a88281d215
 ```
 
+### RBF Race Condition — Chain Confirmation Check
+
+**Problem**: When sending an RBF transaction, a block may be mined BEFORE the RBF reaches the mempool:
+1. Original transactions get confirmed in the block
+2. RBF txid never existed in mempool
+3. System waits for confirmation of non-existent RBF txid
+
+**Solution** (implemented in `DieselTerminal.tsx`):
+
+```typescript
+// 1. Check lastTxid (could be RBF replacement)
+const lastTxData = await fetchTx(chainData.cpfpData.lastTxid);
+
+// 2. If lastTxid confirmed → chain is done
+if (lastTxData.result?.status?.confirmed) {
+  removeChain();
+  return;
+}
+
+// 3. If lastTxid not found (RBF didn't make it to mempool)
+const lastTxNotFound = lastTxData.error || !lastTxData.result;
+
+if (lastTxNotFound && chainData.mintResult.txids.length > 0) {
+  // Check the FIRST TX of the original chain
+  const firstTxData = await fetchTx(chainData.mintResult.txids[0]);
+
+  // If first TX confirmed → original chain was mined (RBF lost the race)
+  // If first TX also not found → chain was evicted from mempool
+  if (firstTxData.result?.status?.confirmed || !firstTxData.result) {
+    removeChain();
+    return;
+  }
+}
+
+// 4. If lastTxid not found — remove chain
+if (lastTxNotFound) {
+  removeChain();
+}
+```
+
+**Key point**: We store `mintResult.txids[]` — array of original chain txids. When checking confirmation, first check `lastTxid`, and if not found — check the first TX of the original chain.
+
 ## Environment Variables
 
 ```bash
@@ -210,3 +252,38 @@ NEXT_PUBLIC_ALKANES_RPC_URL  # Alkanes RPC endpoint (default: https://mainnet.su
 
 - **postgres**: Port 5433 (avoids conflict with standard 5432)
 - **redis**: Port 6380 (avoids conflict with standard 6379)
+
+## Code Cleanup History
+
+### Manual Controls Removed (2025)
+- Removed `showManualControls` constant and all related JSX (was always `false`)
+- Removed manual parameter inputs (block reward, diesel price, tx cost, competition)
+- Removed strategy matrix table
+- Removed `manualMints` state and related calculations
+- Simplified `results` computation to only `isProfitable` boolean
+- Removed unused formatters (`fmt`, `fmtInt`, `fmtPct`)
+- Terminal now shows only: STATUS bar, AUTO-MINT panel, PENDING chains list
+
+### Auto-Mint Improvements (2025)
+
+#### Session Spending Limit
+- Added `LIMIT` field in AUTO-MINT panel (sats)
+- Tracks total spent during session (`SPENT X / Y`)
+- Blocks new mints/RBF when limit reached
+- `[RST]` button to reset session counter
+- Fee calculation: `feePerTx = ceil(TX_VSIZE × feeRate)`, then `total = count × feePerTx`
+
+#### Confirmed UTXO Filter
+- Initial mint only uses confirmed UTXOs (`status.confirmed === true`)
+- Prevents starting chains with unconfirmed outputs
+- RBF/CPFP still uses unconfirmed (by design — extends existing chain)
+
+#### Stale Fee Detection
+- After chain confirmation, waits for fresh fee data before new mint
+- Tracks `feeAtConfirmation` and compares with current rate
+- Prevents minting at stale (previous block's) fee rate
+- Status: `CONFIRMED — waiting for fresh fees...`
+
+#### PENDING Chains Display
+- COST column shows total sats spent (with thousands separator)
+- Header tooltip: "Total fees paid in sats. Price per DIESEL = cost / emission"
