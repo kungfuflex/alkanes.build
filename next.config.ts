@@ -7,8 +7,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 import path from "path";
 import webpack from "webpack";
 
-// WASM directory from node_modules
-const wasmDir = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm");
+// Local WASM path (copied from SDK to avoid dynamic import issues)
+const localWasmPath = "./lib/oyl/alkanes/alkanes_web_sys.js";
 
 // Create next-intl plugin
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
@@ -17,9 +17,8 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployment
   output: "standalone",
 
-  // External packages that should not be bundled on the server
-  // Note: fix-standalone.js creates the missing symlinks for pnpm packages
-  serverExternalPackages: ["@alkanes/ts-sdk"],
+  // Note: @alkanes/ts-sdk is NOT in serverExternalPackages
+  // because we need webpack to resolve the alias for @alkanes/ts-sdk/wasm
 
   // Enable MDX pages
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
@@ -27,24 +26,42 @@ const nextConfig: NextConfig = {
   // Turbopack configuration (for dev mode)
   turbopack: {
     resolveAlias: {
-      "@alkanes/ts-sdk/wasm": wasmDir,
+      // Use local WASM with fixes
+      "@alkanes/ts-sdk/wasm": localWasmPath,
+      // Prevent Node.js-specific loader from being bundled for browser
+      "@alkanes/ts-sdk/wasm/node-loader.cjs": { browser: "./lib/empty-module.js" },
+      // Stub out Node.js built-in modules for browser builds
+      fs: { browser: "./lib/empty-module.js" },
+      path: { browser: "./lib/empty-module.js" },
+      net: { browser: "./lib/empty-module.js" },
+      tls: { browser: "./lib/empty-module.js" },
+      crypto: { browser: "./lib/empty-module.js" },
+      stream: { browser: "./lib/empty-module.js" },
+      util: { browser: "./lib/empty-module.js" },
     },
   },
 
   // Webpack configuration (for dev and production)
   webpack: (config, { isServer }) => {
-    // WASM alias - map the directory, not just the index file
-    const wasmDir = path.join(process.cwd(), "node_modules/@alkanes/ts-sdk/wasm");
+    // WASM alias - use local copy to avoid dynamic import issues
+    // Also alias the full node_modules path for dynamic imports inside SDK
+    const sdkWasmPath = path.join(__dirname, "node_modules/@alkanes/ts-sdk/wasm");
     config.resolve.alias = {
       ...config.resolve.alias,
-      "@alkanes/ts-sdk/wasm": wasmDir,
+      "@alkanes/ts-sdk/wasm": path.join(__dirname, localWasmPath),
+      // This catches dynamic imports that resolve to the full path
+      [sdkWasmPath]: path.join(__dirname, localWasmPath),
     };
 
     // WASM support
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
+      layers: true,
     };
+
+    config.output.webassemblyModuleFilename =
+      (isServer ? '../' : '') + 'static/wasm/[modulehash].wasm';
 
     // WASM loader
     config.module.rules.push({
@@ -70,17 +87,30 @@ const nextConfig: NextConfig = {
       ];
     }
 
-    // Help webpack resolve dynamic imports for the SDK wasm module
-    // This creates a context for dynamic imports from the SDK
+    // Prevent Node.js-specific loader from being bundled for browser
     if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@alkanes/ts-sdk/wasm/node-loader.cjs": path.join(__dirname, "lib/empty-module.js"),
+      };
+
+      // Replace dynamic imports of @alkanes/ts-sdk/wasm with local copy
+      // This catches the dynamic import() inside the SDK
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /@alkanes\/ts-sdk\/wasm$/,
+          path.join(__dirname, localWasmPath)
+        )
+      );
+
+      // ContextReplacementPlugin to handle dynamic imports in SDK
+      // This maps the dynamic import('@alkanes/ts-sdk/wasm') to our local copy
       config.plugins.push(
         new webpack.ContextReplacementPlugin(
           /@alkanes\/ts-sdk/,
-          wasmDir,
+          path.join(__dirname, "lib/oyl/alkanes"),
           {
-            "./wasm": ".",
-            "./wasm/node-loader.cjs": "./node-loader.cjs",
-            "./wasm/index.js": "./index.js"
+            "@alkanes/ts-sdk/wasm": "./alkanes_web_sys.js",
           }
         )
       );

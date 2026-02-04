@@ -18,8 +18,12 @@ function detectNetwork(): "mainnet" | "testnet" | "signet" | "regtest" {
   if (hostname.includes("testnet")) {
     return "testnet";
   }
-  if (hostname.includes("regtest") || hostname.includes("localhost")) {
+  if (hostname.includes("regtest")) {
     return "regtest";
+  }
+  // localhost uses NEXT_PUBLIC_NETWORK env variable
+  if (hostname.includes("localhost")) {
+    return (process.env.NEXT_PUBLIC_NETWORK as any) || "mainnet";
   }
 
   return (process.env.NEXT_PUBLIC_NETWORK as any) || "mainnet";
@@ -33,6 +37,11 @@ export function Providers({ children }: { children: ReactNode }) {
           queries: {
             staleTime: 60 * 1000, // 1 minute
             refetchOnWindowFocus: false,
+            // Retry indefinitely for intermittent API errors
+            retry: true,
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+            // Keep showing previous data while refetching
+            placeholderData: (prev: unknown) => prev,
           },
         },
       })

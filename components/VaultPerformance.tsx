@@ -26,12 +26,12 @@ export function VaultPerformance() {
   const t = useTranslations("dashboard.vaults");
   const tCommon = useTranslations("common");
 
-  const { data: pools, isLoading: poolsLoading, error: poolsError } = usePoolPrices();
+  const { data: pools, isLoading: poolsLoading } = usePoolPrices();
   const { data: btcPrice, isLoading: btcLoading } = useBtcPrice();
   const { data: tvlStats, isLoading: tvlLoading } = useTvlStats();
 
   const loading = poolsLoading || tvlLoading;
-  const error = poolsError?.message || null;
+  const hasData = !!pools;
 
   // Build vault list from live pool data with proper TVL calculation
   // TVL = both sides of the pool valued in USD (2 * reserve1 value)
@@ -107,7 +107,13 @@ export function VaultPerformance() {
 
       {/* Pool List */}
       <div className="p-4 space-y-2 overflow-hidden">
-        {loading ? (
+        {hasData ? (
+          <>
+            {vaults.map((vault) => (
+              <VaultRow key={vault.id} vault={vault} tvlLabel={t("tvl")} />
+            ))}
+          </>
+        ) : (
           <>
             {[1, 2].map((i) => (
               <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
@@ -116,20 +122,10 @@ export function VaultPerformance() {
               </div>
             ))}
           </>
-        ) : error ? (
-          <div className="p-4 text-center text-[color:var(--sf-muted)]">
-            <p className="text-sm">{error}</p>
-          </div>
-        ) : (
-          <>
-            {vaults.map((vault) => (
-              <VaultRow key={vault.id} vault={vault} tvlLabel={t("tvl")} />
-            ))}
-          </>
         )}
 
         {/* Total TVL */}
-        {!loading && !error && (
+        {hasData && (
           <div className="mt-4 pt-4 border-t border-[color:var(--sf-outline)]">
             <div className="flex items-center justify-between">
               <div>

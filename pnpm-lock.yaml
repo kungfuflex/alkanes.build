@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@alkanes/ts-sdk':
-        specifier: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.1-f1dab33
-        version: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.1-f1dab33(@types/node@20.19.27)
+        specifier: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.4-b6a5a42
+        version: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.4-b6a5a42(@types/node@20.19.27)
       '@bitcoinerlab/secp256k1':
         specifier: ^1.2.0
         version: 1.2.0
@@ -65,6 +65,9 @@ importers:
       bignumber.js:
         specifier: ^9.3.1
         version: 9.3.1
+      bip32:
+        specifier: ^5.0.0
+        version: 5.0.0(typescript@5.9.3)
       bitcoin-address-validation:
         specifier: ^3.0.0
         version: 3.0.0
@@ -225,9 +228,9 @@ packages:
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
 
-  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.1-f1dab33':
-    resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.1-f1dab33}
-    version: 0.1.1-f1dab33
+  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.4-b6a5a42':
+    resolution: {tarball: https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.4-b6a5a42}
+    version: 0.1.4-b6a5a42
     hasBin: true
     peerDependencies:
       '@oyl/sdk': '*'
@@ -2258,6 +2261,10 @@ packages:
   bip32@4.0.0:
     resolution: {integrity: sha512-aOGy88DDlVUhspIXJN+dVEtclhIsfAUppD43V0j40cPTld3pv/0X/MlrZSZ6jowIaQQzFwP8M6rFU2z2mVYjDQ==}
     engines: {node: '>=6.0.0'}
+
+  bip32@5.0.0:
+    resolution: {integrity: sha512-h043yQ9n3iU4WZ8KLRpEECMl3j1yx2DQ1kcPlzWg8VZC0PtukbDiyLDKbe6Jm79mL6Tfg+WFuZMYxnzVyr/Hyw==}
+    engines: {node: '>=18.0.0'}
 
   bip39@3.1.0:
     resolution: {integrity: sha512-c9kiwdk45Do5GL0vJMe7tS95VjCii65mYAH7DfWl3uW8AVzXKQVUm64i3hzVybBDMp9r7j9iNxR85+ul8MdN/A==}
@@ -4846,7 +4853,7 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.1-f1dab33(@types/node@20.19.27)':
+  '@alkanes/ts-sdk@https://pkg.alkanes.build/dist/@alkanes/ts-sdk?v=0.1.4-b6a5a42(@types/node@20.19.27)':
     dependencies:
       '@bitcoinerlab/secp256k1': 1.2.0
       bip32: 4.0.0
@@ -6793,6 +6800,16 @@ snapshots:
       '@scure/base': 1.2.6
       typeforce: 1.18.0
       wif: 2.0.6
+
+  bip32@5.0.0(typescript@5.9.3):
+    dependencies:
+      '@noble/hashes': 1.8.0
+      '@scure/base': 1.2.6
+      uint8array-tools: 0.0.8
+      valibot: 0.37.0(typescript@5.9.3)
+      wif: 5.0.0
+    transitivePeerDependencies:
+      - typescript
 
   bip39@3.1.0:
     dependencies:

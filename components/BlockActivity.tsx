@@ -17,38 +17,19 @@ function GaugeChart({ value, max = 3000 }: { value: number; max?: number }) {
   const percentage = (clampedValue / max) * 100;
 
   // Arc calculations
-  const radius = 70;
+  const radius = 65;
   const strokeWidth = 8;
   const centerX = 100;
-  const centerY = 85;
+  const centerY = 80;
 
-  // Arc goes from 180deg to 0deg (left to right, bottom half)
-  const startAngle = 180;
-  const endAngle = 0;
-  const totalAngle = startAngle - endAngle;
+  // Semi-circle arc length
+  const circumference = Math.PI * radius;
+  const filledLength = (percentage / 100) * circumference;
 
-  // Calculate the arc path
-  const polarToCartesian = (angle: number) => {
-    const rad = (angle * Math.PI) / 180;
-    return {
-      x: centerX + radius * Math.cos(rad),
-      y: centerY - radius * Math.sin(rad),
-    };
-  };
+  // Arc path (semi-circle from left to right)
+  const arcPath = `M ${centerX - radius} ${centerY} A ${radius} ${radius} 0 0 1 ${centerX + radius} ${centerY}`;
 
-  const start = polarToCartesian(startAngle);
-  const end = polarToCartesian(endAngle);
-
-  // Background arc path
-  const bgArcPath = `M ${start.x} ${start.y} A ${radius} ${radius} 0 0 1 ${end.x} ${end.y}`;
-
-  // Calculate current position for the value arc
-  const valueAngle = startAngle - (percentage / 100) * totalAngle;
-  const valueEnd = polarToCartesian(valueAngle);
-  const largeArcFlag = percentage > 50 ? 1 : 0;
-  const valueArcPath = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${valueEnd.x} ${valueEnd.y}`;
-
-  // Needle angle
+  // Needle angle (180° = left, 0° = right)
   const needleAngle = 180 - (percentage / 100) * 180;
   const needleLength = radius - 15;
   const needleRad = (needleAngle * Math.PI) / 180;
@@ -71,23 +52,24 @@ function GaugeChart({ value, max = 3000 }: { value: number; max?: number }) {
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 200 110" className="w-full max-w-[180px]">
+      <svg viewBox="0 0 200 100" className="w-full max-w-[180px]">
         {/* Background arc */}
         <path
-          d={bgArcPath}
+          d={arcPath}
           fill="none"
           stroke="var(--sf-outline)"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
 
-        {/* Value arc */}
+        {/* Value arc using stroke-dasharray */}
         <path
-          d={valueArcPath}
+          d={arcPath}
           fill="none"
           stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
+          strokeDasharray={`${filledLength} ${circumference}`}
           className="transition-all duration-700"
         />
 
@@ -123,7 +105,7 @@ function GaugeChart({ value, max = 3000 }: { value: number; max?: number }) {
 }
 
 export function BlockActivity() {
-  const { data, isLoading, error } = useQuery({
+  const { data } = useQuery({
     queryKey: ["block-traces"],
     queryFn: async (): Promise<BlockTracesResponse["data"]> => {
       const res = await fetch("/api/block-traces");
@@ -139,6 +121,9 @@ export function BlockActivity() {
     refetchInterval: 10 * 1000,
   });
 
+  // Show stale data if available, even when there's an error
+  const hasData = !!data;
+
   return (
     <div className="glass-card overflow-hidden w-full">
       <div className="card-header flex items-center justify-between">
@@ -152,16 +137,14 @@ export function BlockActivity() {
       </div>
 
       <div className="p-5">
-        {isLoading ? (
+        {hasData ? (
+          <GaugeChart value={data.txCount} />
+        ) : (
           <div className="flex flex-col items-center py-4">
             <div className="h-16 w-32 bg-[color:var(--sf-outline)] rounded animate-pulse mb-2" />
             <div className="h-6 w-20 bg-[color:var(--sf-outline)] rounded animate-pulse" />
           </div>
-        ) : error ? (
-          <div className="text-sm text-[color:var(--sf-muted)] text-center py-4">Failed to load</div>
-        ) : data ? (
-          <GaugeChart value={data.txCount} />
-        ) : null}
+        )}
       </div>
     </div>
   );

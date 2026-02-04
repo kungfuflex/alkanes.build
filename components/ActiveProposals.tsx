@@ -21,7 +21,7 @@ export function ActiveProposals() {
   const t = useTranslations("dashboard.proposals");
   const tGov = useTranslations("governance");
 
-  const { data, isLoading, error } = useQuery({
+  const { data } = useQuery({
     queryKey: ["activeProposals"],
     queryFn: async () => {
       const [activeRes, pendingRes] = await Promise.all([
@@ -44,6 +44,7 @@ export function ActiveProposals() {
   });
 
   const proposals = data || [];
+  const hasData = !!data;
 
   return (
     <div className="glass-card overflow-hidden w-full">
@@ -58,24 +59,22 @@ export function ActiveProposals() {
       </div>
 
       <div className="p-4 space-y-2 overflow-hidden">
-        {isLoading ? (
-          [1, 2, 3].map((i) => (
-            <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
-              <div className="h-4 bg-[color:var(--sf-outline)] rounded w-3/4 mb-2" />
-              <div className="h-3 bg-[color:var(--sf-outline)] rounded w-1/2" />
-            </div>
-          ))
-        ) : error ? (
-          <div className="p-4 text-center text-[color:var(--sf-muted)]">{tGov("error")}</div>
-        ) : proposals.length === 0 ? (
+        {hasData && proposals.length === 0 ? (
           <div className="p-4 text-center text-[color:var(--sf-muted)]">{tGov("noProposals")}</div>
-        ) : (
+        ) : hasData ? (
           proposals.map((proposal) => (
             <ProposalRow
               key={proposal.id}
               proposal={proposal}
               stateLabel={tGov(`states.${proposal.state}`)}
             />
+          ))
+        ) : (
+          [1, 2, 3].map((i) => (
+            <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
+              <div className="h-4 bg-[color:var(--sf-outline)] rounded w-3/4 mb-2" />
+              <div className="h-3 bg-[color:var(--sf-outline)] rounded w-1/2" />
+            </div>
           ))
         )}
       </div>

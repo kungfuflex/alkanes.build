@@ -58,6 +58,7 @@ const config: Config = {
         shimmer: "shimmer 2s infinite linear",
         "pulse-fade": "pulse-fade 2s ease-in-out infinite",
         float: "float 6s ease-in-out infinite",
+        flash: "flash 0.5s ease-out",
       },
       keyframes: {
         shimmer: {
@@ -71,6 +72,10 @@ const config: Config = {
         float: {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-10px)" },
+        },
+        flash: {
+          "0%": { backgroundColor: "rgba(249, 115, 22, 0.4)" },
+          "100%": { backgroundColor: "transparent" },
         },
       },
       typography: {
