@@ -591,6 +591,9 @@ const DieselTerminal = () => {
   const [showUtxoSelector, setShowUtxoSelector] = useState(false);
   const [loadingUtxos, setLoadingUtxos] = useState(false);
 
+  // Block height state (declared early for use in confirmation check useEffect)
+  const [blockHeight, setBlockHeight] = useState<number | null>(null);
+
   // Helper to get UTXO key
   const getUtxoKey = (utxo: UtxoInput | null) => utxo ? `${utxo.txid}:${utxo.vout}` : null;
 
@@ -1447,7 +1450,7 @@ const DieselTerminal = () => {
     // Then check every 30 seconds
     const interval = setInterval(checkConfirmation, 30000);
     return () => clearInterval(interval);
-  }, [cpfpData?.lastTxid, refetchBalances, currentChainUtxoKey]);
+  }, [cpfpData?.lastTxid, refetchBalances, currentChainUtxoKey, blockHeight]); // blockHeight triggers immediate check on new block
 
   // Check ALL chains in chainsMap for confirmation and remove confirmed ones
   useEffect(() => {
@@ -1506,7 +1509,7 @@ const DieselTerminal = () => {
     // Then check every 30 seconds
     const interval = setInterval(checkAllChains, 30000);
     return () => clearInterval(interval);
-  }, [chainsMap.size, currentChainUtxoKey, refetchBalances]);
+  }, [chainsMap.size, currentChainUtxoKey, refetchBalances, blockHeight]); // blockHeight triggers immediate check on new block
 
   const [blockReward, setBlockReward] = useState(3.15);
   const [dieselPrice, setDieselPrice] = useState(2991);
@@ -1535,8 +1538,7 @@ const DieselTerminal = () => {
   const [poolPrice, setPoolPrice] = useState<number | null>(null); // DIESEL price in sats from pool
   const [poolPriceLoading, setPoolPriceLoading] = useState(true);
 
-  // Block height and time state
-  const [blockHeight, setBlockHeight] = useState<number | null>(null);
+  // Block time state (blockHeight declared earlier)
   const [blockTime, setBlockTime] = useState<number | null>(null); // Unix timestamp of last block
   const [avgBlockTime, setAvgBlockTime] = useState<number | null>(null); // Average block time for current period
   const [blocksUntilAdjustment, setBlocksUntilAdjustment] = useState<number | null>(null);
