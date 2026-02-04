@@ -2069,22 +2069,22 @@ return {
                 <div className="relative">
                   <button
                     onClick={() => setShowWalletMenu(!showWalletMenu)}
-                    className="text-orange-500 hover:text-orange-400 border border-orange-500/50 hover:border-orange-400 px-2 py-0.5 transition-colors"
+                    className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-2 py-0.5 transition-colors"
                   >
                     WALLET ▾
                   </button>
                   {showWalletMenu && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowWalletMenu(false)} />
-                      <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-gray-700 z-50 min-w-32">
+                      <div className="absolute right-0 top-full mt-1 bg-black border border-orange-500/50 z-50 min-w-32">
                         <button
                           onClick={() => {
                             setShowDepositModal(true);
                             setShowWalletMenu(false);
                           }}
-                          className="w-full px-3 py-2 text-left text-green-500 hover:bg-gray-800 border-b border-gray-700"
+                          className="w-full px-3 py-2 text-left text-orange-500 hover:bg-orange-500/20 border-b border-gray-800"
                         >
-                          ⚙ MANAGE
+                          MANAGE
                         </button>
                         <button
                           onClick={() => {
@@ -2093,9 +2093,9 @@ return {
                             setDepositCopied(true);
                             setTimeout(() => setDepositCopied(false), 2000);
                           }}
-                          className="w-full px-3 py-2 text-left text-cyan-500 hover:bg-gray-800 border-b border-gray-700"
+                          className="w-full px-3 py-2 text-left text-orange-500 hover:bg-orange-500/20 border-b border-gray-800"
                         >
-                          {depositCopied ? '✓ COPIED' : '◫ COPY ADDRESS'}
+                          {depositCopied ? '✓ COPIED' : 'COPY ADDRESS'}
                         </button>
                         <button
                           onClick={() => {
@@ -2104,9 +2104,9 @@ return {
                             setRbfData(null); setCpfpData(null);
                             setShowWalletMenu(false);
                           }}
-                          className="w-full px-3 py-2 text-left text-red-500 hover:bg-gray-800"
+                          className="w-full px-3 py-2 text-left text-red-500 hover:bg-red-500/20"
                         >
-                          ✕ LOCK
+                          LOCK
                         </button>
                       </div>
                     </>
@@ -2119,7 +2119,7 @@ return {
           ) : (
             <button
               onClick={() => setShowConnectModal(true)}
-              className="text-orange-500 hover:text-orange-400 border border-orange-500/50 hover:border-orange-400 px-2 py-0.5 rounded mr-2 transition-colors"
+              className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-2 py-0.5 mr-2 transition-colors"
             >
               CONNECT WALLET
             </button>
@@ -2942,7 +2942,7 @@ return {
           <div className="text-gray-500 text-xs mb-3">Connect wallet to enable auto-mint</div>
           <button
             onClick={() => setShowConnectModal(true)}
-            className="px-6 py-2 text-xs font-bold border border-orange-500/50 text-orange-500 bg-orange-500/10 hover:bg-orange-500/20"
+            className="px-6 py-2 text-xs font-bold border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black transition-colors"
           >
             CONNECT WALLET
           </button>
@@ -3020,7 +3020,7 @@ return {
                       href={`https://mempool.space/tx/${chainData.cpfpData.lastTxid}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-cyan-500 hover:text-cyan-400"
+                      className="px-1.5 py-0.5 text-orange-500 border border-orange-500/50 hover:bg-orange-500/20 transition-colors"
                       title={utxoKey}
                     >
                       VIEW ↗

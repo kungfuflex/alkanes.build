@@ -259,7 +259,7 @@ export function AutoMintPanel({
             min="0"
             value={minRate}
             onChange={(e) => setMinRate(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
+            className="w-16 bg-gray-800 border border-gray-600 px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
             placeholder="min"
           />
           <span className="text-gray-500">-</span>
@@ -269,7 +269,7 @@ export function AutoMintPanel({
             min="0"
             value={maxRate}
             onChange={(e) => setMaxRate(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
+            className="w-16 bg-gray-800 border border-gray-600 px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
             placeholder="max"
           />
           <span className="text-gray-500">sat/vB</span>
@@ -290,7 +290,7 @@ export function AutoMintPanel({
             max={MAX_CHAIN_LENGTH}
             value={mintCount}
             onChange={(e) => setMintCount(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
+            className="w-16 bg-gray-800 border border-gray-600 px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
           />
           <span className="text-gray-500">/ {MAX_CHAIN_LENGTH} max</span>
 
