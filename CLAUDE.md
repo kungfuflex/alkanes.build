@@ -263,3 +263,27 @@ NEXT_PUBLIC_ALKANES_RPC_URL  # Alkanes RPC endpoint (default: https://mainnet.su
 - Simplified `results` computation to only `isProfitable` boolean
 - Removed unused formatters (`fmt`, `fmtInt`, `fmtPct`)
 - Terminal now shows only: STATUS bar, AUTO-MINT panel, PENDING chains list
+
+### Auto-Mint Improvements (2025)
+
+#### Session Spending Limit
+- Added `LIMIT` field in AUTO-MINT panel (sats)
+- Tracks total spent during session (`SPENT X / Y`)
+- Blocks new mints/RBF when limit reached
+- `[RST]` button to reset session counter
+- Fee calculation: `feePerTx = ceil(TX_VSIZE × feeRate)`, then `total = count × feePerTx`
+
+#### Confirmed UTXO Filter
+- Initial mint only uses confirmed UTXOs (`status.confirmed === true`)
+- Prevents starting chains with unconfirmed outputs
+- RBF/CPFP still uses unconfirmed (by design — extends existing chain)
+
+#### Stale Fee Detection
+- After chain confirmation, waits for fresh fee data before new mint
+- Tracks `feeAtConfirmation` and compares with current rate
+- Prevents minting at stale (previous block's) fee rate
+- Status: `CONFIRMED — waiting for fresh fees...`
+
+#### PENDING Chains Display
+- COST column shows total sats spent (with thousands separator)
+- Header tooltip: "Total fees paid in sats. Price per DIESEL = cost / emission"

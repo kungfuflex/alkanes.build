@@ -409,7 +409,8 @@ Automated minting with fee rate control.
 |-----------|-------------|
 | FEE RANGE | Fee rate range for entry (min - max sat/vB) |
 | MINTS | Number of TXs to mint (1-25) |
-| AUTO-RBF | Auto-bump when chain rate drops below mempool |
+| LIMIT | Session spending limit in sats (empty = no limit) |
+| AUTO-RBF | Auto-bump when chain rate drops below mempool + buffer% |
 | ON/OFF | Enable/disable automation |
 
 #### How It Works
@@ -451,6 +452,56 @@ if (currentEffectiveRate < targetRate) {
 [Fee in range] → MINT → [Wait for confirmation] → [Confirmed] → [Reset] → [Fee in range?] → MINT → ...
 ```
 
+**Session Spending Limit:**
+
+Prevents overspending during automated minting sessions.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ LIMIT  [10000] sats          SPENT 540 / 10,000  [RST] │
+└─────────────────────────────────────────────────────────┘
+```
+
+- Set limit in sats (empty = unlimited)
+- Tracks total spent: mints + RBF bumps
+- Blocks operations when limit reached
+- `[RST]` resets session counter
+
+**Fee Calculation:**
+```typescript
+const feePerTx = Math.ceil(TX_VSIZE * feeRate);  // Per-TX fee (matches actual)
+const totalCost = mintCount * feePerTx;          // Total for batch
+```
+
+**Stale Fee Detection:**
+
+After chain confirmation, waits for fresh mempool data before new mint:
+
+```typescript
+// Store fee rate when chain confirms
+feeAtConfirmation.current = currentFeeRate;
+waitingForFreshFees.current = true;
+
+// Wait until fee rate changes (fresh data)
+if (Math.abs(currentFeeRate - feeAtConfirmation.current) > 0.001) {
+  waitingForFreshFees.current = false;
+  // Now safe to start new mint
+}
+```
+
+**Confirmed UTXO Filter:**
+
+Initial mint only uses confirmed UTXOs to prevent starting chains with unconfirmed outputs:
+
+```typescript
+const confirmedUtxos = utxos.filter(u => u.status?.confirmed === true);
+if (confirmedUtxos.length === 0) {
+  throw new Error("No confirmed UTXOs available");
+}
+```
+
+Note: RBF/CPFP still uses unconfirmed outputs (by design — extends existing chain).
+
 **Statuses:**
 
 | Status | Description |
@@ -462,7 +513,8 @@ if (currentEffectiveRate < targetRate) {
 | `RBF: 0.14 → 0.17 sat/vB...` | Auto-RBF in progress |
 | `RBF OK: now @ 0.17 sat/vB` | RBF completed |
 | `CHAIN FULL: 25/25` | Chain is full |
-| `READY: chain confirmed, waiting...` | Chain confirmed, ready for new cycle |
+| `CONFIRMED — waiting for fresh fees...` | Chain confirmed, waiting for fresh data |
+| `LIMIT: need X sats, have Y` | Session limit reached |
 
 **Usage Example:**
 

@@ -93,8 +93,13 @@ async function executeMint(
     if (!utxos || utxos.length === 0) {
       throw new Error("No UTXOs available");
     }
-    utxos.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
-    utxo = utxos[0];
+    // Filter to only confirmed UTXOs to prevent using unconfirmed outputs
+    const confirmedUtxos = utxos.filter((u: any) => u.status?.confirmed === true);
+    if (confirmedUtxos.length === 0) {
+      throw new Error("No confirmed UTXOs available - wait for confirmation");
+    }
+    confirmedUtxos.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
+    utxo = confirmedUtxos[0];
   }
 
   const isP2TR = address.startsWith("bc1p") || address.startsWith("tb1p");
@@ -703,13 +708,14 @@ const DieselTerminal = () => {
       });
       const data = await res.json();
       if (data.result && Array.isArray(data.result)) {
-        // Sort by value descending
+        // Filter to only confirmed UTXOs, then sort by value descending
         const sorted = data.result
+          .filter((u: any) => u.status?.confirmed === true)
           .map((u: any) => ({
             txid: u.txid,
             vout: u.vout,
             value: u.value,
-            confirmed: u.status?.confirmed ?? true,
+            confirmed: true,
           }))
           .sort((a: UtxoInput, b: UtxoInput) => b.value - a.value);
         setAvailableUtxos(sorted);
@@ -1970,21 +1976,6 @@ return {
     return () => clearInterval(interval);
   }, [mempoolStats?.minFee]); // Re-run when minFee changes
 
-  // Simplified profitability check - used only for status indicator
-  const isProfitable = useMemo(() => {
-    const R = blockReward || 0.001;
-    const priceSats = dieselPrice || 1;
-    const costSats = txCost || 0.001;
-    const M = Math.max(0, competition || 0);
-
-    const DIESEL_FEE = 0.05;
-    const pool = Math.max(0, R - DIESEL_FEE);
-
-    // Check if at least 1 mint is profitable: pool × price / (1 + M) > txCost
-    const singleMintRevenue = (pool * priceSats) / (1 + M);
-    return singleMintRevenue > costSats;
-  }, [blockReward, dieselPrice, txCost, competition]);
-
   // Current time state for elapsed time calculation (updates every second)
   const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000));
 
@@ -2212,8 +2203,8 @@ return {
               </div>
             </div>
             {isScanning ? (
-              <span className="text-[#00d4ff] animate-pulse flex items-center gap-1.5">
-                <span className="w-2 h-2 bg-[#00d4ff]"></span>SCAN
+              <span className="text-[#00d4ff] flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-[#00d4ff] animate-spin [animation-duration:3s]"></span>SCAN
               </span>
             ) : detectedCompetition !== null ? (
               <div className="flex items-center gap-2">
@@ -2223,11 +2214,6 @@ return {
               </div>
             ) : null}
           </div>
-          {/* Profit indicator */}
-          <span className={`flex items-center gap-1.5 ${isProfitable ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
-            <span className={`w-2 h-2 ${isProfitable ? 'bg-[#00ff88]' : 'bg-[#ff4444]'}`}></span>
-            {isProfitable ? 'PROFIT' : 'LOSS'}
-          </span>
         </div>
       </div>
 
@@ -2294,8 +2280,8 @@ return {
             </div>
             <div className="col-span-2 text-right group relative cursor-help">
               <span className="border-b border-dotted border-[#505050]">COST</span>
-              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-36 pointer-events-none z-[100] normal-case">
-                Total fees paid in satoshis
+              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-[100] normal-case">
+                Total fees paid in sats. Price per DIESEL = cost / emission
               </div>
             </div>
             <div className="col-span-2 text-right group relative cursor-help">
@@ -2337,7 +2323,7 @@ return {
                 <div
                   key={utxoKey}
                   className={`grid grid-cols-12 gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm border-b border-[#151515] hover:bg-[#151515] ${
-                    isSelected ? 'bg-[#0a1020] border-l-2 border-l-[#00d4ff]' : ''
+                    isSelected ? 'border-l-2 border-l-orange-500' : ''
                   }`}
                 >
                   <div className={`col-span-1 text-center ${
@@ -2352,7 +2338,7 @@ return {
                     {emission.toFixed(2)}<span className="text-[#404040] text-xs ml-1">D</span>
                   </div>
                   <div className="col-span-2 text-right text-[#e0e0e0]">
-                    {costSats}<span className="text-[#404040] text-xs ml-1">s</span>
+                    {costSats.toLocaleString()}<span className="text-[#404040] text-xs ml-1">s</span>
                   </div>
                   <div className={`col-span-2 text-right ${isProfitable ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
                     {profitSats >= 0 ? '+' : ''}{Math.round(profitSats)}<span className="text-[#404040] text-xs ml-1">s</span>

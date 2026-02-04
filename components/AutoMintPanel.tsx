@@ -54,6 +54,8 @@ export function AutoMintPanel({
   const [maxRate, setMaxRate] = useState('2.3');
   const [mintCount, setMintCount] = useState('20');
   const [rbfBuffer, setRbfBuffer] = useState('10');  // RBF buffer % above mempool rate
+  const [sessionLimit, setSessionLimit] = useState('');  // Session spending limit in sats (empty = no limit)
+  const [sessionSpent, setSessionSpent] = useState(0);  // Total sats spent this session
   const [status, setStatus] = useState<string | null>(null);
 
   // Track if we've already triggered for current conditions
@@ -66,6 +68,9 @@ export function AutoMintPanel({
   const mintCountNum = Math.min(parseInt(mintCount) || 0, MAX_CHAIN_LENGTH);
   const rbfBufferNum = Math.max(0, parseInt(rbfBuffer) || 0);
   const rbfMultiplier = 1 + rbfBufferNum / 100;  // e.g., 10% -> 1.1
+  const sessionLimitNum = parseInt(sessionLimit) || 0;  // 0 = no limit
+  const hasSessionLimit = sessionLimitNum > 0;
+  const sessionRemaining = hasSessionLimit ? sessionLimitNum - sessionSpent : Infinity;
 
   // Check if fee rate is in range (with small epsilon for float comparison)
   const EPSILON = 0.001;
@@ -96,6 +101,10 @@ export function AutoMintPanel({
   // Track previous hasActiveChain to detect when chain is confirmed
   const prevHasActiveChain = useRef(hasActiveChain);
 
+  // Track fee rate at confirmation to detect stale data
+  const feeAtConfirmation = useRef<number | null>(null);
+  const waitingForFreshFees = useRef(false);
+
   // Reset triggered state when conditions change
   useEffect(() => {
     if (!feeInRange || !enabled) {
@@ -116,17 +125,27 @@ export function AutoMintPanel({
   useEffect(() => {
     if (prevHasActiveChain.current && !hasActiveChain) {
       // Chain was confirmed, reset ALL triggers to allow new cycle
-      // Wait for mempool data to refresh before allowing new mint
-      setStatus('CONFIRMED — refreshing fees...');
-      const timer = setTimeout(() => {
-        setTriggered(false);
-        setRbfTriggered(false);
-        setStatus(null);
-      }, 2000); // 2 second delay to allow mempool refresh
-      return () => clearTimeout(timer);
+      // Store current fee rate to detect when fresh data arrives
+      feeAtConfirmation.current = currentFeeRate;
+      waitingForFreshFees.current = true;
+      setStatus('CONFIRMED — waiting for fresh fees...');
+      setTriggered(false);
+      setRbfTriggered(false);
     }
     prevHasActiveChain.current = hasActiveChain;
-  }, [hasActiveChain]);
+  }, [hasActiveChain, currentFeeRate]);
+
+  // Detect when fresh fee data arrives after confirmation
+  useEffect(() => {
+    if (waitingForFreshFees.current && feeAtConfirmation.current !== null) {
+      // Fee rate changed - fresh data arrived
+      if (Math.abs(currentFeeRate - feeAtConfirmation.current) > 0.001) {
+        waitingForFreshFees.current = false;
+        feeAtConfirmation.current = null;
+        setStatus(null);
+      }
+    }
+  }, [currentFeeRate]);
 
   // Auto-mint logic
   useEffect(() => {
@@ -135,6 +154,9 @@ export function AutoMintPanel({
 
     // If we have active chain, don't show WAIT - status is handled by separate useEffect
     if (hasActiveChain) return;
+
+    // Wait for fresh fee data after chain confirmation
+    if (waitingForFreshFees.current) return;
 
     // Check conditions for NEW mint
     if (!feeInRange) {
@@ -148,12 +170,23 @@ export function AutoMintPanel({
 
     // Fee is in range, no active chain - start new mint
     if (effectiveMintCount > 0) {
+      // Check session spending limit before minting
+      // Calculate per-tx fee first (matches actual tx fee calculation)
+      const feePerTx = Math.ceil(TX_VSIZE * currentFeeRate);
+      const estimatedCost = effectiveMintCount * feePerTx;
+      if (hasSessionLimit && estimatedCost > sessionRemaining) {
+        setStatus(`LIMIT: need ${estimatedCost.toLocaleString()} sats, have ${sessionRemaining.toLocaleString()}`);
+        return;
+      }
+
       // No active chain - trigger initial mint
       setStatus(`MINTING ${effectiveMintCount} @ ${currentFeeRate.toFixed(2)} sat/vB...`);
       setTriggered(true);
 
       onMint(effectiveMintCount, currentFeeRate)
         .then(() => {
+          // Track spending
+          setSessionSpent(prev => prev + estimatedCost);
           // Reset RBF trigger for new chain
           setRbfTriggered(false);
           // Status will be updated by the ACTIVE branch on next tick
@@ -181,6 +214,8 @@ export function AutoMintPanel({
     currentEffectiveRate,
     minRateNum,
     maxRateNum,
+    hasSessionLimit,
+    sessionRemaining,
     onMint,
     onRbf,
   ]);
@@ -203,11 +238,23 @@ export function AutoMintPanel({
 
     // Trigger RBF when effective rate drops below target (proactive bump)
     if (currentEffectiveRate < targetRate && currentEffectiveRate > 0) {
+      // Estimate RBF additional cost: (new rate - old rate) * total vsize
+      const totalVsize = chainLength * TX_VSIZE;
+      const rbfCost = Math.ceil((targetRate - currentEffectiveRate) * totalVsize);
+
+      // Check session spending limit
+      if (hasSessionLimit && rbfCost > sessionRemaining) {
+        setStatus(`LIMIT: RBF needs ${rbfCost.toLocaleString()} sats`);
+        return;
+      }
+
       setStatus(`RBF: ${currentEffectiveRate.toFixed(2)} → ${targetRate.toFixed(2)} sat/vB...`);
       setRbfTriggered(true);
 
       onRbf(targetRate)
         .then(() => {
+          // Track RBF spending
+          setSessionSpent(prev => prev + rbfCost);
           setStatus(`RBF OK: now @ ${targetRate.toFixed(2)} sat/vB`);
         })
         .catch((err) => {
@@ -215,7 +262,7 @@ export function AutoMintPanel({
           setRbfTriggered(false); // Allow retry on error
         });
     }
-  }, [enabled, autoRbf, hasActiveChain, isMinting, isRbfing, rbfTriggered, feeInRange, currentEffectiveRate, currentFeeRate, rbfMultiplier, onRbf]);
+  }, [enabled, autoRbf, hasActiveChain, isMinting, isRbfing, rbfTriggered, feeInRange, currentEffectiveRate, currentFeeRate, rbfMultiplier, chainLength, hasSessionLimit, sessionRemaining, onRbf]);
 
   // Update status when waiting (chains info is in PENDING CHAINS section)
   useEffect(() => {
@@ -314,6 +361,47 @@ export function AutoMintPanel({
           <span className="text-[#404040] text-xs">/{MAX_CHAIN_LENGTH}</span>
         </div>
 
+        {/* Session spending limit */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="text-[#505050] w-12 sm:w-20 text-xs group relative cursor-help">
+            <span className="border-b border-dotted border-[#505050]">LIMIT</span>
+            <div className="absolute top-full left-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-56 pointer-events-none z-50 normal-case font-normal">
+              Session spending limit in sats. Auto-mint pauses when reached. Empty = no limit
+            </div>
+          </span>
+          <input
+            type="number"
+            step="1000"
+            min="0"
+            value={sessionLimit}
+            onChange={(e) => setSessionLimit(e.target.value)}
+            className="w-20 sm:w-24 bg-[#0a0a0a] border border-[#303030] px-1 sm:px-2 py-1 text-[#e0e0e0] text-center focus:border-orange-500 focus:outline-none"
+            placeholder="∞"
+          />
+          <span className="text-[#404040] text-xs">sats</span>
+          {(hasSessionLimit || sessionSpent > 0) && (
+            <span className={`ml-auto flex items-center gap-2 ${!hasSessionLimit || sessionRemaining > 0 ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
+              <span className="text-[#505050] text-xs">SPENT</span>
+              <span className="text-[#e0e0e0]">{sessionSpent.toLocaleString()}</span>
+              {hasSessionLimit && (
+                <>
+                  <span className="text-[#303030]">/</span>
+                  <span>{sessionLimitNum.toLocaleString()}</span>
+                </>
+              )}
+              {sessionSpent > 0 && (
+                <button
+                  onClick={() => setSessionSpent(0)}
+                  className="text-[#505050] hover:text-orange-500 text-xs ml-1"
+                  title="Reset session spending"
+                >
+                  [RST]
+                </button>
+              )}
+            </span>
+          )}
+        </div>
+
         {/* Auto-RBF toggle */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className="text-[#505050] w-12 sm:w-20 text-xs group relative cursor-help">
@@ -371,6 +459,8 @@ export function AutoMintPanel({
           <div className={`text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 border-l-2 ${
             status.startsWith('ERROR') || status.startsWith('RBF ERROR')
               ? 'bg-[#1a0a0a] border-[#ff4444] text-[#ff4444]'
+              : status.startsWith('LIMIT')
+              ? 'bg-[#1a0a1a] border-[#ff44ff] text-[#ff44ff]'
               : status.startsWith('MINTING') || status.startsWith('RBF:')
               ? 'bg-[#1a1500] border-[#ffcc00] text-[#ffcc00]'
               : status.startsWith('MINTED') || status.startsWith('RBF OK')
