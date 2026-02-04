@@ -8,6 +8,8 @@ interface AutoMintPanelProps {
   currentEffectiveRate: number;    // Current chain effective rate (sat/vB)
   hasActiveChain: boolean;         // Whether there's an active unconfirmed chain
   chainLength: number;             // Current chain length (0-25)
+  chainsCount: number;             // Number of active chains
+  totalChainsTx: number;           // Total TX across all chains
   isConnected: boolean;            // Wallet connected
   isMinting: boolean;              // Currently minting
   isRbfing: boolean;               // Currently doing RBF
@@ -33,6 +35,8 @@ export function AutoMintPanel({
   currentEffectiveRate,
   hasActiveChain,
   chainLength,
+  chainsCount,
+  totalChainsTx,
   isConnected,
   isMinting,
   isRbfing,
@@ -47,8 +51,8 @@ export function AutoMintPanel({
   const [enabled, setEnabled] = useState(false);
   const [autoRbf, setAutoRbf] = useState(true);  // Auto-RBF when chain rate drops
   const [minRate, setMinRate] = useState('0.15');
-  const [maxRate, setMaxRate] = useState('1.0');
-  const [mintCount, setMintCount] = useState('10');
+  const [maxRate, setMaxRate] = useState('2.3');
+  const [mintCount, setMintCount] = useState('20');
   const [status, setStatus] = useState<string | null>(null);
 
   // Track if we've already triggered for current conditions
@@ -209,17 +213,16 @@ export function AutoMintPanel({
     }
   }, [enabled, autoRbf, hasActiveChain, isMinting, isRbfing, rbfTriggered, feeInRange, currentEffectiveRate, currentFeeRate, onRbf]);
 
-  // Update status for active chain (runs independently of triggered state)
+  // Update status for active chains (runs independently of triggered state)
   useEffect(() => {
-    if (!enabled || !hasActiveChain || isMinting || isRbfing) return;
+    if (!enabled || isMinting || isRbfing) return;
 
-    // Show active chain status with 10% target indicator
-    const targetRate = currentFeeRate * 1.1;
-    const rateStatus = currentEffectiveRate < targetRate
-      ? `⚠ ${currentEffectiveRate.toFixed(2)} < ${targetRate.toFixed(2)}`
-      : `@ ${currentEffectiveRate.toFixed(2)} sat/vB`;
-    setStatus(`ACTIVE: ${chainLength}/${MAX_CHAIN_LENGTH} TXs ${rateStatus}`);
-  }, [enabled, hasActiveChain, chainLength, currentEffectiveRate, currentFeeRate, isMinting, isRbfing]);
+    if (chainsCount > 0) {
+      setStatus(`ACTIVE: ${chainsCount} chain${chainsCount > 1 ? 's' : ''}, ${totalChainsTx} TXs`);
+    } else {
+      setStatus('WAITING...');
+    }
+  }, [enabled, chainsCount, totalChainsTx, isMinting, isRbfing]);
 
   if (!isConnected) return null;
 
@@ -228,22 +231,20 @@ export function AutoMintPanel({
       {/* Header */}
       <div className="px-3 py-1.5 bg-gray-800/30 border-b border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-bold ${enabled ? 'text-green-400' : 'text-gray-400'}`}>
-            AUTO-MINT
-          </span>
+          <span className="text-xs"><span className="text-orange-500">3)</span> <span className="text-white">AUTO-MINT</span></span>
           {enabled && (
             <span className={`w-2 h-2 rounded-full ${feeInRange ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
           )}
         </div>
         <button
           onClick={() => setEnabled(!enabled)}
-          className={`px-2 py-0.5 text-xs font-bold rounded transition-colors ${
+          className={`px-3 py-1 text-xs font-bold border transition-colors ${
             enabled
-              ? 'bg-green-600 text-white hover:bg-green-700'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              ? 'bg-orange-500 text-black border-orange-500 hover:bg-orange-400'
+              : 'bg-transparent text-orange-500 border-orange-500 hover:bg-orange-500/20'
           }`}
         >
-          {enabled ? 'ON' : 'OFF'}
+          {enabled ? 'STOP' : 'START'}
         </button>
       </div>
 
@@ -258,7 +259,7 @@ export function AutoMintPanel({
             min="0"
             value={minRate}
             onChange={(e) => setMinRate(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-yellow-500 focus:outline-none"
+            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
             placeholder="min"
           />
           <span className="text-gray-500">-</span>
@@ -268,7 +269,7 @@ export function AutoMintPanel({
             min="0"
             value={maxRate}
             onChange={(e) => setMaxRate(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-yellow-500 focus:outline-none"
+            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
             placeholder="max"
           />
           <span className="text-gray-500">sat/vB</span>
@@ -289,7 +290,7 @@ export function AutoMintPanel({
             max={MAX_CHAIN_LENGTH}
             value={mintCount}
             onChange={(e) => setMintCount(e.target.value)}
-            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-yellow-500 focus:outline-none"
+            className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-center focus:border-orange-500 focus:outline-none"
           />
           <span className="text-gray-500">/ {MAX_CHAIN_LENGTH} max</span>
 
@@ -306,42 +307,26 @@ export function AutoMintPanel({
           <span className="text-gray-500 w-16">AUTO-RBF</span>
           <button
             onClick={() => setAutoRbf(!autoRbf)}
-            className={`px-2 py-0.5 text-xs font-bold rounded transition-colors ${
+            className={`relative w-10 h-5 border transition-colors ${
               autoRbf
-                ? 'bg-yellow-600/50 text-yellow-300 hover:bg-yellow-600/70'
-                : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                ? 'bg-orange-500/20 border-orange-500'
+                : 'bg-gray-800 border-gray-600'
             }`}
           >
-            {autoRbf ? 'ON' : 'OFF'}
+            <span className={`absolute top-0.5 w-4 h-3.5 transition-all ${
+              autoRbf
+                ? 'right-0.5 bg-orange-500'
+                : 'left-0.5 bg-gray-500'
+            }`} />
           </button>
-          <span className="text-gray-600">bump when rate drops below mempool</span>
+          <span className={`w-6 ${autoRbf ? 'text-orange-500' : 'text-gray-600'}`}>{autoRbf ? 'ON' : 'OFF'}</span>
+          <span className="text-gray-600">auto-bump rate</span>
           {hasActiveChain && currentEffectiveRate > 0 && (
             <span className={`ml-auto ${currentEffectiveRate >= currentFeeRate ? 'text-green-400' : 'text-yellow-400'}`}>
               EFF: {currentEffectiveRate.toFixed(2)}
             </span>
           )}
         </div>
-
-        {/* Profit calculation row - show for active chain */}
-        {hasActiveChain && chainLength > 0 && (
-          <div className="flex items-center gap-3 text-xs bg-gray-800/50 rounded px-2 py-1.5">
-            <span className={`font-bold ${isProfitable ? 'text-green-400' : 'text-red-400'}`}>
-              {isProfitable ? '●' : '○'} {roi >= 0 ? '+' : ''}{roi.toFixed(0)}% ROI
-            </span>
-            <span className="text-gray-500">|</span>
-            <span className="text-gray-400">
-              EXP: <span className="text-cyan-400">{emission.toFixed(2)}</span> DSL
-            </span>
-            <span className="text-gray-500">|</span>
-            <span className="text-gray-400">
-              COST: <span className="text-yellow-400">{Math.round(totalCostSats)}</span> sats
-            </span>
-            <span className="text-gray-500">|</span>
-            <span className={`font-mono ${netProfitSats >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {netProfitSats >= 0 ? '+' : ''}{Math.round(netProfitSats)} sats
-            </span>
-          </div>
-        )}
 
         {/* Status row */}
         {status && (

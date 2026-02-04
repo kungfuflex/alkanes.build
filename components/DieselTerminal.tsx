@@ -1601,10 +1601,10 @@ const DieselTerminal = () => {
     }
   }, []);
 
-  // Fetch block height on mount and every 30 seconds
+  // Fetch block height on mount and every 10 seconds (fast detection for chain confirmation)
   useEffect(() => {
     fetchBlockHeight();
-    const interval = setInterval(fetchBlockHeight, 30 * 1000);
+    const interval = setInterval(fetchBlockHeight, 10 * 1000);
     return () => clearInterval(interval);
   }, [fetchBlockHeight]);
 
@@ -1671,6 +1671,13 @@ const DieselTerminal = () => {
     const interval = setInterval(fetchPoolPrice, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchPoolPrice]);
+
+  // Auto-update dieselPrice from pool price
+  useEffect(() => {
+    if (poolPrice !== null && poolPrice > 0) {
+      setDieselPrice(poolPrice);
+    }
+  }, [poolPrice]);
 
   // Flash animations for real-time values
   const txCostFlash = useFlash(txCost);
@@ -2004,7 +2011,7 @@ return {
       <div className="flex items-center justify-between border-b border-orange-500/50 pb-1 mb-3">
         <div className="flex items-center gap-4">
           <span className="text-orange-500 font-bold text-lg">DIESEL</span>
-          <span className="text-gray-500">AUTOPILOT</span>
+          <span className="text-cyan-500 border border-cyan-500/50 px-2 py-0.5">AUTOPILOT</span>
           {blockHeight && (
             <span className="text-gray-600 text-xs flex items-center gap-2">
               <span>
@@ -2052,7 +2059,7 @@ return {
                   <span className="text-gray-500">BTC:</span> {formatBtcBalance(balances.btcBalance || 0)}
                 </span>
                 <span className="text-cyan-500">
-                  <span className="text-gray-500">DSL:</span> {balances.tokens?.find((t: any) => t.runeId === '2:0')?.balanceFormatted?.toFixed(2) || '0.00'}
+                  <span className="text-gray-500">DIESEL:</span> {balances.tokens?.find((t: any) => t.runeId === '2:0')?.balanceFormatted?.toFixed(2) || '0.00'}
                 </span>
                 {balances.runes?.find((r: any) => r.spacedName === 'UNCOMMON•GOODS') && (
                   <span className="text-purple-400">
@@ -2132,7 +2139,7 @@ return {
       <div className="mb-3 border border-gray-800 bg-gray-900/30">
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-4">
-            <span className="text-gray-500 text-xs">MEMPOOL</span>
+            <span className="text-xs"><span className="text-orange-500">1)</span> <span className="text-white">MEMPOOL</span></span>
             {mempoolLoading ? (
               <span className="text-yellow-500 text-xs animate-pulse">LOADING...</span>
             ) : mempoolError ? (
@@ -2163,7 +2170,7 @@ return {
                 </div>
                 <div className="text-gray-600 text-xs">|</div>
                 <div className="flex items-center gap-2 group relative">
-                  <span className="text-gray-600 text-xs cursor-help border-b border-dotted border-gray-600">DSL/frBTC</span>
+                  <span className="text-gray-600 text-xs cursor-help border-b border-dotted border-gray-600">DIESEL/frBTC</span>
                   {poolPriceLoading ? (
                     <span className="text-gray-500 font-mono animate-pulse">---</span>
                   ) : poolPrice !== null ? (
@@ -2181,50 +2188,6 @@ return {
               </>
             ) : null}
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAutoFee(!autoFee)}
-              className={`text-xs px-2 py-1 rounded border ${autoFee ? 'border-green-600 text-green-500 bg-green-900/20' : 'border-gray-700 text-gray-500'}`}
-            >
-              AUTO-FEE {autoFee ? 'ON' : 'OFF'}
-            </button>
-            <div className="flex items-center gap-1 group relative">
-              <button
-                onClick={() => setFeeCap(feeCap === null ? 5 : null)}
-                className={`text-xs px-2 py-1 rounded-l border ${feeCap !== null ? 'border-yellow-600 text-yellow-500 bg-yellow-900/20' : 'border-gray-700 text-gray-500'}`}
-              >
-                CAP
-              </button>
-              {feeCap !== null && (
-                <input
-                  type="number"
-                  step="0.1"
-                  value={feeCap}
-                  onChange={(e) => setFeeCap(Math.max(0.1, parseFloat(e.target.value) || 0.1))}
-                  className="w-20 text-xs px-2 py-1 bg-gray-900 border border-l-0 border-yellow-600 text-yellow-500 font-mono outline-none rounded-r"
-                />
-              )}
-              {feeCap !== null && (
-                <span className="text-gray-600 text-xs">sat/vB</span>
-              )}
-              <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 border border-gray-700 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-10">
-                {feeCap !== null
-                  ? `Max fee: ${feeCap} sat/vB. If mempool > cap, uses cap.`
-                  : 'Click to set max fee limit'}
-              </div>
-            </div>
-            <button
-              onClick={fetchMempool}
-              className="text-xs px-2 py-1 rounded border border-gray-700 text-gray-500 hover:text-orange-500 hover:border-orange-500"
-            >
-              REFRESH
-            </button>
-            {lastUpdate && (
-              <span className="text-gray-600 text-xs">
-                {lastUpdate.toLocaleTimeString('en-US', { hour12: false })}
-              </span>
-            )}
-          </div>
         </div>
       </div>
 
@@ -2233,8 +2196,9 @@ return {
         <div className="mb-3 border border-gray-800 bg-gray-900/30">
           <div className="flex items-center justify-between px-3 py-2">
             <div className="flex items-center gap-6">
+              <span className="text-xs"><span className="text-orange-500">2)</span> <span className="text-white">STATUS</span></span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-500 text-xs">COMPETITION (M)</span>
+                <span className="text-gray-500 text-xs">M</span>
                 <span className="text-red-500 font-mono font-bold">{competition}</span>
               </div>
               {rbfData && rbfData.chainLength > 0 && currentEffectiveRate >= (mempoolStats?.minFee || 0) && (
@@ -2260,43 +2224,6 @@ return {
               </span>
             </div>
           </div>
-          {/* Active chain info */}
-          {mintResult && mintResult.txids.length > 0 && (
-            <div className="flex items-center justify-between px-3 py-2 border-t border-gray-800 bg-gray-900/50">
-              <div className="flex items-center gap-4">
-                <span className="text-gray-500 text-xs">ACTIVE CHAIN</span>
-                <span className={`font-mono ${
-                  mintResult.txids.length >= 25 ? 'text-red-500' :
-                  mintResult.txids.length >= 20 ? 'text-yellow-500' : 'text-green-500'
-                }`}>
-                  {mintResult.txids.length}<span className="text-gray-600">/25</span> tx
-                </span>
-                <span className="text-gray-600">|</span>
-                <span className="text-yellow-500 font-mono">{mintResult.totalFee} sats</span>
-                <span className="text-gray-600">|</span>
-                <span className={`font-mono ${mempoolStats && currentEffectiveRate < mempoolStats.minFee ? 'text-red-500' : 'text-cyan-500'}`}>
-                  {currentEffectiveRate.toFixed(2)} sat/vB
-                  {mempoolStats && currentEffectiveRate < mempoolStats.minFee && ' ▼'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={`https://mempool.space/tx/${mintResult.txids[mintResult.txids.length - 1]}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-cyan-500 hover:text-cyan-400 text-xs"
-                >
-                  VIEW ↗
-                </a>
-                <button
-                  onClick={() => { setRbfData(null); setCpfpData(null); setMintResult(null); setRbfFeeRate(''); }}
-                  className="text-gray-500 hover:text-red-400 text-xs"
-                >
-                  [CLEAR]
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -2997,6 +2924,8 @@ return {
             currentEffectiveRate={currentEffectiveRate}
             hasActiveChain={!!mintResult && mintResult.txids.length > 0}
             chainLength={rbfData?.chainLength || 0}
+            chainsCount={chainsMap.size}
+            totalChainsTx={Array.from(chainsMap.values()).reduce((sum, c) => sum + c.rbfData.chainLength, 0)}
             isConnected={isConnected}
             isMinting={isMinting}
             isRbfing={isRbfing}
@@ -3020,8 +2949,92 @@ return {
         </div>
       )}
 
+      {/* Active Chains List */}
+      {isConnected && chainsMap.size > 0 && (
+        <div className="mt-2 border border-gray-800 bg-gray-900/30">
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 bg-gray-900/50">
+            <span className="text-xs"><span className="text-orange-500">4)</span> <span className="text-white">PENDING CHAINS</span></span>
+            <span className="text-gray-600 text-xs">{chainsMap.size} active</span>
+          </div>
+          {/* Table header */}
+          <div className="grid grid-cols-12 gap-1 px-3 py-1 text-xs text-gray-600 border-b border-gray-800/50 bg-gray-900/30">
+            <div className="col-span-1 text-center">TXs</div>
+            <div className="col-span-2 text-right">ROI</div>
+            <div className="col-span-2 text-right">EXP</div>
+            <div className="col-span-2 text-right">COST</div>
+            <div className="col-span-2 text-right">PROFIT</div>
+            <div className="col-span-1 text-right">RATE</div>
+            <div className="col-span-2 text-right">ACTIONS</div>
+          </div>
+          {/* Chains list */}
+          <div className="max-h-40 overflow-y-auto">
+            {Array.from(chainsMap.entries()).map(([utxoKey, chainData]) => {
+              const n = chainData.rbfData.chainLength;
+              const effectiveRate = chainData.rbfData.totalVsize > 0
+                ? chainData.rbfData.totalFees / chainData.rbfData.totalVsize
+                : 0;
+              const isLowFee = mempoolStats && effectiveRate < mempoolStats.minFee;
+              const isSelected = currentChainUtxoKey === utxoKey;
+
+              // Calculate chain metrics
+              const pool = blockReward * 0.95; // 5% protocol fee
+              const totalMints = n + competition;
+              const emission = totalMints > 0 ? (n / totalMints) * pool : 0;
+              const costSats = chainData.rbfData.totalFees;
+              const costDiesel = dieselPrice > 0 ? costSats / dieselPrice : 0;
+              const profitDiesel = emission - costDiesel;
+              const profitSats = profitDiesel * dieselPrice;
+              const roi = costSats > 0 ? (profitSats / costSats) * 100 : 0;
+              const isProfitable = profitDiesel > 0;
+
+              return (
+                <div
+                  key={utxoKey}
+                  className={`grid grid-cols-12 gap-1 px-3 py-1.5 text-xs border-b border-gray-800/30 hover:bg-gray-800/30 ${
+                    isSelected ? 'bg-blue-900/20 border-l-2 border-l-blue-500' : ''
+                  }`}
+                >
+                  <div className={`col-span-1 text-center font-mono ${
+                    n >= 25 ? 'text-red-500' : n >= 20 ? 'text-yellow-500' : 'text-green-500'
+                  }`}>
+                    {n}<span className="text-gray-600">/25</span>
+                  </div>
+                  <div className={`col-span-2 text-right font-mono font-bold ${roi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {roi >= 0 ? '+' : ''}{roi.toFixed(0)}%
+                  </div>
+                  <div className="col-span-2 text-right font-mono text-purple-400">
+                    {emission.toFixed(2)} <span className="text-gray-600">DSL</span>
+                  </div>
+                  <div className="col-span-2 text-right font-mono text-yellow-500">
+                    {costSats} <span className="text-gray-600">sat</span>
+                  </div>
+                  <div className={`col-span-2 text-right font-mono ${isProfitable ? 'text-cyan-500' : 'text-red-500'}`}>
+                    {profitSats >= 0 ? '+' : ''}{Math.round(profitSats)} <span className="text-gray-600">sat</span>
+                  </div>
+                  <div className={`col-span-1 text-right font-mono ${isLowFee ? 'text-red-500' : 'text-gray-400'}`}>
+                    {effectiveRate.toFixed(2)}
+                    {isLowFee && '▼'}
+                  </div>
+                  <div className="col-span-2 text-right flex items-center justify-end gap-1">
+                    <a
+                      href={`https://mempool.space/tx/${chainData.cpfpData.lastTxid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-500 hover:text-cyan-400"
+                      title={utxoKey}
+                    >
+                      VIEW ↗
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="mt-2 flex justify-between text-xs text-gray-600 border-t border-gray-800 pt-2">
-        <div>DIESEL AUTOPILOT v1</div>
+        <div>TURBO DIESEL TERMINAL v12</div>
         {showManualControls && (
         <div className="flex gap-6">
           <span>N*=<span className="text-orange-500">{fmtInt(results.Nstar)}</span></span>
