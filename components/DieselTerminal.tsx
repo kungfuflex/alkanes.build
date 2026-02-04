@@ -165,7 +165,7 @@ async function executeMint(
 
   const txid = bitcoin.Transaction.fromHex(signedTxHex).getId();
 
-  const rpcUrl = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || "https://mainnet.subfrost.io/v4/subfrost";
+  const rpcUrl = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || "https://mainnet.subfrost.io/v4/buildalkanes";
   const broadcastResponse = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -519,7 +519,7 @@ const REFRESH_INTERVAL = 10000; // 10 seconds for mempool fees
 const COMPETITION_REFRESH_INTERVAL = 15000; // 15 seconds for competition scan
 
 // Our RPC endpoint
-const RPC_URL = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/subfrost';
+const RPC_URL = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
 
 interface MempoolBlock {
   blockSize: number;
@@ -1514,6 +1514,9 @@ const DieselTerminal = () => {
   const [competition, setCompetition] = useState(100);
   const [manualMints, setManualMints] = useState<number | null>(null);
 
+  // UI mode: hide manual controls, show only auto-mint
+  const showManualControls = false;
+
   // Mempool state
   const [mempoolBlocks, setMempoolBlocks] = useState<MempoolBlock[]>([]);
   const [mempoolLoading, setMempoolLoading] = useState(true);
@@ -1999,7 +2002,7 @@ return {
       <div className="flex items-center justify-between border-b border-orange-500/50 pb-1 mb-3">
         <div className="flex items-center gap-4">
           <span className="text-orange-500 font-bold text-lg">DIESEL</span>
-          <span className="text-gray-500">TERMINAL</span>
+          <span className="text-gray-500">AUTOPILOT</span>
           {blockHeight && (
             <span className="text-gray-600 text-xs flex items-center gap-2">
               <span>
@@ -2223,6 +2226,79 @@ return {
         </div>
       </div>
 
+      {/* Competition Stats Bar (shown when manual controls hidden) */}
+      {!showManualControls && (
+        <div className="mb-3 border border-gray-800 bg-gray-900/30">
+          <div className="flex items-center justify-between px-3 py-2">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 text-xs">COMPETITION (M)</span>
+                <span className="text-red-500 font-mono font-bold">{competition}</span>
+              </div>
+              {rbfData && rbfData.chainLength > 0 && currentEffectiveRate >= (mempoolStats?.minFee || 0) && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 text-xs">eff:</span>
+                  <span className="text-purple-400 font-mono">{Math.max(0, competition - rbfData.chainLength)}</span>
+                </div>
+              )}
+              {isScanning ? (
+                <span className="text-xs text-cyan-500 animate-pulse">● SCANNING...</span>
+              ) : detectedCompetition !== null ? (
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs ${detectedCompetitionFlash} text-cyan-500`}>●</span>
+                  <span className="text-cyan-500 font-mono">{detectedCompetition}</span>
+                  <span className="text-gray-500 text-xs">detected</span>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-4 text-gray-500 text-xs">
+              <span>N*=<span className="text-orange-500">{fmtInt(results.Nstar)}</span></span>
+              <span className={results.isProfitable ? 'text-green-500' : 'text-red-500'}>
+                ● {results.isProfitable ? 'PROFITABLE' : 'UNPROFITABLE'}
+              </span>
+            </div>
+          </div>
+          {/* Active chain info */}
+          {mintResult && mintResult.txids.length > 0 && (
+            <div className="flex items-center justify-between px-3 py-2 border-t border-gray-800 bg-gray-900/50">
+              <div className="flex items-center gap-4">
+                <span className="text-gray-500 text-xs">ACTIVE CHAIN</span>
+                <span className={`font-mono ${
+                  mintResult.txids.length >= 25 ? 'text-red-500' :
+                  mintResult.txids.length >= 20 ? 'text-yellow-500' : 'text-green-500'
+                }`}>
+                  {mintResult.txids.length}<span className="text-gray-600">/25</span> tx
+                </span>
+                <span className="text-gray-600">|</span>
+                <span className="text-yellow-500 font-mono">{mintResult.totalFee} sats</span>
+                <span className="text-gray-600">|</span>
+                <span className={`font-mono ${mempoolStats && currentEffectiveRate < mempoolStats.minFee ? 'text-red-500' : 'text-cyan-500'}`}>
+                  {currentEffectiveRate.toFixed(2)} sat/vB
+                  {mempoolStats && currentEffectiveRate < mempoolStats.minFee && ' ▼'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`https://mempool.space/tx/${mintResult.txids[mintResult.txids.length - 1]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-cyan-500 hover:text-cyan-400 text-xs"
+                >
+                  VIEW ↗
+                </a>
+                <button
+                  onClick={() => { setRbfData(null); setCpfpData(null); setMintResult(null); setRbfFeeRate(''); }}
+                  className="text-gray-500 hover:text-red-400 text-xs"
+                >
+                  [CLEAR]
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showManualControls && (
       <div className="grid grid-cols-12 gap-3">
         {/* Left Panel - Inputs */}
         <div className="col-span-12 lg:col-span-3 border border-gray-800 overflow-hidden">
@@ -2887,8 +2963,10 @@ return {
           </div>
         </div>
       </div>
+      )}
 
       {/* Bottom Bar */}
+      {showManualControls && (
       <div className="mt-3 border border-gray-800 p-2 grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
         <div>
           <span className="text-gray-600">THRESHOLD </span>
@@ -2907,9 +2985,10 @@ return {
           <span className="text-orange-500">p {'>'} 8fM/R</span>
         </div>
       </div>
+      )}
 
       {/* Auto-mint panel */}
-      {isConnected && (
+      {isConnected ? (
         <div className="mt-2 border border-gray-700 bg-gray-900/50">
           <AutoMintPanel
             currentFeeRate={mempoolStats?.minFee || 0}
@@ -2927,10 +3006,21 @@ return {
             onCpfp={handleCpfp}
           />
         </div>
+      ) : (
+        <div className="mt-2 border border-gray-700 bg-gray-900/50 p-4 text-center">
+          <div className="text-gray-500 text-xs mb-3">Connect wallet to enable auto-mint</div>
+          <button
+            onClick={() => setShowConnectModal(true)}
+            className="px-6 py-2 text-xs font-bold border border-orange-500/50 text-orange-500 bg-orange-500/10 hover:bg-orange-500/20"
+          >
+            CONNECT WALLET
+          </button>
+        </div>
       )}
 
       <div className="mt-2 flex justify-between text-xs text-gray-600 border-t border-gray-800 pt-2">
-        <div>TURBO DIESEL TERMINAL v12</div>
+        <div>DIESEL AUTOPILOT v1</div>
+        {showManualControls && (
         <div className="flex gap-6">
           <span>N*=<span className="text-orange-500">{fmtInt(results.Nstar)}</span></span>
           <span>
@@ -2943,6 +3033,7 @@ return {
             ● {results.isProfitable ? 'PROFITABLE' : 'UNPROFITABLE'}
           </span>
         </div>
+        )}
       </div>
 
       {/* Connect Wallet Modal */}

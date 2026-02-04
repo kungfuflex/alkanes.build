@@ -210,3 +210,12 @@ NEXT_PUBLIC_ALKANES_RPC_URL  # Alkanes RPC endpoint (default: https://mainnet.su
 
 - **postgres**: Port 5433 (avoids conflict with standard 5432)
 - **redis**: Port 6380 (avoids conflict with standard 6379)
+
+## TODO / Future Changes
+
+### Remove Terminal Mode (when user requests)
+- Delete `/app/[locale]/terminal/page.tsx`
+- Delete `/components/DieselTerminal.tsx`
+- Keep only Autopilot mode at `/app/[locale]/autopilot/page.tsx`
+- The full Terminal with charts, orderbook, manual mint buttons etc. will be removed
+- Only the simplified Autopilot with AutoMintPanel will remain

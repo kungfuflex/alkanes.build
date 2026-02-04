@@ -375,7 +375,7 @@ export async function broadcastChain(
 ): Promise<string[]> {
   const broadcastedTxids: string[] = [];
   const useDirectBroadcast = options?.useDirectBroadcast ?? true;
-  const rpcUrl = options?.rpcUrl || process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/subfrost';
+  const rpcUrl = options?.rpcUrl || process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
 
   for (const rawTx of rawTxs) {
     let txid: string;

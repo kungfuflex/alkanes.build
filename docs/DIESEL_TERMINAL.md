@@ -522,7 +522,7 @@ const TX_VSIZE = 141;              // vsize of DIESEL mint transaction
 const REFRESH_INTERVAL = 10000;    // 10 seconds between mempool fee updates
 const COMPETITION_REFRESH_INTERVAL = 15000; // 15 seconds between competition scans
 const BALANCE_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes between balance updates
-const RPC_URL = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/subfrost';
+const RPC_URL = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
 ```
 
 ## RPC Methods
