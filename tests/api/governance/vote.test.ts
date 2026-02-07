@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// Mock BIP-322 signature verification - must be before imports
+vi.mock("@/lib/bip322", () => ({
+  verifyMessageSignature: vi.fn().mockResolvedValue(true), // Default: signature valid
+}));
+
 // Mock alkanes-client module - must be before imports
 vi.mock("@/lib/alkanes-client", () => ({
   alkanesClient: {
@@ -31,11 +36,13 @@ vi.mock("@/lib/prisma", () => {
 import { POST } from "@/app/api/governance/vote/route";
 import { prisma } from "@/lib/prisma";
 import { alkanesClient } from "@/lib/alkanes-client";
+import { verifyMessageSignature } from "@/lib/bip322";
 
 // Type assertions for mocks
 const mockProposal = prisma.proposal as any;
 const mockVote = prisma.vote as any;
 const mockAlkanesClient = alkanesClient as any;
+const mockVerifySignature = verifyMessageSignature as ReturnType<typeof vi.fn>;
 
 const mockActiveProposal = {
   id: "prop-1",
@@ -74,10 +81,12 @@ const mockProposalWithEmptyScores = {
 describe("POST /api/governance/vote", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-set default mock implementations after clearAllMocks
+    mockVerifySignature.mockResolvedValue(true);
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('1000000'));
   });
 
   it("casts a valid vote with server-verified voting power", async () => {
-    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('1000000'));
     mockProposal.findUnique.mockResolvedValue(mockActiveProposal);
     mockVote.findUnique.mockResolvedValue(null);
     mockVote.create.mockResolvedValue({
