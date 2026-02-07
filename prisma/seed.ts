@@ -36,7 +36,7 @@ async function main() {
       id: 'default',
       votingDelay: 0,
       votingPeriod: 17280, // ~3 days in blocks
-      proposalThreshold: BigInt('1000000000'), // 1000 DIESEL (6 decimals)
+      proposalThreshold: BigInt('10000000'), // 10 DIESEL (6 decimals)
       quorumNumerator: 4,
       quorumDenominator: 100,
       dieselAlkaneBlock: 2,

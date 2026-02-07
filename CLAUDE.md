@@ -239,6 +239,35 @@ if (lastTxNotFound) {
 
 **Key point**: We store `mintResult.txids[]` — array of original chain txids. When checking confirmation, first check `lastTxid`, and if not found — check the first TX of the original chain.
 
+## Governance — Voting Power Verification
+
+Server-side verification of DIESEL balances for governance. See `docs/GOVERNANCE.md` for full details (RPC format, response parsing, security considerations).
+
+### Key Files
+- `lib/alkanes-client.ts` — `getDieselBalanceAtBlock(address, blockHeight)` method
+- `app/api/governance/proposals/route.ts` — auto-snapshot + proposalThreshold check
+- `app/api/governance/vote/route.ts` — server-side voting power verification
+- `app/[locale]/governance/[id]/page.tsx` — proposal detail / voting UI
+- `docs/GOVERNANCE.md` — full governance system documentation
+
+### How It Works
+1. **Proposal creation**: `snapshot = currentBlock` auto-set via `alkanesClient.getCurrentHeight()`
+2. **Author check**: DIESEL balance >= `proposalThreshold` (from GovernanceSettings, default 10 DIESEL)
+3. **Voting**: server queries `alkanes_protorunesbyaddress` at snapshot block, ignores client-provided votingPower
+4. **Rejection**: 403 if balance = 0 at snapshot or below threshold
+
+### RPC Call Format (Historical Balance)
+```
+alkanes_protorunesbyaddress params: [{ address, protocolTag: 1 }, "blockHeight"]
+```
+Block height is the **second element** of params array (string), NOT inside the first object.
+
+### Important Notes
+- `alkanesClient` (server-side) uses `Buffer` — do NOT import on client. Use `useWalletBalances` hook instead
+- DIESEL token ID: block=2, tx=0 (`DIESEL_TOKEN.alkaneId`)
+- BigInt responses must be serialized via `serializeBigInt()` before `NextResponse.json()`
+- BIP-322 signature verification is still TODO
+
 ## Environment Variables
 
 ```bash

@@ -93,10 +93,10 @@ export function VaultPerformance() {
     : null;
 
   return (
-    <div className="glass-card overflow-hidden w-full">
+    <div className="w-full">
       {/* Header */}
-      <div className="card-header flex items-center justify-between gap-2">
-        <h3 className="font-semibold text-[color:var(--sf-text)] truncate">{t("title")}</h3>
+      <div className="flex items-center justify-between gap-2 mb-3 px-1">
+        <h3 className="text-lg font-bold text-[color:var(--sf-text)] truncate">{t("title")}</h3>
         <Link
           href="/vaults"
           className="text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors whitespace-nowrap flex-shrink-0"
@@ -105,40 +105,37 @@ export function VaultPerformance() {
         </Link>
       </div>
 
-      {/* Pool List */}
-      <div className="p-4 space-y-2 overflow-hidden">
-        {hasData ? (
-          <>
-            {vaults.map((vault) => (
-              <VaultRow key={vault.id} vault={vault} tvlLabel={t("tvl")} />
-            ))}
-          </>
-        ) : (
-          <>
-            {[1, 2].map((i) => (
-              <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
-                <div className="h-4 bg-[color:var(--sf-outline)] rounded w-3/4 mb-2" />
-                <div className="h-3 bg-[color:var(--sf-outline)] rounded w-1/2" />
+      {/* Pool List + Total TVL */}
+      <div className="glass-card overflow-hidden" style={{ background: "#101010" }}>
+        {/* Vaults */}
+        <div className="rounded-b-3xl overflow-hidden bg-[color:var(--sf-surface)]">
+          {hasData ? (
+            vaults.map((vault, i) => (
+              <div key={vault.id} className={i > 0 ? "border-t border-[color:var(--sf-outline)]" : ""}>
+                <VaultRow vault={vault} tvlLabel={t("tvl")} />
               </div>
-            ))}
-          </>
-        )}
+            ))
+          ) : (
+            <div className="p-3 space-y-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
+                  <div className="h-4 bg-[color:var(--sf-outline)] rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-[color:var(--sf-outline)] rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Total TVL */}
         {hasData && (
-          <div className="mt-4 pt-4 border-t border-[color:var(--sf-outline)]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-[color:var(--sf-muted)] mb-1">{t("totalTvl")}</p>
-                <p className="text-xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums">
-                  {totalTvlUsd ? formatUsd(totalTvlUsd) : `${formatCompact(totalDieselAmount)} DIESEL`}
-                </p>
-              </div>
-              <div className="text-right text-xs text-[color:var(--sf-muted)]">
-                {pools && <p>Block #{pools.currentHeight.toLocaleString()}</p>}
-                {btcPrice && <p>BTC: {formatUsd(btcPrice.usd)}</p>}
-              </div>
-            </div>
+          <div className="px-5 py-3 flex items-center justify-between">
+            <p className="text-xs text-[color:var(--sf-muted)]">
+              {t("totalTvl")}: <span className="text-[color:var(--sf-text)] font-semibold font-mono tabular-nums">{totalTvlUsd ? formatUsd(totalTvlUsd) : `${formatCompact(totalDieselAmount)} DIESEL`}</span>
+            </p>
+            <p className="text-xs text-[color:var(--sf-muted)] font-mono tabular-nums">
+              {btcPrice && `BTC: ${formatUsd(btcPrice.usd)}`}
+            </p>
           </div>
         )}
       </div>
@@ -150,26 +147,26 @@ function VaultRow({ vault, tvlLabel }: { vault: Vault; tvlLabel: string }) {
   return (
     <Link
       href="/vaults"
-      className="flex items-center justify-between p-3 rounded-lg bg-black/20 backdrop-blur-sm border border-white/5 hover:bg-black/30 transition-colors group gap-2 overflow-hidden"
+      className="flex items-center justify-between px-5 py-5 hover:bg-white/[0.02] transition-colors group gap-3 overflow-hidden"
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <img
           src="/logo.png"
           alt={vault.name}
-          className="w-8 h-8 rounded-lg flex-shrink-0"
+          className="w-10 h-10 rounded-lg flex-shrink-0"
         />
         <div className="min-w-0">
-          <p className="font-medium text-sm text-[color:var(--sf-text)] truncate">{vault.name}</p>
-          <p className="text-xs text-[color:var(--sf-muted)] truncate">
+          <p className="font-medium text-[15px] text-[color:var(--sf-text)] truncate">{vault.name}</p>
+          <p className="text-[13px] text-[color:var(--sf-muted)] truncate">
             {tvlLabel}: {vault.tvlUsd || vault.tvl}
           </p>
         </div>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="font-medium text-sm text-[color:var(--sf-text)] font-mono tabular-nums">
+        <p className="font-medium text-[15px] text-[color:var(--sf-text)] font-mono tabular-nums">
           {vault.priceUsd || `${vault.priceNative} ${vault.token1Symbol}`}
         </p>
-        <p className="text-xs text-[color:var(--sf-muted)] font-mono">
+        <p className="text-[13px] text-[color:var(--sf-muted)] font-mono">
           {vault.priceNative} {vault.token1Symbol}
         </p>
       </div>

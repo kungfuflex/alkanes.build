@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { marked } from "marked";
 import { serializeBigInt } from "@/lib/serialize";
+import { alkanesClient } from "@/lib/alkanes-client";
+import { verifyMessageSignature } from "@/lib/bip322";
 
 function generateSlug(title: string): string {
   return title
@@ -85,7 +87,8 @@ export async function POST(request: NextRequest) {
       choices,
       author,
       authorSig,
-      snapshot,
+      authorPubkey,
+      timestamp,
       createDiscussion = true, // Auto-create discussion by default
     } = body;
 
@@ -105,13 +108,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Verify BIP-322 signature
-    // TODO: Verify author has minimum DIESEL balance for proposal creation
+    // Verify signature
+    const network = process.env.NEXT_PUBLIC_NETWORK as 'mainnet' | 'testnet' | 'regtest' || 'mainnet';
+    const messageToVerify = JSON.stringify({
+      title: title.trim(),
+      body: proposalBody.trim(),
+      choices,
+      timestamp: timestamp || Date.now(),
+    });
+
+    console.log('[Proposal] Verifying signature:', {
+      author,
+      title: title.slice(0, 30),
+      timestamp,
+      sigLength: authorSig?.length,
+      pubkeyLength: authorPubkey?.length,
+    });
+
+    const isValidSignature = await verifyMessageSignature(
+      messageToVerify,
+      author,
+      authorSig,
+      network,
+      authorPubkey
+    );
+
+    console.log('[Proposal] Signature verification result:', isValidSignature);
+
+    if (!isValidSignature) {
+      console.warn('[Proposal] Signature verification failed');
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 401 }
+      );
+    }
 
     // Get governance settings
     const settings = await prisma.governanceSettings.findFirst();
     const votingDelay = settings?.votingDelay || 0;
     const votingPeriod = settings?.votingPeriod || 17280; // ~3 days in blocks
+    // 10 DIESEL = 10 * 10^6 = 10,000,000 (6 decimals)
+    const proposalThreshold = BigInt('10000000'); // Always use 10 DIESEL, ignore DB for now
+
+    // Get current block height for snapshot
+    const currentHeight = await alkanesClient.getCurrentHeight();
+    const snapshotBlock = currentHeight;
+
+    // Check author has minimum DIESEL balance to create proposal
+    const authorBalance = await alkanesClient.getDieselBalanceAtBlock(author, snapshotBlock);
+    console.log('[Proposal] Author balance check:', { author, balance: authorBalance.toString(), threshold: proposalThreshold.toString() });
+
+    if (authorBalance < proposalThreshold) {
+      return NextResponse.json(
+        { error: `Insufficient DIESEL balance. Required: ${Number(proposalThreshold) / 1e6} DIESEL` },
+        { status: 403 }
+      );
+    }
 
     // Calculate start and end times
     // For now, using timestamps - in production would use block heights
@@ -132,7 +184,7 @@ export async function POST(request: NextRequest) {
           choices,
           author,
           authorSig,
-          snapshot: snapshot || 0, // TODO: Get current block height
+          snapshot: snapshotBlock,
           start,
           end,
           scores,

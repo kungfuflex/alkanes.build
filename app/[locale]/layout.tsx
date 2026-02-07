@@ -6,6 +6,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { locales, type Locale } from "@/i18n/config";
 import "../globals.css";
 import { Providers } from "./providers";
+import { LayoutShell } from "@/components/LayoutShell";
 
 // Sans-serif font
 const inter = Inter({
@@ -462,7 +463,9 @@ export default async function LocaleLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <NextIntlClientProvider messages={messages}>
-          <Providers>{children}</Providers>
+          <Providers>
+            <LayoutShell>{children}</LayoutShell>
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -6,8 +6,6 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Copy, Check, Download, Cloud, AlertTriangle, Key, Shield, ExternalLink, Wallet, RefreshCw } from "lucide-react";
 
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { useWallet } from "@/context/WalletContext";
 import AddressAvatar from "@/components/AddressAvatar";
 import { GoogleDriveBackup, type WalletBackupInfo } from "@alkanes/ts-sdk";
@@ -229,21 +227,17 @@ export default function WalletDashboardPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-[color:var(--sf-muted)] mb-4">Please connect your wallet to continue</p>
-            <button
-              onClick={() => onConnectModalOpenChange(true)}
-              className="btn-primary"
-            >
-              Connect Wallet
-            </button>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[color:var(--sf-muted)] mb-4">Please connect your wallet to continue</p>
+          <button
+            onClick={() => onConnectModalOpenChange(true)}
+            className="btn-primary"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      </main>
     );
   }
 
@@ -251,10 +245,7 @@ export default function WalletDashboardPage() {
   const isBrowserWallet = !!browserWallet;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
+    <main className="max-w-4xl mx-auto px-4 py-8 w-full">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 text-[color:var(--sf-text)]">Wallet Dashboard</h1>
@@ -641,9 +632,6 @@ export default function WalletDashboardPage() {
             Disconnect Wallet
           </button>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

@@ -69,30 +69,30 @@ export function DieselPriceCard() {
             height={32}
             className="rounded-lg flex-shrink-0"
           />
-          <span className="font-semibold text-[color:var(--sf-text)] truncate">{t("title")}</span>
+          <span className="text-lg font-bold text-[color:var(--sf-text)] truncate">{t("title")}</span>
         </div>
         <span className={`badge ${isPositiveChange ? 'badge-active' : 'badge-danger'} flex-shrink-0`}>
           {change24hStr}
         </span>
       </div>
 
-      <div className="p-5 overflow-hidden">
+      <div className="p-4 overflow-hidden">
         {/* Price */}
-        <div className="mb-5">
+        <div className="mb-3">
           {isLoading ? (
             <div className="space-y-2">
-              <div className="h-8 w-40 max-w-full bg-[color:var(--sf-outline)] rounded animate-pulse" />
-              <div className="h-6 w-24 max-w-full bg-[color:var(--sf-outline)] rounded animate-pulse" />
+              <div className="h-6 w-36 max-w-full bg-[color:var(--sf-outline)] rounded animate-pulse" />
+              <div className="h-4 w-20 max-w-full bg-[color:var(--sf-outline)] rounded animate-pulse" />
             </div>
           ) : (
             <div className="overflow-hidden">
               <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-2xl sm:text-3xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums break-all">
+                <span className="text-xl sm:text-2xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums break-all">
                   {dieselPriceFrbtc.toFixed(8)}
                 </span>
-                <span className="text-sm text-[color:var(--sf-muted)]">BTC</span>
+                <span className="text-xs text-[color:var(--sf-muted)]">BTC</span>
               </div>
-              <div className="text-lg sm:text-xl text-[color:var(--sf-muted)] font-mono tabular-nums">
+              <div className="text-base text-[color:var(--sf-muted)] font-mono tabular-nums">
                 {formatUsd(dieselPriceUsd)}
               </div>
             </div>
@@ -100,34 +100,34 @@ export function DieselPriceCard() {
         </div>
 
         {/* Chart */}
-        <div className="mb-5 -mx-1 overflow-hidden">
+        <div className="mb-3 -mx-1 overflow-hidden">
           <AreaPriceChart
             data={(candles?.candles || []) as CandleDataPoint[]}
-            height={100}
+            height={72}
             showGradient={true}
           />
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-4 gap-2 text-xs">
           <div className="min-w-0">
-            <div className="text-[color:var(--sf-muted)] text-xs mb-1">{t("high")}</div>
+            <div className="text-[color:var(--sf-muted)] mb-0.5">{t("high")}</div>
             <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">
               {high24hUsd > 0 ? formatUsd(high24hUsd) : "--"}
             </div>
           </div>
           <div className="min-w-0">
-            <div className="text-[color:var(--sf-muted)] text-xs mb-1">{t("low")}</div>
+            <div className="text-[color:var(--sf-muted)] mb-0.5">{t("low")}</div>
             <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">
               {low24hUsd > 0 ? formatUsd(low24hUsd) : "--"}
             </div>
           </div>
           <div className="min-w-0">
-            <div className="text-[color:var(--sf-muted)] text-xs mb-1">{t("volume")}</div>
+            <div className="text-[color:var(--sf-muted)] mb-0.5">{t("volume")}</div>
             <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">{volume24hStr}</div>
           </div>
           <div className="min-w-0">
-            <div className="text-[color:var(--sf-muted)] text-xs mb-1">{t("marketCap")}</div>
+            <div className="text-[color:var(--sf-muted)] mb-0.5">{t("marketCap")}</div>
             <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">{marketCapStr}</div>
           </div>
         </div>

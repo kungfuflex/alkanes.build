@@ -5,14 +5,12 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useWallet } from "@/context/WalletContext";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { ArrowLeft, Plus, X, Loader2 } from "lucide-react";
 
 export default function CreateProposalPage() {
   const t = useTranslations();
   const router = useRouter();
-  const { isConnected, address, signMessage, onConnectModalOpenChange } = useWallet();
+  const { isConnected, address, publicKey, signMessage, onConnectModalOpenChange } = useWallet();
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -65,17 +63,19 @@ export default function CreateProposalPage() {
     setIsSubmitting(true);
 
     try {
-      // Create message for signing
+      // Create message for signing (BIP-322)
+      const timestamp = Date.now();
       const message = JSON.stringify({
-        action: "create_proposal",
         title: title.trim(),
-        timestamp: Date.now(),
+        body: body.trim(),
+        choices: validChoices,
+        timestamp,
       });
 
       // Sign the message
       const signature = await signMessage(message);
 
-      // Submit proposal
+      // Submit proposal with timestamp for signature verification
       const res = await fetch("/api/governance/proposals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,6 +85,8 @@ export default function CreateProposalPage() {
           choices: validChoices,
           author: address,
           authorSig: signature,
+          authorPubkey: publicKey,
+          timestamp,
         }),
       });
 
@@ -105,10 +107,7 @@ export default function CreateProposalPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1 max-w-2xl mx-auto px-4 py-8 w-full">
+    <main className="max-w-2xl mx-auto px-4 py-8 w-full">
         {/* Back Link */}
         <Link
           href="/governance"
@@ -246,9 +245,6 @@ export default function CreateProposalPage() {
             </button>
           </div>
         </form>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

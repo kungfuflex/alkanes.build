@@ -413,6 +413,49 @@ class AlkanesClient {
   }
 
   /**
+   * Get DIESEL balance for an address at a specific block height
+   * Used for governance voting power verification
+   *
+   * @param address - Bitcoin address
+   * @param blockHeight - Block height for the snapshot
+   * @returns DIESEL balance as BigInt (raw units, 8 decimals)
+   */
+  async getDieselBalanceAtBlock(address: string, blockHeight: number): Promise<bigint> {
+    try {
+      const result = await jsonRpcCall<{
+        outpoints?: Array<{
+          balance_sheet?: {
+            cached?: {
+              balances?: Array<{ block: number; tx: number; amount: string }>;
+            };
+          };
+        }>;
+      }>(
+        this.rpcUrl,
+        'alkanes_protorunesbyaddress',
+        [{ address, protocolTag: 1 }, blockHeight.toString()]
+      );
+
+      if (!result?.outpoints) return BigInt(0);
+
+      let total = BigInt(0);
+      for (const outpoint of result.outpoints) {
+        const balances = outpoint.balance_sheet?.cached?.balances || [];
+        for (const bal of balances) {
+          if (bal.block === DIESEL_TOKEN.alkaneId.block && bal.tx === DIESEL_TOKEN.alkaneId.tx) {
+            total += BigInt(bal.amount || 0);
+          }
+        }
+      }
+
+      return total;
+    } catch (error) {
+      console.warn('[AlkanesClient] getDieselBalanceAtBlock failed:', error);
+      return BigInt(0);
+    }
+  }
+
+  /**
    * Get complete wallet balances (BTC + tokens)
    * Uses pure JSON-RPC and Lua scripting - no WASM required
    */

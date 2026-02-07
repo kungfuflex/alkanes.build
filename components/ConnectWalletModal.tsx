@@ -1,7 +1,7 @@
 'use client';
 
-import { ChevronRight, Plus, Key, Lock, Eye, EyeOff, Copy, Check, Download, Cloud, Upload, X } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Key, Lock, Eye, EyeOff, Copy, Check, Download, Cloud, Upload, X } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 
 import { useWallet } from '@/context/WalletContext';
 import {
@@ -13,7 +13,7 @@ import {
   type WalletOption,
 } from '@alkanes/ts-sdk';
 
-type WalletView = 'select' | 'create' | 'restore-mnemonic' | 'restore-json' | 'restore-drive-picker' | 'restore-drive-unlock' | 'browser-extension' | 'unlock' | 'show-mnemonic';
+type WalletView = 'select' | 'create' | 'restore' | 'restore-mnemonic' | 'restore-json' | 'restore-drive-picker' | 'restore-drive-unlock' | 'browser-extension' | 'unlock' | 'show-mnemonic';
 
 export default function ConnectWalletModal() {
   const {
@@ -50,21 +50,37 @@ export default function ConnectWalletModal() {
   const [driveBackup] = useState(() => new GoogleDriveBackup());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Computed values from wallet options
+  const [isClosing, setIsClosing] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [contentHeight, setContentHeight] = useState<number | 'auto'>('auto');
+  const contentRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
   const installedWallets = walletOptions.filter(w => w.installed);
   const allWallets = walletOptions;
 
   useEffect(() => {
     if (isConnectModalOpen) {
+      setIsVisible(true);
+      setIsClosing(false);
       setHasExistingKeystore(hasExistingKeystoreFromContext);
       setView('select');
       resetForm();
-      // Load wallet options using the unified SDK method
       getWalletOptions().then(setWalletOptions).catch(console.error);
-      // Check Google Drive configuration
       setDriveConfigured(driveBackup.isConfigured());
     }
   }, [isConnectModalOpen, hasExistingKeystoreFromContext, driveBackup, getWalletOptions]);
+
+  // Measure and animate content height on view change
+  const measureHeight = useCallback(() => {
+    if (innerRef.current) {
+      setContentHeight(innerRef.current.scrollHeight);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    measureHeight();
+  }, [view, error, hasExistingKeystore, driveConfigured, uploadedKeystore, walletOptions, driveBackups, generatedMnemonic, measureHeight]);
 
   const resetForm = () => {
     setPassword('');
@@ -83,8 +99,13 @@ export default function ConnectWalletModal() {
   };
 
   const handleClose = () => {
-    onConnectModalOpenChange(false);
-    resetForm();
+    setIsClosing(true);
+    setTimeout(() => {
+      onConnectModalOpenChange(false);
+      resetForm();
+      setIsVisible(false);
+      setIsClosing(false);
+    }, 140);
   };
 
   const handleCreateWallet = async () => {
@@ -310,7 +331,6 @@ export default function ConnectWalletModal() {
     setError(null);
 
     try {
-      // Convert WalletOption to BrowserWalletInfo if needed
       const walletInfo: BrowserWalletInfo = 'injectionKey' in wallet
         ? wallet
         : BROWSER_WALLETS.find((w: BrowserWalletInfo) => w.id === wallet.id) || {
@@ -334,148 +354,118 @@ export default function ConnectWalletModal() {
     }
   };
 
-  if (!isConnectModalOpen) return null;
+  if (!isConnectModalOpen && !isVisible) return null;
+
+  const viewTitle: Record<WalletView, string> = {
+    'select': 'Connect Wallet',
+    'create': 'Create New Wallet',
+    'restore': 'Restore Wallet',
+    'restore-mnemonic': 'Restore from Mnemonic',
+    'restore-json': 'Restore from Keystore',
+    'restore-drive-picker': 'Select Backup',
+    'restore-drive-unlock': 'Unlock Wallet',
+    'browser-extension': 'Browser Wallets',
+    'unlock': 'Unlock Wallet',
+    'show-mnemonic': 'Recovery Phrase',
+  };
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/50 px-4"
+      className={`fixed inset-0 z-50 grid place-items-center bg-black/25 backdrop-blur-sm px-4 ${isClosing ? 'animate-[fadeOut_140ms_ease-in_forwards]' : 'animate-[fadeIn_200ms_ease-out]'}`}
       onClick={handleClose}
     >
       <div
-        className="w-[480px] max-w-[92vw] overflow-hidden rounded-2xl border border-white/20 bg-black shadow-xl"
+        className={`w-[400px] max-w-[92vw] overflow-hidden rounded-3xl ${isClosing ? 'animate-[modalOut_140ms_cubic-bezier(0.4,0,1,1)_forwards]' : 'animate-[modalIn_280ms_cubic-bezier(0,0,0.2,1)]'}`}
+        style={{ background: '#1a1a1a', border: '1px solid rgba(255, 255, 255, 0.08)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-4 pb-2">
-          <h2 className="text-xl font-semibold text-white">
-            {view === 'select' && 'Connect Wallet'}
-            {view === 'create' && 'Create New Wallet'}
-            {view === 'restore-mnemonic' && 'Restore from Mnemonic'}
-            {view === 'restore-json' && 'Restore from Keystore'}
-            {view === 'restore-drive-picker' && 'Select Backup'}
-            {view === 'restore-drive-unlock' && 'Unlock Wallet'}
-            {view === 'browser-extension' && 'Browser Wallets'}
-            {view === 'unlock' && 'Unlock Wallet'}
-            {view === 'show-mnemonic' && 'Save Recovery Phrase'}
-          </h2>
+        <div className="flex items-center justify-between px-5 pt-5 pb-2">
+          {view !== 'select' ? (
+            <button
+              onClick={() => {
+                const backMap: Partial<Record<WalletView, WalletView>> = {
+                  'create': 'select',
+                  'unlock': 'select',
+                  'restore': 'select',
+                  'browser-extension': 'select',
+                  'show-mnemonic': 'select',
+                  'restore-mnemonic': 'restore',
+                  'restore-json': 'restore',
+                  'restore-drive-picker': 'restore',
+                  'restore-drive-unlock': 'restore-drive-picker',
+                };
+                setView(backMap[view] || 'select');
+                resetForm();
+              }}
+              className="rounded-lg p-1.5 text-[color:var(--sf-muted)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--sf-text)]"
+            >
+              <ChevronLeft size={22} />
+            </button>
+          ) : (
+            <div className="w-[30px]" />
+          )}
+          <span className="text-base font-bold uppercase tracking-wider text-[color:var(--sf-text)]">
+            {viewTitle[view]}
+          </span>
           <button
             onClick={handleClose}
-            className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+            className="rounded-lg p-1.5 text-[color:var(--sf-muted)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--sf-text)]"
           >
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="px-6 pb-6">
+        <div
+          ref={contentRef}
+          className="overflow-hidden"
+          style={{
+            height: contentHeight === 'auto' ? 'auto' : contentHeight,
+            transition: 'height 300ms cubic-bezier(0.25, 0.1, 0.25, 1)',
+          }}
+        >
+        <div ref={innerRef} className="p-5">
           {view === 'select' && (
-            <div className="flex flex-col gap-3">
-              {/* Keystore Options */}
-              <div className="mb-2">
-                <div className="mb-2 text-sm font-medium text-white/70">Keystore Wallet</div>
-
-                {hasExistingKeystore && (
-                  <button
-                    onClick={() => setView('unlock')}
-                    className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 mb-2 transition-colors hover:bg-white/10"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Lock size={24} className="text-blue-400" />
-                      <div className="text-left">
-                        <div className="font-medium text-white">Unlock Existing Wallet</div>
-                        <div className="text-sm text-white/50">Enter password to unlock</div>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-white/50" />
-                  </button>
-                )}
-
-                <button
-                  onClick={() => setView('create')}
-                  className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 mb-2 transition-colors hover:bg-white/10"
-                >
-                  <div className="flex items-center gap-3">
-                    <Plus size={24} className="text-green-400" />
-                    <div className="text-left">
-                      <div className="font-medium text-white">Create New Wallet</div>
-                      <div className="text-sm text-white/50">Generate a new recovery phrase</div>
-                    </div>
-                  </div>
-                  <ChevronRight size={20} className="text-white/50" />
-                </button>
-
-                <button
-                  onClick={() => setView('restore-mnemonic')}
-                  className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 mb-2 transition-colors hover:bg-white/10"
-                >
-                  <div className="flex items-center gap-3">
-                    <Key size={24} className="text-yellow-400" />
-                    <div className="text-left">
-                      <div className="font-medium text-white">Restore from Mnemonic</div>
-                      <div className="text-sm text-white/50">Import existing recovery phrase</div>
-                    </div>
-                  </div>
-                  <ChevronRight size={20} className="text-white/50" />
-                </button>
-
-                <button
-                  onClick={() => setView('restore-json')}
-                  className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 mb-2 transition-colors hover:bg-white/10"
-                >
-                  <div className="flex items-center gap-3">
-                    <Upload size={24} className="text-orange-400" />
-                    <div className="text-left">
-                      <div className="font-medium text-white">Restore from Keystore File</div>
-                      <div className="text-sm text-white/50">Import exported JSON keystore</div>
-                    </div>
-                  </div>
-                  <ChevronRight size={20} className="text-white/50" />
-                </button>
-
-                {driveConfigured && (
-                  <button
-                    onClick={handleLoadDriveBackups}
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10 disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Cloud size={24} className="text-blue-400" />
-                      <div className="text-left">
-                        <div className="font-medium text-white">Restore from Google Drive</div>
-                        <div className="text-sm text-white/50">Recover wallet from your Drive</div>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-white/50" />
-                  </button>
-                )}
+            <div className="flex flex-col gap-4">
+              {/* Keystore Section */}
+              <div>
+                <div className="mb-2.5 text-[13px] font-bold uppercase tracking-widest text-[color:var(--sf-muted)]">Keystore</div>
+                <div className="space-y-3">
+                  {hasExistingKeystore && (
+                    <SelectRow
+                      icon={<Lock size={18} className="text-blue-400" />}
+                      label="Unlock Wallet"
+                      onClick={() => setView('unlock')}
+                    />
+                  )}
+                  <SelectRow
+                    icon={<Plus size={18} className="text-green-400" />}
+                    label="Create Wallet"
+                    onClick={() => setView('create')}
+                  />
+                  <SelectRow
+                    icon={<Key size={18} className="text-yellow-400" />}
+                    label="Restore Wallet"
+                    onClick={() => setView('restore')}
+                  />
+                </div>
               </div>
 
-              {/* Browser Extension Wallets */}
-              <div className="mt-2">
-                <div className="mb-2 text-sm font-medium text-white/70">Browser Extension</div>
-                <button
+              {/* Browser Extension Section */}
+              <div>
+                <div className="mb-2.5 text-[13px] font-bold uppercase tracking-widest text-[color:var(--sf-muted)]">Browser Extension</div>
+                <SelectRow
+                  icon={<Download size={18} className="text-purple-400" />}
+                  label="Connect Extension"
                   onClick={() => setView('browser-extension')}
-                  className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10"
-                >
-                  <div className="flex items-center gap-3">
-                    <Download size={24} className="text-purple-400" />
-                    <div className="text-left">
-                      <div className="font-medium text-white">Connect Browser Extension</div>
-                      <div className="text-sm text-white/50">
-                        {installedWallets.length > 0
-                          ? `${installedWallets.length} wallet${installedWallets.length > 1 ? 's' : ''} detected`
-                          : walletOptions.length > 0 ? 'No wallets installed' : 'Loading...'}
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight size={20} className="text-white/50" />
-                </button>
+                />
               </div>
 
               {hasExistingKeystore && (
                 <button
                   onClick={handleDeleteKeystore}
-                  className="mt-3 text-sm text-red-400 hover:text-red-300"
+                  className="mt-1 text-sm font-medium text-red-500/70 transition-colors hover:text-red-400"
                 >
                   Delete stored wallet
                 </button>
@@ -483,150 +473,129 @@ export default function ConnectWalletModal() {
             </div>
           )}
 
+          {view === 'restore' && (
+            <div className="flex flex-col gap-4">
+              <div className="space-y-3">
+                <SelectRow
+                  icon={<Key size={18} className="text-yellow-400" />}
+                  label="Recovery Phrase"
+                  onClick={() => setView('restore-mnemonic')}
+                />
+                <SelectRow
+                  icon={<Upload size={18} className="text-orange-400" />}
+                  label="Keystore File"
+                  onClick={() => setView('restore-json')}
+                />
+                {driveConfigured && (
+                  <SelectRow
+                    icon={<Cloud size={18} className="text-sky-400" />}
+                    label="Google Drive"
+                    onClick={handleLoadDriveBackups}
+                    disabled={isLoading}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           {view === 'create' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <label className="mb-1 block text-sm text-white/70">Password (min 8 characters)</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
-                    placeholder="Enter password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm text-white/70">Confirm Password</label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 text-white placeholder:text-white/50 outline-none focus:border-white"
-                  placeholder="Confirm password"
-                />
-              </div>
+              <InputField
+                label="Password (min 8 characters)"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={setPassword}
+                placeholder="Enter password"
+                togglePassword={() => setShowPassword(!showPassword)}
+                showPassword={showPassword}
+              />
+              <InputField
+                label="Confirm Password"
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder="Confirm password"
+              />
 
               {driveConfigured && (
-                <div>
-                  <label className="mb-1 block text-sm text-white/70">
-                    Password Hint (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={passwordHintInput}
-                    onChange={(e) => setPasswordHintInput(e.target.value)}
-                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 text-white placeholder:text-white/50 outline-none focus:border-white"
-                    placeholder="e.g., My cat's name + birth year"
-                  />
-                  <div className="mt-1 text-xs text-white/50">
-                    For Google Drive backup. Don't include your actual password.
-                  </div>
-                </div>
+                <InputField
+                  label="Password Hint (Optional)"
+                  type="text"
+                  value={passwordHintInput}
+                  onChange={setPasswordHintInput}
+                  placeholder="e.g., My cat's name + birth year"
+                  helpText="For Google Drive backup. Don't include your actual password."
+                />
               )}
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
+              {error && <ErrorMessage message={error} />}
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setView('select'); resetForm(); }}
-                  className="flex-1 rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleCreateWallet}
-                  disabled={isLoading}
-                  className="flex-1 rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {isLoading ? 'Creating...' : 'Create Wallet'}
-                </button>
-              </div>
+              <PrimaryButton
+                onClick={handleCreateWallet}
+                disabled={isLoading}
+                label={isLoading ? 'Creating...' : 'Create Wallet'}
+              />
             </div>
           )}
 
           {view === 'show-mnemonic' && (
             <div className="flex flex-col gap-4">
-              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-400">
+              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-3 py-2.5 text-sm font-medium text-yellow-400/90">
                 Write down these words in order and store them safely. This is the only way to recover your wallet.
               </div>
 
-              <div className="relative rounded-lg border border-white/20 bg-white/5 p-4">
-                <div className="grid grid-cols-3 gap-2 font-mono text-sm">
+              <div className="relative rounded-lg border border-[color:var(--sf-outline)] bg-black/30 p-3">
+                <div className="grid grid-cols-3 gap-x-4 gap-y-2 font-mono text-sm font-medium">
                   {generatedMnemonic.split(' ').map((word, i) => (
-                    <div key={i} className="flex gap-2">
-                      <span className="text-white/50">{i + 1}.</span>
-                      <span className="text-white">{word}</span>
+                    <div key={i} className="flex gap-1.5">
+                      <span className="text-[color:var(--sf-muted)] tabular-nums w-5 text-right">{i + 1}.</span>
+                      <span className="text-[color:var(--sf-text)]">{word}</span>
                     </div>
                   ))}
                 </div>
                 <button
                   onClick={copyMnemonic}
-                  className="absolute right-2 top-2 rounded p-1 text-white/50 hover:bg-white/10 hover:text-white"
+                  className="absolute right-2 top-2 rounded p-1 text-[color:var(--sf-muted)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--sf-text)]"
                   title="Copy to clipboard"
                 >
-                  {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                  {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
                 </button>
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-white/70">
+              <label className="flex items-center gap-2.5 text-sm font-medium text-[color:var(--sf-muted)] cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={mnemonicConfirmed}
                   onChange={(e) => setMnemonicConfirmed(e.target.checked)}
-                  className="rounded"
+                  className="rounded border-[color:var(--sf-outline)]"
                 />
                 I have saved my recovery phrase securely
               </label>
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
+              {error && <ErrorMessage message={error} />}
 
-              {driveConfigured && (
-                <div className="flex flex-col gap-2">
-                  <button
+              {driveConfigured ? (
+                <div className="flex flex-col gap-2 pt-1">
+                  <PrimaryButton
                     onClick={handleBackupToDrive}
                     disabled={isLoading}
-                    className="w-full rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Cloud className="animate-pulse" size={18} />
-                        Backing up...
-                      </>
-                    ) : (
-                      <>
-                        <Cloud size={18} />
-                        Backup to Google Drive
-                      </>
-                    )}
-                  </button>
+                    label={isLoading ? 'Backing up...' : 'Backup to Google Drive'}
+                    icon={<Cloud size={14} />}
+                  />
                   <button
                     onClick={handleConfirmMnemonic}
                     disabled={!mnemonicConfirmed}
-                    className="text-sm text-white/50 hover:text-white py-2 disabled:opacity-50"
+                    className="text-sm font-medium text-[color:var(--sf-muted)] transition-colors hover:text-[color:var(--sf-text)] py-1.5 disabled:opacity-40"
                   >
                     Skip backup
                   </button>
                 </div>
-              )}
-
-              {!driveConfigured && (
-                <button
+              ) : (
+                <PrimaryButton
                   onClick={handleConfirmMnemonic}
                   disabled={!mnemonicConfirmed}
-                  className="rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
-                >
-                  Continue to Wallet
-                </button>
+                  label="Continue to Wallet"
+                />
               )}
             </div>
           )}
@@ -634,63 +603,43 @@ export default function ConnectWalletModal() {
           {view === 'restore-mnemonic' && (
             <div className="flex flex-col gap-4">
               <div>
-                <label className="mb-1 block text-sm text-white/70">Recovery Phrase</label>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-[color:var(--sf-muted)]">Recovery Phrase</label>
                 <textarea
                   value={mnemonic}
                   onChange={(e) => setMnemonic(e.target.value)}
-                  className="h-24 w-full resize-none rounded-lg border border-white/50 bg-transparent px-4 py-3 text-white placeholder:text-white/50 outline-none focus:border-white"
+                  className="h-24 w-full resize-none rounded-xl border border-[color:var(--sf-outline)] bg-black/30 px-4 py-3 text-base font-mono font-medium text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)]/50 outline-none transition-colors focus:border-white/20"
                   placeholder="Enter your 12 or 24 word recovery phrase"
                 />
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm text-white/70">New Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
-                    placeholder="Create a password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
+              <InputField
+                label="New Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={setPassword}
+                placeholder="Create a password"
+                togglePassword={() => setShowPassword(!showPassword)}
+                showPassword={showPassword}
+              />
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
+              {error && <ErrorMessage message={error} />}
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setView('select'); resetForm(); }}
-                  className="flex-1 rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleRestoreFromMnemonic}
-                  disabled={isLoading}
-                  className="flex-1 rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {isLoading ? 'Restoring...' : 'Restore Wallet'}
-                </button>
-              </div>
+              <PrimaryButton
+                onClick={handleRestoreFromMnemonic}
+                disabled={isLoading}
+                label={isLoading ? 'Restoring...' : 'Restore Wallet'}
+              />
             </div>
           )}
 
           {view === 'restore-json' && (
             <div className="flex flex-col gap-4">
-              <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-400">
+              <div className="rounded-lg border border-[color:var(--sf-outline)] bg-black/20 px-3 py-2.5 text-sm font-medium text-[color:var(--sf-muted)]">
                 Upload a previously exported JSON keystore file to restore your wallet.
               </div>
 
               <div>
-                <label className="mb-2 block text-sm text-white/70">Keystore File</label>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-[color:var(--sf-muted)]">Keystore File</label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -701,105 +650,71 @@ export default function ConnectWalletModal() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className={`w-full rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                  className={`w-full rounded-lg border border-dashed p-5 text-center transition-colors ${
                     uploadedKeystore
-                      ? 'border-green-500/50 bg-green-500/10'
-                      : 'border-white/30 hover:border-white/50 hover:bg-white/5'
+                      ? 'border-green-500/30 bg-green-500/5'
+                      : 'border-[color:var(--sf-outline)] hover:border-white/20 hover:bg-white/[0.02]'
                   }`}
                 >
                   {uploadedKeystore ? (
-                    <div className="flex items-center justify-center gap-2 text-green-400">
-                      <Check size={20} />
+                    <div className="flex items-center justify-center gap-2 text-sm font-medium text-green-400">
+                      <Check size={16} />
                       <span>Keystore file loaded</span>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-2 text-white/50">
-                      <Upload size={24} />
-                      <span>Click to upload keystore JSON</span>
+                    <div className="flex flex-col items-center gap-1.5 text-[color:var(--sf-muted)]">
+                      <Upload size={20} />
+                      <span className="text-sm font-medium">Click to upload keystore JSON</span>
                     </div>
                   )}
                 </button>
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm text-white/70">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleRestoreFromJson()}
-                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
-                    placeholder="Enter keystore password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
+              <InputField
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={setPassword}
+                placeholder="Enter keystore password"
+                togglePassword={() => setShowPassword(!showPassword)}
+                showPassword={showPassword}
+                onKeyDown={(e) => e.key === 'Enter' && handleRestoreFromJson()}
+              />
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
+              {error && <ErrorMessage message={error} />}
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setView('select'); resetForm(); }}
-                  className="flex-1 rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleRestoreFromJson}
-                  disabled={isLoading || !uploadedKeystore}
-                  className="flex-1 rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {isLoading ? 'Restoring...' : 'Restore Wallet'}
-                </button>
-              </div>
+              <PrimaryButton
+                onClick={handleRestoreFromJson}
+                disabled={isLoading || !uploadedKeystore}
+                label={isLoading ? 'Restoring...' : 'Restore Wallet'}
+              />
             </div>
           )}
 
           {view === 'browser-extension' && (
-            <div className="flex flex-col gap-3">
-              <div className="mb-2 text-sm text-white/70">
-                Connect using a browser extension wallet:
-              </div>
-
+            <div className="flex flex-col gap-4">
               {installedWallets.length > 0 ? (
-                <div className="max-h-80 overflow-y-auto space-y-2">
+                <div className="max-h-72 overflow-y-auto space-y-3">
                   {installedWallets.map((wallet) => {
-                    // Get additional info from BROWSER_WALLETS if available
                     const fullInfo = BROWSER_WALLETS.find((w: BrowserWalletInfo) => w.id === wallet.id);
                     return (
                       <button
                         key={wallet.id}
                         onClick={() => handleConnectBrowserWallet(wallet)}
                         disabled={isLoading}
-                        className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10 disabled:opacity-50"
+                        className="w-full flex items-center justify-between rounded-2xl bg-[#232323] px-5 py-4 transition-colors hover:bg-[#2a2a2a] disabled:opacity-50"
                       >
-                        <div className="flex items-center gap-3">
-                          <img src={wallet.icon} alt={wallet.name} className="w-8 h-8" />
-                          <div className="text-left">
-                            <div className="font-medium text-white">{wallet.name}</div>
-                            <div className="text-xs text-white/50 flex gap-2">
-                              {fullInfo?.supportsTaproot && <span>Taproot</span>}
-                              {fullInfo?.supportsOrdinals && <span>Ordinals</span>}
-                            </div>
-                          </div>
-                        </div>
-                        <ChevronRight size={20} className="text-white/50" />
+                        <div className="text-base font-semibold text-[color:var(--sf-text)]">{wallet.name}</div>
+                        <img src={wallet.icon} alt={wallet.name} className="w-8 h-8 rounded-lg" />
                       </button>
                     );
                   })}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="text-white/70 mb-4">No browser wallets detected</div>
-                  <div className="text-sm text-white/50 mb-4">Install one of these wallets:</div>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                <div className="text-center py-6">
+                  <div className="text-base font-medium text-[color:var(--sf-muted)] mb-4">No browser wallets detected</div>
+                  <div className="text-[13px] font-bold uppercase tracking-widest text-[color:var(--sf-muted)] mb-3">Install a wallet</div>
+                  <div className="space-y-3 max-h-48 overflow-y-auto">
                     {allWallets.filter(w => !w.installed).slice(0, 5).map((wallet) => {
                       const fullInfo = BROWSER_WALLETS.find((w: BrowserWalletInfo) => w.id === wallet.id);
                       return (
@@ -808,11 +723,10 @@ export default function ConnectWalletModal() {
                           href={fullInfo?.website || '#'}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-3 rounded-lg border border-white/20 hover:bg-white/5 transition-colors"
+                          className="flex items-center justify-between rounded-2xl bg-[#232323] px-4 py-3.5 hover:bg-[#2a2a2a] transition-colors"
                         >
-                          <img src={wallet.icon} alt={wallet.name} className="w-6 h-6" />
-                          <span className="flex-1 text-left text-sm text-white">{wallet.name}</span>
-                          <Download size={16} className="text-white/50" />
+                          <span className="text-base font-medium text-[color:var(--sf-text)]">{wallet.name}</span>
+                          <img src={wallet.icon} alt={wallet.name} className="w-7 h-7 rounded-lg" />
                         </a>
                       );
                     })}
@@ -820,164 +734,202 @@ export default function ConnectWalletModal() {
                 </div>
               )}
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
-
-              <button
-                onClick={() => { setView('select'); resetForm(); }}
-                className="w-full rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
-              >
-                Back
-              </button>
+              {error && <ErrorMessage message={error} />}
             </div>
           )}
 
           {view === 'restore-drive-picker' && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
               {driveBackups.length > 0 ? (
                 <>
-                  <div className="text-sm text-white/70 mb-2">
+                  <div className="text-sm font-medium text-[color:var(--sf-muted)] mb-1">
                     Select a wallet backup to restore:
                   </div>
-                  <div className="max-h-80 overflow-y-auto space-y-2">
+                  <div className="max-h-72 overflow-y-auto space-y-3">
                     {driveBackups.map((backup) => (
                       <button
                         key={backup.folderId}
                         onClick={() => handleSelectDriveWallet(backup)}
                         disabled={isLoading}
-                        className="w-full flex items-center justify-between rounded-xl border border-white/20 bg-white/5 p-4 transition-colors hover:bg-white/10 disabled:opacity-50"
+                        className="w-full flex items-center justify-between rounded-2xl bg-[#232323] px-5 py-4 transition-colors hover:bg-[#2a2a2a] disabled:opacity-50"
                       >
-                        <div className="flex items-center gap-3">
-                          <Cloud size={24} className="text-blue-400" />
+                        <div className="flex items-center gap-3.5">
+                          <Cloud size={18} className="text-[color:var(--sf-muted)]" />
                           <div className="text-left">
-                            <div className="font-medium text-white">{backup.walletLabel}</div>
-                            <div className="text-xs text-white/50">
+                            <div className="text-base font-semibold text-[color:var(--sf-text)]">{backup.walletLabel}</div>
+                            <div className="text-xs text-[color:var(--sf-muted)] font-mono">
                               {new Date(backup.timestamp).toLocaleDateString()}
-                              {backup.hasPasswordHint && ' - Has password hint'}
+                              {backup.hasPasswordHint && ' — Has password hint'}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight size={20} className="text-white/50" />
+                        <ChevronRight size={14} className="text-[color:var(--sf-muted)]" />
                       </button>
                     ))}
                   </div>
                 </>
               ) : (
-                <div className="text-center py-8 text-white/50">
+                <div className="text-center py-6 text-base font-medium text-[color:var(--sf-muted)]">
                   No wallet backups found in your Google Drive
                 </div>
               )}
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
-
-              <button
-                onClick={() => { setView('select'); resetForm(); }}
-                className="w-full rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
-              >
-                Back
-              </button>
+              {error && <ErrorMessage message={error} />}
             </div>
           )}
 
           {view === 'restore-drive-unlock' && selectedDriveWallet && (
             <div className="flex flex-col gap-4">
-              <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Cloud size={16} className="text-blue-400" />
-                  <div className="text-sm font-medium text-blue-400">
+              <div className="rounded-lg border border-[color:var(--sf-outline)] bg-black/20 p-3">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Cloud size={16} className="text-[color:var(--sf-muted)]" />
+                  <div className="text-base font-semibold text-[color:var(--sf-text)]">
                     {selectedDriveWallet.walletLabel}
                   </div>
                 </div>
                 {passwordHint && (
-                  <div className="text-xs text-white/50 mt-1">
-                    <span className="font-medium">Hint:</span> {passwordHint}
+                  <div className="text-xs text-[color:var(--sf-muted)] mt-1 font-mono">
+                    Hint: {passwordHint}
                   </div>
                 )}
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm text-white/70">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleRestoreFromDrive()}
-                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
-                    placeholder="Enter wallet password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
+              <InputField
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={setPassword}
+                placeholder="Enter wallet password"
+                togglePassword={() => setShowPassword(!showPassword)}
+                showPassword={showPassword}
+                onKeyDown={(e) => e.key === 'Enter' && handleRestoreFromDrive()}
+              />
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
+              {error && <ErrorMessage message={error} />}
 
-              <button
+              <PrimaryButton
                 onClick={handleRestoreFromDrive}
                 disabled={isLoading || !password}
-                className="w-full rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
-              >
-                {isLoading ? 'Unlocking...' : 'Unlock Wallet'}
-              </button>
-
-              <button
-                onClick={() => { setView('restore-drive-picker'); resetForm(); }}
-                className="w-full rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
-              >
-                Back
-              </button>
+                label={isLoading ? 'Unlocking...' : 'Unlock Wallet'}
+              />
             </div>
           )}
 
           {view === 'unlock' && (
             <div className="flex flex-col gap-4">
-              <div>
-                <label className="mb-1 block text-sm text-white/70">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleUnlockKeystore()}
-                    className="w-full rounded-lg border border-white/50 bg-transparent px-4 py-3 pr-10 text-white placeholder:text-white/50 outline-none focus:border-white"
-                    placeholder="Enter your password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
+              <InputField
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={setPassword}
+                placeholder="Enter your password"
+                togglePassword={() => setShowPassword(!showPassword)}
+                showPassword={showPassword}
+                onKeyDown={(e) => e.key === 'Enter' && handleUnlockKeystore()}
+                autoFocus
+              />
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
+              {error && <ErrorMessage message={error} />}
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setView('select'); resetForm(); }}
-                  className="flex-1 rounded-lg border border-white/30 py-3 font-medium text-white transition-colors hover:bg-white/10"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleUnlockKeystore}
-                  disabled={isLoading}
-                  className="flex-1 rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {isLoading ? 'Unlocking...' : 'Unlock'}
-                </button>
-              </div>
+              <PrimaryButton
+                onClick={handleUnlockKeystore}
+                disabled={isLoading}
+                label={isLoading ? 'Unlocking...' : 'Unlock'}
+              />
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>
   );
 }
+
+/* ── Sub-components ────────────────────────────────────── */
+
+function SelectRow({ icon, label, onClick, disabled }: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full flex items-center justify-between rounded-2xl bg-[#232323] px-5 py-4 transition-colors hover:bg-[#2a2a2a] disabled:opacity-50"
+    >
+      <div className="text-base font-semibold text-[color:var(--sf-text)]">{label}</div>
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06]">
+        {icon}
+      </div>
+    </button>
+  );
+}
+
+function InputField({ label, type, value, onChange, placeholder, togglePassword, showPassword, helpText, onKeyDown, autoFocus }: {
+  label: string;
+  type: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  togglePassword?: () => void;
+  showPassword?: boolean;
+  helpText?: string;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  autoFocus?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-widest text-[color:var(--sf-muted)]">{label}</label>
+      <div className="relative">
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          autoFocus={autoFocus}
+          className={`w-full rounded-xl border border-[color:var(--sf-outline)] bg-black/30 px-4 py-3 text-base font-medium text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)]/50 outline-none transition-colors focus:border-white/20 ${togglePassword ? 'pr-10' : ''}`}
+          placeholder={placeholder}
+        />
+        {togglePassword && (
+          <button
+            type="button"
+            onClick={togglePassword}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--sf-muted)] transition-colors hover:text-[color:var(--sf-text)]"
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
+      {helpText && <div className="mt-1.5 text-[13px] text-[color:var(--sf-muted)]">{helpText}</div>}
+    </div>
+  );
+}
+
+function ErrorMessage({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-sm font-medium text-red-400">
+      {message}
+    </div>
+  );
+}
+
+function PrimaryButton({ onClick, disabled, label, icon }: {
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white py-3 text-base font-medium text-black transition-all hover:bg-white/90 disabled:opacity-40"
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+

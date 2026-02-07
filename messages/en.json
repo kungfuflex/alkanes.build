@@ -81,6 +81,7 @@
     "connectToVote": "Connect Wallet to Vote",
     "castVote": "Cast Vote",
     "voting": "Voting...",
+    "voted": "Voted",
     "youVoted": "You voted for",
     "posts": "posts",
     "views": "views",
@@ -126,6 +127,10 @@
       "address": "Address",
       "votingPower": "Voting Power",
       "votes": "Votes"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
     }
   },
   "forum": {
@@ -233,7 +238,7 @@
       "totalTvl": "Total Value Locked"
     },
     "proposals": {
-      "title": "Active Proposals",
+      "title": "Proposals",
       "cta": {
         "title": "Shape the future of DIESEL",
         "description": "Vote with your DIESEL tokens",

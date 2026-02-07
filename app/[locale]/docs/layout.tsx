@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 
 export default function DocsLayout({
   children,
@@ -116,10 +114,7 @@ export default function DocsLayout({
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Mobile Navigation Toggle */}
         <button
           onClick={() => setIsMobileNavOpen(true)}
@@ -175,9 +170,6 @@ export default function DocsLayout({
             </article>
           </main>
         </div>
-      </div>
-
-      <Footer />
     </div>
   );
 }

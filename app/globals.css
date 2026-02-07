@@ -29,30 +29,49 @@
 }
 
 /* Base styles */
-html, body {
+html {
   scroll-behavior: smooth;
-  overflow-x: hidden;
-  max-width: 100vw;
-  background: #0d0d0d;
+  overflow-y: scroll;
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
+}
+
+/* Webkit: transparent scrollbar, visible on hover */
+html::-webkit-scrollbar {
+  width: 8px;
+}
+
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+html:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Firefox: show scrollbar color on hover */
+html:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
   min-height: 100vh;
   color: var(--sf-text);
-}
-
-/* Prevent horizontal overflow globally */
-#__next,
-main {
+  background: #0d0d0d;
   overflow-x: hidden;
-  max-width: 100vw;
 }
 
-/* Card styles - clean, minimal */
+/* Card styles - Apple-inspired */
 .glass {
   background: var(--sf-surface);
-  border: 1px solid var(--sf-outline);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Header with subtle blur */
@@ -61,7 +80,7 @@ main {
 }
 
 .glass-card {
-  @apply glass rounded-lg;
+  @apply glass rounded-3xl;
 }
 
 .glass-card-hover {
@@ -69,7 +88,24 @@ main {
 }
 
 .glass-card-hover:hover {
-  border-color: var(--sf-muted);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Liquid Glass Effect - frosted glassmorphism */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.liquid-glass:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Card header section */
@@ -162,6 +198,67 @@ code {
 }
 
 /* Animations */
+@property --border-angle-1 {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --border-angle-2 {
+  syntax: "<angle>";
+  initial-value: 180deg;
+  inherits: false;
+}
+
+@keyframes borderRotate1 {
+  to { --border-angle-1: 360deg; }
+}
+
+@keyframes borderRotate2 {
+  0% { --border-angle-2: 180deg; }
+  100% { --border-angle-2: -180deg; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalIn {
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes modalOut {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.96) translateY(8px); }
+}
+
+@keyframes slideInRight {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes slideOutRight {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes slideInUp {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes slideOutDown {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
