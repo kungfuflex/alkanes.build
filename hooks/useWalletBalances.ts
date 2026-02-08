@@ -25,6 +25,7 @@ export interface RuneBalance {
 export interface WalletBalancesResponse {
   btcBalance: number;           // BTC balance in satoshis
   btcBalanceFormatted: string;  // BTC balance formatted
+  btcBalanceAvailable: boolean; // Whether BTC balance was successfully fetched
   tokens: TokenBalance[];       // Alkanes tokens
   runes: RuneBalance[];         // Bitcoin Runes (via Hiro API)
   address: string;
@@ -236,19 +237,32 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
     // 1. getEnrichedBalances for BTC UTXOs
     // 2. alkanes_protorunesbyaddress for alkanes (separate call, more reliable)
     // 3. Hiro API for runes
+    // Race getEnrichedBalances against a 10s timeout — the underlying lua_evalscript
+    // calls metashrew_height() which can hang 60+s on 504. Fast timeout lets us fall
+    // through to the esplora fallback without blocking token display.
+    const enrichedWithTimeout = Promise.race([
+      provider.getEnrichedBalances(address),
+      new Promise<null>((resolve) => setTimeout(() => {
+        console.warn('[useWalletBalances] getEnrichedBalances timed out after 5s');
+        resolve(null);
+      }, 5000)),
+    ]).catch((err: Error) => {
+      console.warn('[useWalletBalances] getEnrichedBalances failed:', err);
+      return null;
+    });
+
     const [rawEnrichedData, alkaneBalances, runesBalances] = await Promise.all([
-      provider.getEnrichedBalances(address).catch((err: Error) => {
-        console.warn('[useWalletBalances] getEnrichedBalances failed:', err);
-        return null;
-      }),
+      enrichedWithTimeout,
       fetchAlkanesBalances(address),
       fetchRunesBalances(address),
     ]);
 
     let btcBalance = 0;
+    let btcBalanceAvailable = false;
 
     // Extract and normalize the enriched data (handles Map responses from WASM)
     const enrichedData = extractEnrichedData(rawEnrichedData);
+    console.log('[useWalletBalances] rawEnrichedData:', rawEnrichedData);
     console.log('[useWalletBalances] Extracted enriched data:', enrichedData ? {
       spendableCount: enrichedData.spendable.length,
       assetsCount: enrichedData.assets.length,
@@ -256,21 +270,29 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
     } : null);
 
     if (enrichedData) {
+      const allUtxos = [...enrichedData.spendable, ...enrichedData.assets, ...enrichedData.pending];
       // Sum BTC from all UTXOs (spendable + assets + pending)
-      for (const utxo of [...enrichedData.spendable, ...enrichedData.assets, ...enrichedData.pending]) {
+      for (const utxo of allUtxos) {
         btcBalance += utxo.value || 0;
       }
+      // Cross-check: if we have alkanes tokens but zero BTC UTXOs, the balance RPC
+      // likely failed (tokens are bound to UTXOs, so having tokens with 0 BTC is impossible)
+      const hasTokens = alkaneBalances.length > 0;
+      btcBalanceAvailable = allUtxos.length > 0 || !hasTokens;
     }
 
     console.log('[useWalletBalances] BTC balance:', btcBalance, 'sats, alkanes found:', alkaneBalances.length, alkaneBalances);
 
     // Fallback: if no enriched data, try esplora for BTC balance
-    if (btcBalance === 0 && !enrichedData) {
+    if (!btcBalanceAvailable) {
       try {
-        const utxos = await provider.getAddressUtxos(address);
-        if (Array.isArray(utxos)) {
+        const rawUtxos = await provider.getAddressUtxos(address);
+        if (Array.isArray(rawUtxos)) {
+          // WASM (serde_wasm_bindgen) may return Map objects instead of plain objects
+          const utxos = rawUtxos.map(mapToObject);
           btcBalance = utxos.reduce((sum: number, utxo: any) => sum + (utxo.value || 0), 0);
-          console.log('[useWalletBalances] Esplora fallback BTC balance:', btcBalance);
+          btcBalanceAvailable = utxos.length > 0 || !alkaneBalances.length;
+          console.log('[useWalletBalances] Esplora fallback BTC balance:', btcBalance, 'from', utxos.length, 'UTXOs');
         }
       } catch (err) {
         console.warn('[useWalletBalances] esplora fallback failed:', err);
@@ -316,6 +338,7 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
     return {
       btcBalance,
       btcBalanceFormatted: (btcBalance / 100000000).toFixed(8),
+      btcBalanceAvailable,
       tokens: tokensWithMeta,
       runes: runesBalances,
       address,
@@ -379,6 +402,7 @@ export function formatBtcBalance(satoshis: number): string {
 export interface MergedBalances {
   btcBalance: number;
   btcBalanceFormatted: string;
+  btcBalanceAvailable: boolean;
   tokens: TokenBalance[];
   address: string;
   timestamp: number;
@@ -393,8 +417,8 @@ export function mergeBalances(
 ): MergedBalances | null {
   if (!primary && !payment) return null;
 
-  const p = primary || { btcBalance: 0, btcBalanceFormatted: '0', tokens: [] as TokenBalance[], address: '', timestamp: 0 };
-  if (!payment) return { btcBalance: p.btcBalance, btcBalanceFormatted: p.btcBalanceFormatted, tokens: p.tokens, address: p.address, timestamp: p.timestamp };
+  const p = primary || { btcBalance: 0, btcBalanceFormatted: '0', btcBalanceAvailable: false, tokens: [] as TokenBalance[], address: '', timestamp: 0 };
+  if (!payment) return { btcBalance: p.btcBalance, btcBalanceFormatted: p.btcBalanceFormatted, btcBalanceAvailable: p.btcBalanceAvailable, tokens: p.tokens, address: p.address, timestamp: p.timestamp };
 
   const totalBtc = p.btcBalance + payment.btcBalance;
   const tokenMap = new Map<string, TokenBalance>();
@@ -417,6 +441,7 @@ export function mergeBalances(
   return {
     btcBalance: totalBtc,
     btcBalanceFormatted: (totalBtc / 100000000).toFixed(8),
+    btcBalanceAvailable: p.btcBalanceAvailable || payment.btcBalanceAvailable,
     tokens: Array.from(tokenMap.values()),
     address: p.address,
     timestamp: Date.now(),

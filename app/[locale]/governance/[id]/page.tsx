@@ -230,23 +230,21 @@ export default function ProposalDetailPage() {
           {t("governance.backToProposals")}
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             {/* Header */}
             <div>
-              <div className="flex items-center gap-3 mb-3">
-                <span className={`badge ${stateClass}`}>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h1 className="text-3xl font-bold text-[color:var(--sf-text)]">
+                  {proposal.title}
+                </h1>
+                <span className={`badge ${stateClass} flex-shrink-0`}>
                   {t(`governance.states.${proposal.state}`)}
                 </span>
-                <span className="text-sm text-[color:var(--sf-muted)]">
-                  {t("governance.proposal.by")} {formatAddress(proposal.author)}
-                </span>
               </div>
-              <h1 className="text-3xl font-bold text-[color:var(--sf-text)] mb-4">
-                {proposal.title}
-              </h1>
-              <div className="flex items-center gap-4 text-sm text-[color:var(--sf-muted)]">
+              <div className="flex items-center gap-4 text-sm text-[color:var(--sf-muted)] flex-wrap">
+                <span>{t("governance.proposal.by")} {formatAddress(proposal.author)}</span>
                 <span>
                   {proposal.state === "ACTIVE"
                     ? formatTimeRemaining(proposal.end)
@@ -272,7 +270,7 @@ export default function ProposalDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-1 space-y-6">
             {/* Voting Activity */}
             <div className="glass-card overflow-hidden">
               {/* Results — single progress bar + score list */}
@@ -284,21 +282,21 @@ export default function ProposalDetailPage() {
                 {/* Main progress bar: For vs Against */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1.5 text-xs tabular-nums">
-                    <span className="text-green-400">
+                    <span className="text-[#b0b0b0]">
                       {formatCompactDiesel(scores[0] || BigInt(0))} For
                     </span>
-                    <span className="text-red-400">
+                    <span className="text-[#b0b0b0]">
                       {formatCompactDiesel(scores[1] || BigInt(0))} Against
                     </span>
                   </div>
                   <div
                     className="w-full h-2 rounded-full overflow-hidden"
-                    style={{ background: totalVotes > BigInt(0) ? "#f87171" : "#1a1a1a" }}
+                    style={{ background: totalVotes > BigInt(0) ? "#da3633" : "#1a1a1a" }}
                   >
                     {totalVotes > BigInt(0) && forPercentage > 0 && (
                       <div
-                        className="h-full rounded-full transition-all bg-green-400"
-                        style={{ width: `${forPercentage}%` }}
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${forPercentage}%`, background: "#34d058" }}
                       />
                     )}
                   </div>
@@ -503,7 +501,7 @@ export default function ProposalDetailPage() {
                 </h2>
                 <Link
                   href={`/forum/${proposal.discussion.slug}`}
-                  className="flex items-center justify-between p-3 rounded-lg bg-[color:var(--sf-surface)] hover:bg-[color:var(--sf-surface)]/80 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-xl bg-black/30 border border-white/[0.04] hover:border-white/[0.08] transition-colors"
                 >
                   <div>
                     <div className="text-[color:var(--sf-text)]">

@@ -1994,7 +1994,7 @@ const DieselTerminal = () => {
               <div className="flex items-center gap-2 sm:gap-5 border-r border-[#303030] pr-2 sm:pr-4 mr-1 sm:mr-2">
                 <span className="flex items-center gap-1">
                   <span className="text-[#707070] text-xs">BTC</span>
-                  <span className="text-[#e0e0e0] text-xs sm:text-sm">{formatBtcBalance(balances.btcBalance || 0)}</span>
+                  <span className={`text-xs sm:text-sm ${balances.btcBalanceAvailable ? 'text-[#e0e0e0]' : 'text-[#505050] animate-pulse'}`}>{balances.btcBalanceAvailable ? formatBtcBalance(balances.btcBalance) : '-.----'}</span>
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="text-[#707070] text-xs">DSL</span>

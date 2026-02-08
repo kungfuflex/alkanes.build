@@ -46,10 +46,9 @@ export default function AccountSidebar({ isVisible, isClosing, onClose, onDiscon
   // Balances
   const { data: btcPrice, isLoading: btcPriceLoading } = useBtcPrice();
   const { priceUsd: dieselPriceUsd } = useDieselUsdPrice();
-  const { data: merged, isFetching: isBalancesFetching, refetch: refetchMerged } = useMergedWalletBalances(address, paymentAddress);
+  const { data: merged, isLoading: isBalancesLoading, isFetching: isBalancesFetching, refetch: refetchMerged } = useMergedWalletBalances(address, paymentAddress);
 
-  // Show skeleton until both balance data and BTC price are ready
-  const balancesReady = !!merged && !btcPriceLoading;
+  const balancesReady = !!merged && !isBalancesLoading && merged.btcBalanceAvailable && !btcPriceLoading;
 
   // Profile
   const { data: profile } = useQuery<UserProfile | null>({

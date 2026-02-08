@@ -115,7 +115,7 @@ body {
 
 /* Primary button - neutral with orange accent */
 .btn-primary {
-  @apply px-6 py-3 font-semibold rounded-lg transition-all duration-200;
+  @apply px-6 py-3 font-semibold rounded-xl transition-all duration-200;
   background: #fff;
   color: #111;
 }
@@ -126,7 +126,7 @@ body {
 
 /* Secondary button - outlined */
 .btn-secondary {
-  @apply px-6 py-3 font-semibold rounded-lg transition-all duration-200;
+  @apply px-6 py-3 font-semibold rounded-xl transition-all duration-200;
   background: transparent;
   color: var(--sf-text);
   border: 1px solid var(--sf-outline);
@@ -138,7 +138,7 @@ body {
 
 /* Frost button (Subfrost cyan/ice blue) */
 .btn-frost {
-  @apply px-6 py-3 font-semibold rounded-lg transition-all duration-200 inline-flex items-center gap-2;
+  @apply px-6 py-3 font-semibold rounded-xl transition-all duration-200 inline-flex items-center gap-2;
   background: transparent;
   color: var(--sf-text);
   border: 1px solid var(--sf-outline);
@@ -383,7 +383,7 @@ code {
 }
 
 .vote-button {
-  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+  @apply px-6 py-3 rounded-xl font-semibold transition-all duration-200;
 }
 
 .vote-button-for {

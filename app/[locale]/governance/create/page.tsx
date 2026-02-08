@@ -111,7 +111,7 @@ export default function CreateProposalPage() {
         {/* Back Link */}
         <Link
           href="/governance"
-          className="inline-flex items-center gap-2 text-[color:var(--sf-muted)] hover:text-[color:var(--sf-primary)] mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] mb-6 transition-colors"
         >
           <ArrowLeft size={16} />
           {t("governance.backToProposals")}
@@ -144,7 +144,7 @@ export default function CreateProposalPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-[color:var(--sf-text)] mb-2">
+            <label className="block text-[11px] text-[color:var(--sf-muted)] uppercase tracking-wider mb-2">
               Title
             </label>
             <input
@@ -152,14 +152,14 @@ export default function CreateProposalPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter proposal title"
-              className="w-full px-4 py-3 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] focus:outline-none focus:border-[color:var(--sf-primary)]"
+              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/[0.04] text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)]/40 outline-none focus:border-white/[0.08] transition-colors"
               disabled={isSubmitting}
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-[color:var(--sf-text)] mb-2">
+            <label className="block text-[11px] text-[color:var(--sf-muted)] uppercase tracking-wider mb-2">
               Description
             </label>
             <textarea
@@ -167,14 +167,14 @@ export default function CreateProposalPage() {
               onChange={(e) => setBody(e.target.value)}
               placeholder="Describe your proposal in detail. Markdown is supported."
               rows={8}
-              className="w-full px-4 py-3 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] focus:outline-none focus:border-[color:var(--sf-primary)] resize-y"
+              className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/[0.04] text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)]/40 outline-none focus:border-white/[0.08] transition-colors resize-y"
               disabled={isSubmitting}
             />
           </div>
 
           {/* Choices */}
           <div>
-            <label className="block text-sm font-medium text-[color:var(--sf-text)] mb-2">
+            <label className="block text-[11px] text-[color:var(--sf-muted)] uppercase tracking-wider mb-2">
               Voting Choices
             </label>
             <div className="space-y-2">
@@ -185,7 +185,7 @@ export default function CreateProposalPage() {
                     value={choice}
                     onChange={(e) => updateChoice(index, e.target.value)}
                     placeholder={`Choice ${index + 1}`}
-                    className="flex-1 px-4 py-2 rounded-lg bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)] focus:outline-none focus:border-[color:var(--sf-primary)]"
+                    className="flex-1 px-4 py-2 rounded-xl bg-black/30 border border-white/[0.04] text-[color:var(--sf-text)] placeholder:text-[color:var(--sf-muted)]/40 outline-none focus:border-white/[0.08] transition-colors"
                     disabled={isSubmitting}
                   />
                   {choices.length > 2 && (
@@ -205,7 +205,7 @@ export default function CreateProposalPage() {
               <button
                 type="button"
                 onClick={addChoice}
-                className="mt-2 inline-flex items-center gap-1 text-sm text-[color:var(--sf-primary)] hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors"
                 disabled={isSubmitting}
               >
                 <Plus size={16} />
@@ -216,7 +216,7 @@ export default function CreateProposalPage() {
 
           {/* Error Display */}
           {error && (
-            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500">
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 text-[13px] text-red-400">
               {error}
             </div>
           )}
@@ -225,7 +225,7 @@ export default function CreateProposalPage() {
           <div className="flex justify-end gap-4">
             <Link
               href="/governance"
-              className="px-6 py-3 rounded-lg border border-[color:var(--sf-outline)] text-[color:var(--sf-text)] hover:border-[color:var(--sf-primary)] transition-colors"
+              className="px-6 py-3 rounded-xl border border-[color:var(--sf-outline)] text-[color:var(--sf-text)] hover:border-[color:var(--sf-muted)] transition-colors"
             >
               Cancel
             </Link>

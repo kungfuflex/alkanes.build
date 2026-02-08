@@ -306,14 +306,43 @@ export function verifyBip322Signature(
 }
 
 /**
+ * Compute Bitcoin legacy message hash (BIP-137 / legacy signmessage)
+ * Hash = SHA256(SHA256(varint(prefix.length) + prefix + varint(message.length) + message))
+ */
+function bitcoinMessageHash(message: string): Buffer {
+  const prefix = Buffer.from('\x18Bitcoin Signed Message:\n', 'utf8');
+  const msgBuf = Buffer.from(message, 'utf8');
+  const msgLen = encodeVarint(msgBuf.length);
+  return sha256(sha256(Buffer.concat([prefix, msgLen, msgBuf])));
+}
+
+function encodeVarint(n: number): Buffer {
+  if (n < 0xfd) return Buffer.from([n]);
+  if (n <= 0xffff) {
+    const buf = Buffer.alloc(3);
+    buf[0] = 0xfd;
+    buf.writeUInt16LE(n, 1);
+    return buf;
+  }
+  const buf = Buffer.alloc(5);
+  buf[0] = 0xfe;
+  buf.writeUInt32LE(n, 1);
+  return buf;
+}
+
+/**
  * Verify signature with fallback for wallet-specific formats
- * Some wallets use non-standard signature formats
+ *
+ * Supports:
+ * - BIP-322 (standard Bitcoin message signing for P2WPKH/P2TR)
+ * - KeystoreSigner format (SHA256 + ECDSA compact, 64 bytes)
+ * - Browser wallet formats (65-byte recoverable ECDSA, legacy Bitcoin message signing)
  *
  * @param message - The message that was signed
  * @param address - The Bitcoin address that signed
  * @param signature - Base64 encoded signature
  * @param networkType - Network type
- * @param publicKey - Optional hex-encoded public key (for KeystoreSigner verification)
+ * @param publicKey - Optional hex-encoded public key
  */
 export async function verifyMessageSignature(
   message: string,
@@ -322,129 +351,99 @@ export async function verifyMessageSignature(
   networkType: 'mainnet' | 'testnet' | 'regtest' = 'mainnet',
   publicKey?: string
 ): Promise<boolean> {
-  console.log('[BIP322] Verifying signature for address type:', address.slice(0, 4));
-  console.log('[BIP322] Public key provided:', !!publicKey, publicKey?.slice(0, 20));
+  console.log('[BIP322] Verifying signature for address:', address.slice(0, 8) + '...');
 
-  // First try BIP-322
+  // 1. Try full BIP-322 verification first
   if (verifyBip322Signature(message, address, signature, networkType)) {
-    console.log('[BIP322] Verified with BIP-322');
+    console.log('[BIP322] Verified with full BIP-322');
     return true;
   }
 
   const sigBuffer = Buffer.from(signature, 'base64');
-  console.log('[BIP322] Signature length:', sigBuffer.length);
+  console.log('[BIP322] Raw sig length:', sigBuffer.length, 'pubkey provided:', !!publicKey);
 
-  // If publicKey is provided, try KeystoreSigner format: simple SHA256 + ECDSA
+  // Build signature variants to try
+  // Many browser wallets return 65-byte recoverable sigs: [recovery_flag(1), r(32), s(32)]
+  const sigVariants: Buffer[] = [];
+  if (sigBuffer.length === 64) {
+    sigVariants.push(sigBuffer);
+  } else if (sigBuffer.length === 65) {
+    sigVariants.push(sigBuffer.slice(1)); // strip recovery flag → 64 bytes
+    sigVariants.push(sigBuffer);          // also try full 65 bytes
+  }
+
+  // Build message hash variants to try
+  const msgBuf = Buffer.from(message, 'utf8');
+  const hashVariants = [
+    { name: 'sha256', hash: sha256(msgBuf) },
+    { name: 'bitcoin-message', hash: bitcoinMessageHash(message) },
+    { name: 'double-sha256', hash: sha256(sha256(msgBuf)) },
+  ];
+
+  // Build public key variants for ECDSA (needs 33-byte compressed pubkey)
+  const ecdsaPubkeys: Buffer[] = [];
   if (publicKey) {
-    try {
-      const pubkeyBuffer = Buffer.from(publicKey, 'hex');
-      const messageHash = sha256(Buffer.from(message, 'utf8'));
-
-      console.log('[BIP322] Trying ECDSA with provided pubkey, length:', pubkeyBuffer.length);
-
-      // Try ECDSA verification with the provided public key
-      if (ecc.verify(messageHash, pubkeyBuffer, sigBuffer)) {
-        console.log('[BIP322] Verified with ECDSA using provided publicKey');
-        return true;
-      }
-
-      // For Taproot, the provided pubkey might be x-only (32 bytes)
-      // Try adding prefixes
-      if (pubkeyBuffer.length === 32) {
-        for (const prefix of [0x02, 0x03]) {
-          const fullPubkey = Buffer.concat([Buffer.from([prefix]), pubkeyBuffer]);
-          try {
-            if (ecc.verify(messageHash, fullPubkey, sigBuffer)) {
-              console.log('[BIP322] Verified with ECDSA (x-only pubkey + prefix):', prefix);
-              return true;
-            }
-          } catch {
-            // Invalid pubkey with this prefix
-          }
-        }
-      }
-    } catch (e) {
-      console.error('[BIP322] ECDSA with provided pubkey error:', e);
+    const pkBuf = Buffer.from(publicKey, 'hex');
+    if (pkBuf.length === 33) {
+      ecdsaPubkeys.push(pkBuf);
+    } else if (pkBuf.length === 32) {
+      // x-only pubkey — try both possible prefixes
+      ecdsaPubkeys.push(Buffer.concat([Buffer.from([0x02]), pkBuf]));
+      ecdsaPubkeys.push(Buffer.concat([Buffer.from([0x03]), pkBuf]));
     }
   }
 
-  // Fallback for Taproot without provided pubkey
-  try {
-    if (address.startsWith('bc1p') || address.startsWith('tb1p')) {
+  // Build x-only pubkeys for Schnorr verification
+  const schnorrPubkeys: Buffer[] = [];
+  if (address.startsWith('bc1p') || address.startsWith('tb1p')) {
+    try {
       const decoded = bitcoin.address.fromBech32(address);
-      const xOnlyPubkey = Buffer.from(decoded.data);
-      const messageHash = sha256(Buffer.from(message, 'utf8'));
+      if (decoded.version === 1 && decoded.data.length === 32) {
+        schnorrPubkeys.push(Buffer.from(decoded.data));
+      }
+    } catch {}
+  }
+  if (publicKey) {
+    const pkBuf = Buffer.from(publicKey, 'hex');
+    if (pkBuf.length === 32) {
+      const isDuplicate = schnorrPubkeys.some(k => k.equals(pkBuf));
+      if (!isDuplicate) schnorrPubkeys.push(pkBuf);
+    } else if (pkBuf.length === 33) {
+      // Strip prefix to get x-only
+      const xOnly = pkBuf.slice(1);
+      const isDuplicate = schnorrPubkeys.some(k => k.equals(xOnly));
+      if (!isDuplicate) schnorrPubkeys.push(xOnly);
+    }
+  }
 
-      // Try ECDSA with both possible y-coordinates (02 and 03 prefix)
-      for (const prefix of [0x02, 0x03]) {
-        const fullPubkey = Buffer.concat([Buffer.from([prefix]), xOnlyPubkey]);
+  // 2. Try ECDSA verification with all combinations
+  for (const { name, hash } of hashVariants) {
+    for (const pk of ecdsaPubkeys) {
+      for (const sig of sigVariants) {
+        if (sig.length !== 64) continue;
         try {
-          if (ecc.verify(messageHash, fullPubkey, sigBuffer)) {
-            console.log('[BIP322] Verified with ECDSA (guessed prefix):', prefix);
+          if (ecc.verify(hash, pk, sig)) {
+            console.log(`[BIP322] Verified ECDSA: ${name}, pk=${pk.length}b`);
             return true;
           }
-        } catch {
-          // Invalid pubkey with this prefix
-        }
-      }
-
-      // Try Schnorr with simple SHA256
-      if (sigBuffer.length === 64 || sigBuffer.length === 65) {
-        const actualSig = sigBuffer.length === 65 ? sigBuffer.slice(0, 64) : sigBuffer;
-        if (ecc.verifySchnorr(messageHash, xOnlyPubkey, actualSig)) {
-          console.log('[BIP322] Verified with Schnorr + simple SHA256');
-          return true;
-        }
-      }
-    } else if (address.startsWith('bc1q') || address.startsWith('tb1q')) {
-      // P2WPKH - try with provided pubkey if available
-      if (publicKey) {
-        const pubkeyBuffer = Buffer.from(publicKey, 'hex');
-        const messageHash = sha256(Buffer.from(message, 'utf8'));
-        if (ecc.verify(messageHash, pubkeyBuffer, sigBuffer)) {
-          console.log('[BIP322] Verified P2WPKH with provided publicKey');
-          return true;
-        }
+        } catch {}
       }
     }
-  } catch (e) {
-    console.error('[BIP322] Fallback error:', e);
   }
 
-  // Fallback: Try raw Schnorr with various hash methods
-  try {
-    if (address.startsWith('bc1p') || address.startsWith('tb1p')) {
-      const decoded = bitcoin.address.fromBech32(address);
-      const xOnlyPubkey = Buffer.from(decoded.data);
-
-      if (sigBuffer.length === 64 || sigBuffer.length === 65) {
-        const actualSig = sigBuffer.length === 65 ? sigBuffer.slice(0, 64) : sigBuffer;
-
-        // Try double SHA256
-        const messageHash2 = sha256(sha256(Buffer.from(message, 'utf8')));
-        if (ecc.verifySchnorr(messageHash2, xOnlyPubkey, actualSig)) {
-          console.log('[BIP322] Verified with Schnorr + double SHA256');
-          return true;
-        }
-
-        // Try tagged hash "BIP0340/challenge"
-        const taggedMsg = taggedHash('BIP0340/challenge', Buffer.from(message, 'utf8'));
-        if (ecc.verifySchnorr(taggedMsg, xOnlyPubkey, actualSig)) {
-          console.log('[BIP322] Verified with Schnorr + BIP340 tagged hash');
-          return true;
-        }
-
-        // Try Bitcoin message prefix
-        const prefixedMsg = Buffer.from(`\x18Bitcoin Signed Message:\n${message.length}${message}`, 'utf8');
-        const prefixedHash = sha256(sha256(prefixedMsg));
-        if (ecc.verifySchnorr(prefixedHash, xOnlyPubkey, actualSig)) {
-          console.log('[BIP322] Verified with Schnorr + Bitcoin message prefix');
-          return true;
-        }
+  // 3. Try Schnorr verification with all combinations
+  for (const { name, hash } of hashVariants) {
+    for (const pk of schnorrPubkeys) {
+      for (const sig of sigVariants) {
+        if (sig.length !== 64) continue;
+        try {
+          if (ecc.verifySchnorr(hash, pk, sig)) {
+            console.log(`[BIP322] Verified Schnorr: ${name}`);
+            return true;
+          }
+        } catch {}
       }
     }
-  } catch (e) {
-    console.error('[BIP322] Schnorr fallback error:', e);
   }
 
   console.log('[BIP322] All verification methods failed');

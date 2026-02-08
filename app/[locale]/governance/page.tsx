@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils";
 import { VotingProgressBar } from "@/components/governance/VotingProgressBar";
 import AddressAvatar from "@/components/AddressAvatar";
+import { Plus } from "lucide-react";
 
 interface Proposal {
   id: string;
@@ -77,9 +78,10 @@ export default function GovernancePage() {
             {isConnected && view === "proposals" && (
               <Link
                 href="/governance/create"
-                className="btn-primary text-sm"
+                className="btn-primary flex-shrink-0 !rounded-full !w-9 !h-9 !p-0 flex items-center justify-center sm:!rounded-xl sm:!w-auto sm:!h-auto sm:!px-5 sm:!py-2.5 text-sm"
               >
-                {t("governance.createProposal")}
+                <Plus size={16} className="sm:hidden" />
+                <span className="hidden sm:inline">{t("governance.createProposal")}</span>
               </Link>
             )}
           </div>
@@ -96,7 +98,7 @@ export default function GovernancePage() {
                 <button
                   key={key}
                   onClick={() => { setFilter(key); setPage(1); }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
                     filter === key
                       ? "bg-[color:var(--sf-text)] text-[color:var(--sf-bg-start)]"
                       : "text-[color:var(--sf-muted)] border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]"
@@ -156,7 +158,7 @@ export default function GovernancePage() {
                       <button
                         onClick={() => setPage(Math.max(1, page - 1))}
                         disabled={page === 1}
-                        className="px-3 py-1.5 rounded-lg bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)] transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)] transition-colors"
                       >
                         {t("governance.pagination.previous")}
                       </button>
@@ -166,7 +168,7 @@ export default function GovernancePage() {
                       <button
                         onClick={() => setPage(Math.min(totalPages, page + 1))}
                         disabled={page === totalPages}
-                        className="px-3 py-1.5 rounded-lg bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)] transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)] transition-colors"
                       >
                         {t("governance.pagination.next")}
                       </button>

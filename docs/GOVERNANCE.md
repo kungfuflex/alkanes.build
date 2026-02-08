@@ -137,6 +137,7 @@ The system supports multiple signature formats with fallback:
 
 1. **BIP-322** — Standard Bitcoin message signing (P2WPKH, P2TR)
 2. **KeystoreSigner** — Simple SHA256 + ECDSA (used by ts-sdk keystore wallets)
+3. **Browser wallets** — 65-byte recoverable ECDSA (Unisat, Xverse, etc.) + Bitcoin legacy message hash
 
 ### KeystoreSigner Format (Primary)
 
@@ -285,7 +286,7 @@ Messages must match exactly between client and server:
 - [x] Proposal creation threshold check (10 DIESEL minimum)
 - [x] Auto-snapshot at proposal creation
 - [ ] Quorum verification when closing proposals
-- [ ] Browser wallet signature verification (Xverse, Unisat, etc.)
+- [x] Browser wallet signature verification (Xverse, Unisat, etc.)
 
 ## Database Schema
 

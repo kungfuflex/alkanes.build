@@ -33,15 +33,15 @@ export function VotingProgressBar({
     <div>
       {hasVotes && forVotes !== undefined && againstVotes !== undefined && (
         <div className="hidden md:flex items-center justify-between mb-1 text-[11px] tabular-nums">
-          <span className="text-[#4ade80]">{formatCompactDiesel(forVotes)} For</span>
-          <span className="text-[#f87171]">{formatCompactDiesel(againstVotes)} Against</span>
+          <span className="text-[#b0b0b0]">{formatCompactDiesel(forVotes)} For</span>
+          <span className="text-[#b0b0b0]">{formatCompactDiesel(againstVotes)} Against</span>
         </div>
       )}
       <div className="flex items-center gap-2">
         <div
           className="flex-1 h-1.5 rounded-full overflow-hidden"
           style={{
-            background: hasVotes ? "#f87171" : "#2a2a2a",
+            background: hasVotes ? "#da3633" : "#2a2a2a",
           }}
         >
           {hasVotes && forPercentage > 0 && (
@@ -49,7 +49,7 @@ export function VotingProgressBar({
               className="h-full rounded-full transition-all"
               style={{
                 width: `${forPercentage}%`,
-                background: "#4ade80",
+                background: "#34d058",
               }}
             />
           )}
