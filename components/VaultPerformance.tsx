@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { usePoolPrices, useBtcPrice, useTvlStats, formatUsd, formatCompact } from "@/hooks/usePriceData";
+import { AlertCircle } from "lucide-react";
 
 interface Vault {
   id: string;
@@ -26,12 +27,13 @@ export function VaultPerformance() {
   const t = useTranslations("dashboard.vaults");
   const tCommon = useTranslations("common");
 
-  const { data: pools, isLoading: poolsLoading } = usePoolPrices();
+  const { data: pools, isLoading: poolsLoading, error: poolsError } = usePoolPrices();
   const { data: btcPrice, isLoading: btcLoading } = useBtcPrice();
   const { data: tvlStats, isLoading: tvlLoading } = useTvlStats();
 
   const loading = poolsLoading || tvlLoading;
   const hasData = !!pools;
+  const hasError = poolsError && !hasData;
 
   // Build vault list from live pool data with proper TVL calculation
   // TVL = both sides of the pool valued in USD (2 * reserve1 value)
@@ -108,8 +110,15 @@ export function VaultPerformance() {
       {/* Pool List + Total TVL */}
       <div className="glass-card overflow-hidden" style={{ background: "#101010" }}>
         {/* Vaults */}
-        <div className="rounded-b-3xl overflow-hidden bg-[color:var(--sf-surface)]">
-          {hasData ? (
+        <div className="rounded-b-3xl overflow-hidden bg-[color:var(--sf-surface)] min-h-[160px]">
+          {hasError ? (
+            <div className="flex flex-col items-center justify-center min-h-[160px] gap-3 p-6">
+              <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)] flex items-center justify-center">
+                <AlertCircle size={18} className="text-[color:var(--sf-muted)]" />
+              </div>
+              <p className="text-sm text-[color:var(--sf-muted)]">Failed to load pool data</p>
+            </div>
+          ) : hasData ? (
             vaults.map((vault, i) => (
               <div key={vault.id} className={i > 0 ? "border-t border-[color:var(--sf-outline)]" : ""}>
                 <VaultRow vault={vault} tvlLabel={t("tvl")} />

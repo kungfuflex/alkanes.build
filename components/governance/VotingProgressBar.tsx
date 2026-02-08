@@ -32,7 +32,7 @@ export function VotingProgressBar({
   return (
     <div>
       {hasVotes && forVotes !== undefined && againstVotes !== undefined && (
-        <div className="flex items-center justify-between mb-1 text-[11px] tabular-nums">
+        <div className="hidden md:flex items-center justify-between mb-1 text-[11px] tabular-nums">
           <span className="text-[#4ade80]">{formatCompactDiesel(forVotes)} For</span>
           <span className="text-[#f87171]">{formatCompactDiesel(againstVotes)} Against</span>
         </div>

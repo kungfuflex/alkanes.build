@@ -12,7 +12,6 @@ import { ShaderLogo } from "./ShaderLogo";
 
 export function Header() {
   const t = useTranslations();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarClosing, setIsSidebarClosing] = useState(false);
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
@@ -80,8 +79,8 @@ export function Header() {
               </div>
               <div className="flex flex-col md:-ml-12">
                 <span className="font-bold text-lg md:text-xl text-[color:var(--sf-text)]">ALKANES</span>
-                <span className="inline-block px-1 md:px-1.5 py-0.5 border border-[color:var(--sf-outline)] text-[color:var(--sf-muted)] text-[8px] md:text-[10px] uppercase tracking-widest font-medium rounded text-center">
-                  Protocol
+                <span className="flex justify-between text-[color:var(--sf-muted)] text-[8px] md:text-[10px] uppercase font-medium">
+                  {"Protocol".split("").map((ch, i) => <span key={i}>{ch}</span>)}
                 </span>
               </div>
             </Link>
@@ -163,112 +162,9 @@ export function Header() {
                 </>
               )}
 
-              {/* Mobile menu button */}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden p-2 rounded-lg hover:bg-[color:var(--sf-surface)] transition-colors"
-              >
-                <svg
-                  className="w-6 h-6 text-[color:var(--sf-text)]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {isMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
-              </button>
             </div>
           </div>
 
-          {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <nav className="md:hidden py-4 border-t border-[color:var(--sf-outline)]">
-              <div className="flex flex-col gap-4">
-                <Link
-                  href="/"
-                  className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {t("navigation.dashboard")}
-                </Link>
-                <Link
-                  href="/governance"
-                  className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {t("navigation.governance")}
-                </Link>
-                <Link
-                  href="/forum"
-                  className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {t("navigation.forum")}
-                </Link>
-                <Link
-                  href="/docs"
-                  className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {t("navigation.docs")}
-                </Link>
-                <a
-                  href="https://github.com/kungfuflex/alkanes-rs/tree/develop"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium"
-                >
-                  {t("navigation.github")}
-                </a>
-
-                {/* Mobile wallet section */}
-                {isConnected ? (
-                  <div className="border-t border-[color:var(--sf-outline)] pt-4 mt-2">
-                    <div className="flex items-center gap-3 mb-3">
-                      <AddressAvatar address={address} size={32} />
-                      <span className="text-sm font-medium text-[color:var(--sf-text)]">{truncatedAddress}</span>
-                    </div>
-                    <Link
-                      href="/wallet"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 text-[color:var(--sf-text)] hover:text-[color:var(--sf-primary)] transition-colors font-medium mb-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                      Wallet Dashboard
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleDisconnect();
-                        setIsMenuOpen(false);
-                      }}
-                      className="flex items-center gap-3 text-red-500 hover:text-red-400 transition-colors font-medium"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Disconnect
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      onConnectModalOpenChange(true);
-                      setIsMenuOpen(false);
-                    }}
-                    className="btn-primary text-sm w-full mt-2"
-                  >
-                    {t("wallet.connectWallet")}
-                  </button>
-                )}
-              </div>
-            </nav>
-          )}
         </div>
       </header>
 

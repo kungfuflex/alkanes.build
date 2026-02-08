@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatAddress, formatTimeRemaining, formatRelativeTime } from "@/lib/utils";
 import { VotingProgressBar } from "@/components/governance/VotingProgressBar";
+import { Vote, AlertCircle } from "lucide-react";
 
 interface Proposal {
   id: string;
@@ -23,7 +24,7 @@ export function ActiveProposals() {
   const tCommon = useTranslations("common");
   const tGov = useTranslations("governance");
 
-  const { data } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ["activeProposals"],
     queryFn: async () => {
       const [activeRes, pendingRes] = await Promise.all([
@@ -74,8 +75,26 @@ export function ActiveProposals() {
 
       <div className="glass-card overflow-hidden" style={{ background: "#101010" }}>
         <div className="rounded-b-3xl overflow-hidden bg-[color:var(--sf-surface)] divide-y divide-[color:var(--sf-outline)]">
-          {hasData && proposals.length === 0 ? (
-            <div className="p-4 text-center text-[color:var(--sf-muted)]">{tGov("noProposals")}</div>
+          {error ? (
+            <div className="flex flex-col items-center justify-center min-h-[160px] gap-3 p-6">
+              <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)] flex items-center justify-center">
+                <AlertCircle size={18} className="text-[color:var(--sf-muted)]" />
+              </div>
+              <p className="text-sm text-[color:var(--sf-muted)]">{tGov("error")}</p>
+            </div>
+          ) : hasData && proposals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[160px] gap-3 p-6">
+              <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)] flex items-center justify-center">
+                <Vote size={18} className="text-[color:var(--sf-muted)]" />
+              </div>
+              <p className="text-sm text-[color:var(--sf-muted)]">{tGov("noProposals")}</p>
+              <Link
+                href="/governance/create"
+                className="text-xs text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors border border-[color:var(--sf-outline)] rounded-lg px-3 py-1.5"
+              >
+                {tGov("createProposal")} →
+              </Link>
+            </div>
           ) : hasData ? (
             proposals.map((proposal) => (
               <ProposalRow

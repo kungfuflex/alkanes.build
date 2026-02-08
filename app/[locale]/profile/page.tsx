@@ -225,114 +225,119 @@ export default function ProfilePage() {
   return (
     <main className="max-w-2xl mx-auto px-4 py-8 w-full">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-[color:var(--sf-text)]">Forum Profile</h1>
-          <p className="text-[color:var(--sf-muted)]">
-            Customize how you appear in the forum and discussions
-          </p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-[color:var(--sf-text)]">Profile</h1>
+            <p className="text-sm text-[color:var(--sf-muted)]">
+              Customize how you appear in the forum
+            </p>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[color:var(--sf-text)] text-[color:var(--sf-bg-start)] text-[13px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {isSaving ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Save size={14} />
+            )}
+            {isSaving ? "Saving..." : "Save"}
+          </button>
         </div>
 
+        {/* Status messages */}
+        {saveError && (
+          <div className="flex items-center gap-2 px-4 py-3 mb-4 rounded-xl bg-red-500/10 text-[13px] text-red-400">
+            <X size={14} className="flex-shrink-0" />
+            {saveError}
+          </div>
+        )}
+        {saveSuccess && (
+          <div className="flex items-center gap-2 px-4 py-3 mb-4 rounded-xl bg-green-500/10 text-[13px] text-green-400">
+            <Check size={14} className="flex-shrink-0" />
+            Profile saved successfully!
+          </div>
+        )}
+
         {profileLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-[color:var(--sf-primary)]" />
+          <div className="glass-card overflow-hidden" style={{ background: "#101010" }}>
+            <div className="bg-[color:var(--sf-surface)] min-h-[300px] flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[color:var(--sf-muted)]" />
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Avatar Section */}
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold mb-4 text-[color:var(--sf-text)] flex items-center gap-2">
-                <Camera size={20} />
-                Profile Picture
-              </h2>
-
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Avatar"
-                      className="w-24 h-24 rounded-full object-cover border-4 border-[color:var(--sf-outline)]"
-                    />
-                  ) : (
-                    <AddressAvatar address={address} size={96} className="border-4 border-[color:var(--sf-outline)]" />
-                  )}
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 p-2 rounded-full bg-[color:var(--sf-primary)] text-black hover:bg-[color:var(--sf-primary-hover)] transition-colors"
-                  >
-                    <Camera size={16} />
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                </div>
-
-                <div className="flex-1">
-                  <p className="text-sm text-[color:var(--sf-muted)] mb-2">
-                    Upload a profile picture or use your default address avatar
-                  </p>
-                  <p className="text-xs text-[color:var(--sf-muted)]">
-                    Recommended: Square image, at least 200x200px. Max 2MB.
-                  </p>
-                  {avatarPreview && avatarPreview !== profile?.avatarUrl && (
-                    <button
-                      onClick={() => {
-                        setAvatarPreview(profile?.avatarUrl || null);
-                        setAvatarFile(null);
-                      }}
-                      className="text-xs text-red-500 hover:text-red-400 mt-2"
-                    >
-                      Remove new avatar
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Info Section */}
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold mb-4 text-[color:var(--sf-text)] flex items-center gap-2">
-                <User size={20} />
-                Profile Information
-              </h2>
-
-              <div className="space-y-4">
-                {/* Wallet Address */}
-                <div>
-                  <label className="block text-sm font-medium text-[color:var(--sf-muted)] mb-1">
-                    Wallet Address
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 px-4 py-3 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] font-mono text-sm text-[color:var(--sf-text)] truncate">
-                      {address}
-                    </div>
-                    {profile?.verified ? (
-                      <div className="px-3 py-2 rounded-lg bg-green-500/10 text-green-500 text-sm font-medium flex items-center gap-1">
-                        <Check size={16} />
-                        Verified
-                      </div>
+            {/* Avatar + Identity Card */}
+            <div className="glass-card overflow-hidden" style={{ background: "#101010" }}>
+              <div className="bg-[color:var(--sf-surface)]">
+                <div className="px-5 py-5 flex items-center gap-5">
+                  <div className="relative flex-shrink-0">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Avatar"
+                        className="w-20 h-20 rounded-full object-cover ring-2 ring-white/[0.06]"
+                      />
                     ) : (
+                      <AddressAvatar address={address} size={80} className="ring-2 ring-white/[0.06]" />
+                    )}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors"
+                    >
+                      <Camera size={12} />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] text-[color:var(--sf-muted)] mb-1">
+                      Square image, at least 200x200px. Max 2MB.
+                    </p>
+                    {avatarPreview && avatarPreview !== profile?.avatarUrl && (
                       <button
-                        onClick={handleVerify}
-                        disabled={isVerifying}
-                        className="px-3 py-2 rounded-lg bg-[color:var(--sf-primary)] text-black text-sm font-medium hover:bg-[color:var(--sf-primary-hover)] transition-colors disabled:opacity-50"
+                        onClick={() => {
+                          setAvatarPreview(profile?.avatarUrl || null);
+                          setAvatarFile(null);
+                        }}
+                        className="text-[11px] text-red-400/70 hover:text-red-400 transition-colors"
                       >
-                        {isVerifying ? <Loader2 size={16} className="animate-spin" /> : "Verify"}
+                        Remove new avatar
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-[color:var(--sf-muted)] mt-1">
-                    Verify ownership by signing a message with your wallet
-                  </p>
                 </div>
 
+                {/* Wallet Address */}
+                <div className="px-5 py-4 border-t border-[color:var(--sf-outline)] flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] text-[color:var(--sf-muted)] uppercase tracking-wider mb-1">Address</div>
+                    <div className="font-mono text-xs text-[color:var(--sf-text)] truncate">{address}</div>
+                  </div>
+                  {profile?.verified ? (
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-400 text-[10px] font-medium flex-shrink-0">
+                      <Check size={10} /> Verified
+                    </span>
+                  ) : (
+                    <button
+                      onClick={handleVerify}
+                      disabled={isVerifying}
+                      className="text-[11px] text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors border border-[color:var(--sf-outline)] rounded-lg px-2.5 py-1 flex-shrink-0 disabled:opacity-50"
+                    >
+                      {isVerifying ? <Loader2 size={10} className="animate-spin" /> : "Verify"}
+                    </button>
+                  )}
+                </div>
                 {/* Display Name */}
-                <div>
-                  <label className="block text-sm font-medium text-[color:var(--sf-muted)] mb-1">
+                <div className="px-5 py-4 border-t border-[color:var(--sf-outline)]">
+                  <label className="block text-[11px] text-[color:var(--sf-muted)] uppercase tracking-wider mb-2">
                     Display Name
                   </label>
                   <input
@@ -341,108 +346,45 @@ export default function ProfilePage() {
                     onChange={(e) => setDisplayName(e.target.value)}
                     maxLength={50}
                     placeholder="Enter a display name"
-                    className="w-full px-4 py-3 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-[color:var(--sf-text)] outline-none focus:border-[color:var(--sf-primary)] transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/30 border border-white/[0.04] text-[color:var(--sf-text)] text-[15px] outline-none focus:border-white/[0.08] transition-colors placeholder:text-[color:var(--sf-muted)]/40"
                   />
-                  <p className="text-xs text-[color:var(--sf-muted)] mt-1">
-                    This will be shown instead of your wallet address in the forum
-                  </p>
                 </div>
 
                 {/* Bio */}
-                <div>
-                  <label className="block text-sm font-medium text-[color:var(--sf-muted)] mb-1">
+                <div className="px-5 py-4 border-t border-[color:var(--sf-outline)]">
+                  <label className="block text-[11px] text-[color:var(--sf-muted)] uppercase tracking-wider mb-2">
                     Bio
                   </label>
                   <textarea
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     maxLength={500}
-                    rows={4}
+                    rows={3}
                     placeholder="Tell us about yourself..."
-                    className="w-full px-4 py-3 rounded-xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-outline)] text-[color:var(--sf-text)] outline-none focus:border-[color:var(--sf-primary)] transition-colors resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/30 border border-white/[0.04] text-[color:var(--sf-text)] text-[15px] outline-none focus:border-white/[0.08] transition-colors resize-none placeholder:text-[color:var(--sf-muted)]/40"
                   />
-                  <p className="text-xs text-[color:var(--sf-muted)] mt-1">
-                    {bio.length}/500 characters
-                  </p>
+                  <p className="text-[11px] text-[color:var(--sf-muted)] mt-1.5">{bio.length}/500</p>
                 </div>
               </div>
+
+              {/* Stats footer */}
+              {profile && (
+                <div className="grid grid-cols-4 divide-x divide-[color:var(--sf-outline)]">
+                  {[
+                    { value: profile.postsCount, label: "Posts" },
+                    { value: profile.discussionsCount, label: "Topics" },
+                    { value: profile.likesReceived, label: "Likes" },
+                    { value: profile.trustLevel, label: "Trust" },
+                  ].map(({ value, label }) => (
+                    <div key={label} className="text-center py-3">
+                      <div className="text-sm font-bold text-[color:var(--sf-text)] tabular-nums">{value}</div>
+                      <div className="text-[10px] text-[color:var(--sf-muted)] uppercase tracking-wider">{label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Stats Section */}
-            {profile && (
-              <div className="glass-card p-6">
-                <h2 className="text-lg font-semibold mb-4 text-[color:var(--sf-text)]">
-                  Forum Statistics
-                </h2>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="text-center p-4 rounded-xl bg-[color:var(--sf-surface)]">
-                    <div className="text-2xl font-bold text-[color:var(--sf-text)]">
-                      {profile.postsCount}
-                    </div>
-                    <div className="text-sm text-[color:var(--sf-muted)]">Posts</div>
-                  </div>
-                  <div className="text-center p-4 rounded-xl bg-[color:var(--sf-surface)]">
-                    <div className="text-2xl font-bold text-[color:var(--sf-text)]">
-                      {profile.discussionsCount}
-                    </div>
-                    <div className="text-sm text-[color:var(--sf-muted)]">Discussions</div>
-                  </div>
-                  <div className="text-center p-4 rounded-xl bg-[color:var(--sf-surface)]">
-                    <div className="text-2xl font-bold text-[color:var(--sf-text)]">
-                      {profile.likesReceived}
-                    </div>
-                    <div className="text-sm text-[color:var(--sf-muted)]">Likes</div>
-                  </div>
-                  <div className="text-center p-4 rounded-xl bg-[color:var(--sf-surface)]">
-                    <div className="text-2xl font-bold text-[color:var(--sf-text)]">
-                      {profile.trustLevel}
-                    </div>
-                    <div className="text-sm text-[color:var(--sf-muted)]">Trust Level</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 text-xs text-[color:var(--sf-muted)]">
-                  Member since {new Date(profile.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            )}
-
-            {/* Error/Success Messages */}
-            {saveError && (
-              <div className="flex items-center gap-2 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-sm">
-                <X size={16} />
-                {saveError}
-              </div>
-            )}
-
-            {saveSuccess && (
-              <div className="flex items-center gap-2 p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-green-500 text-sm">
-                <Check size={16} />
-                Profile saved successfully!
-              </div>
-            )}
-
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[color:var(--sf-primary)] text-black font-medium hover:bg-[color:var(--sf-primary-hover)] transition-colors disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save size={18} />
-                    Save Profile
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         )}
     </main>

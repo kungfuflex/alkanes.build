@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { AlertCircle } from "lucide-react";
 
 interface BlockTracesResponse {
   success: boolean;
@@ -105,7 +106,7 @@ function GaugeChart({ value, max = 3000 }: { value: number; max?: number }) {
 }
 
 export function BlockActivity() {
-  const { data } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ["block-traces"],
     queryFn: async (): Promise<BlockTracesResponse["data"]> => {
       const res = await fetch("/api/block-traces");
@@ -143,8 +144,15 @@ export function BlockActivity() {
         )}
       </div>
 
-      <div className="p-5">
-        {hasData ? (
+      <div className="p-5 min-h-[160px] flex items-center justify-center">
+        {error && !hasData ? (
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)] flex items-center justify-center">
+              <AlertCircle size={18} className="text-[color:var(--sf-muted)]" />
+            </div>
+            <p className="text-sm text-[color:var(--sf-muted)]">Failed to load block data</p>
+          </div>
+        ) : hasData ? (
           <GaugeChart value={data.txCount} />
         ) : (
           <div className="flex flex-col items-center py-4">

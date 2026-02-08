@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 export interface TokenBalance {
@@ -373,4 +374,73 @@ export function formatBtcBalance(satoshis: number): string {
   if (btc >= 1) return `${btc.toFixed(4)} BTC`;
   if (btc >= 0.001) return `${btc.toFixed(6)} BTC`;
   return `${satoshis.toLocaleString()} sats`;
+}
+
+export interface MergedBalances {
+  btcBalance: number;
+  btcBalanceFormatted: string;
+  tokens: TokenBalance[];
+  address: string;
+  timestamp: number;
+}
+
+/**
+ * Merge balances from primary (taproot) and payment (segwit) addresses
+ */
+export function mergeBalances(
+  primary: WalletBalancesResponse | undefined,
+  payment: WalletBalancesResponse | undefined,
+): MergedBalances | null {
+  if (!primary && !payment) return null;
+
+  const p = primary || { btcBalance: 0, btcBalanceFormatted: '0', tokens: [] as TokenBalance[], address: '', timestamp: 0 };
+  if (!payment) return { btcBalance: p.btcBalance, btcBalanceFormatted: p.btcBalanceFormatted, tokens: p.tokens, address: p.address, timestamp: p.timestamp };
+
+  const totalBtc = p.btcBalance + payment.btcBalance;
+  const tokenMap = new Map<string, TokenBalance>();
+
+  for (const token of p.tokens) tokenMap.set(token.runeId, token);
+  for (const token of payment.tokens) {
+    const existing = tokenMap.get(token.runeId);
+    if (existing) {
+      const combined = BigInt(existing.balance) + BigInt(token.balance);
+      tokenMap.set(token.runeId, {
+        ...existing,
+        balance: combined.toString(),
+        balanceFormatted: Number(combined) / Math.pow(10, existing.decimals),
+      });
+    } else {
+      tokenMap.set(token.runeId, token);
+    }
+  }
+
+  return {
+    btcBalance: totalBtc,
+    btcBalanceFormatted: (totalBtc / 100000000).toFixed(8),
+    tokens: Array.from(tokenMap.values()),
+    address: p.address,
+    timestamp: Date.now(),
+  };
+}
+
+/**
+ * Hook that fetches and merges balances from both primary and payment addresses
+ */
+export function useMergedWalletBalances(address: string | undefined, paymentAddress: string | undefined) {
+  const { data: balances, isLoading: balancesLoading, isFetching: balancesFetching, refetch: refetchBalances } = useWalletBalances(address);
+  const { data: paymentBalances, isLoading: paymentLoading, isFetching: paymentFetching, refetch: refetchPayment } = useWalletBalances(
+    paymentAddress !== address ? paymentAddress : undefined
+  );
+
+  const merged = useMemo(() => mergeBalances(balances, paymentBalances), [balances, paymentBalances]);
+
+  const isLoading = balancesLoading || paymentLoading;
+  const isFetching = balancesFetching || paymentFetching;
+
+  const refetch = useCallback(() => {
+    refetchBalances();
+    if (paymentAddress !== address) refetchPayment();
+  }, [refetchBalances, refetchPayment, paymentAddress, address]);
+
+  return { data: merged, isLoading, isFetching, refetch };
 }

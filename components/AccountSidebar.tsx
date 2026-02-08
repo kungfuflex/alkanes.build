@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Check, RefreshCw, ChevronRight } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
-import { useWalletBalances, formatBalance, formatBtcBalance } from "@/hooks/useWalletBalances";
+import { useMergedWalletBalances, formatBalance, formatBtcBalance } from "@/hooks/useWalletBalances";
+import { BtcIcon, BtcSkeletonIcon, AlkaneSkeletonIcon } from "./SkeletonIcons";
+import { useBtcPrice, useDieselUsdPrice, formatUsd } from "@/hooks/usePriceData";
 import AddressAvatar from "./AddressAvatar";
 
 interface AccountSidebarProps {
@@ -42,44 +44,12 @@ export default function AccountSidebar({ isVisible, isClosing, onClose, onDiscon
     : "";
 
   // Balances
-  const { data: balances, isLoading: balancesLoading, refetch: refetchBalances } = useWalletBalances(address);
-  const { data: paymentBalances, isLoading: paymentLoading, refetch: refetchPayment } = useWalletBalances(
-    paymentAddress !== address ? paymentAddress : undefined
-  );
+  const { data: btcPrice, isLoading: btcPriceLoading } = useBtcPrice();
+  const { priceUsd: dieselPriceUsd } = useDieselUsdPrice();
+  const { data: merged, isFetching: isBalancesFetching, refetch: refetchMerged } = useMergedWalletBalances(address, paymentAddress);
 
-  const merged = useMemo(() => {
-    if (!balances && !paymentBalances) return null;
-    const primary = balances || { btcBalance: 0, btcBalanceFormatted: "0", tokens: [], address: "", timestamp: 0 };
-    const payment = paymentBalances;
-    if (!payment) return primary;
-
-    const totalBtc = primary.btcBalance + payment.btcBalance;
-    const tokenMap = new Map<string, (typeof primary.tokens)[0]>();
-    for (const token of primary.tokens) tokenMap.set(token.runeId, token);
-    for (const token of payment.tokens) {
-      const existing = tokenMap.get(token.runeId);
-      if (existing) {
-        const combined = BigInt(existing.balance) + BigInt(token.balance);
-        tokenMap.set(token.runeId, {
-          ...existing,
-          balance: combined.toString(),
-          balanceFormatted: Number(combined) / Math.pow(10, existing.decimals),
-        });
-      } else {
-        tokenMap.set(token.runeId, token);
-      }
-    }
-
-    return {
-      btcBalance: totalBtc,
-      btcBalanceFormatted: (totalBtc / 100000000).toFixed(8),
-      tokens: Array.from(tokenMap.values()),
-      address: primary.address,
-      timestamp: Date.now(),
-    };
-  }, [balances, paymentBalances]);
-
-  const isBalancesLoading = balancesLoading || paymentLoading;
+  // Show skeleton until both balance data and BTC price are ready
+  const balancesReady = !!merged && !btcPriceLoading;
 
   // Profile
   const { data: profile } = useQuery<UserProfile | null>({
@@ -104,9 +74,8 @@ export default function AccountSidebar({ isVisible, isClosing, onClose, onDiscon
   }, [address]);
 
   const handleRefresh = useCallback(() => {
-    refetchBalances();
-    if (paymentAddress !== address) refetchPayment();
-  }, [refetchBalances, refetchPayment, paymentAddress, address]);
+    refetchMerged();
+  }, [refetchMerged]);
 
   const displayName = profile?.displayName || truncatedAddress;
   const walletLabel = browserWallet?.info?.name || (isKeystoreWallet ? "Keystore" : "Wallet");
@@ -201,35 +170,21 @@ export default function AccountSidebar({ isVisible, isClosing, onClose, onDiscon
               </span>
               <button
                 onClick={handleRefresh}
-                disabled={isBalancesLoading}
+                disabled={isBalancesFetching}
                 className="p-1 rounded-md text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] hover:bg-white/[0.04] transition-colors disabled:opacity-40"
                 title="Refresh balances"
               >
-                <RefreshCw size={12} className={isBalancesLoading ? "animate-spin" : ""} />
+                <RefreshCw size={12} className={isBalancesFetching ? "animate-spin" : ""} />
               </button>
             </div>
 
             <div className="rounded-2xl bg-[color:var(--sf-surface)] border border-[color:var(--sf-glass-border)] overflow-hidden">
-              {isBalancesLoading && !merged ? (
-                <div className="p-4 space-y-3">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/[0.04] animate-pulse" />
-                        <div className="h-3 w-16 bg-white/[0.04] rounded animate-pulse" />
-                      </div>
-                      <div className="h-3 w-20 bg-white/[0.04] rounded animate-pulse" />
-                    </div>
-                  ))}
-                </div>
-              ) : merged ? (
+              {balancesReady ? (
                 <div className="divide-y divide-white/[0.04]">
                   {/* BTC */}
                   <div className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-bold text-sm">₿</span>
-                      </div>
+                      <div className="w-8 h-8 flex-shrink-0"><BtcIcon /></div>
                       <div>
                         <div className="text-sm font-medium text-[color:var(--sf-text)]">Bitcoin</div>
                         <div className="text-[10px] text-[color:var(--sf-muted)]">BTC</div>
@@ -239,9 +194,9 @@ export default function AccountSidebar({ isVisible, isClosing, onClose, onDiscon
                       <div className="text-sm font-semibold text-[color:var(--sf-text)] font-mono tabular-nums">
                         {formatBtcBalance(merged.btcBalance)}
                       </div>
-                      {merged.btcBalance > 0 && (
+                      {merged.btcBalance > 0 && btcPrice && (
                         <div className="text-[10px] text-[color:var(--sf-muted)] font-mono tabular-nums">
-                          {merged.btcBalance.toLocaleString()} sats
+                          {formatUsd((merged.btcBalance / 1e8) * btcPrice.usd)}
                         </div>
                       )}
                     </div>
@@ -281,19 +236,39 @@ export default function AccountSidebar({ isVisible, isClosing, onClose, onDiscon
                         <div className="text-sm font-semibold text-[color:var(--sf-text)] font-mono tabular-nums">
                           {formatBalance(token.balanceFormatted)}
                         </div>
+                        {token.runeId === "2:0" && dieselPriceUsd && (
+                          <div className="text-[10px] text-[color:var(--sf-muted)] font-mono tabular-nums">
+                            {formatUsd(token.balanceFormatted * dieselPriceUsd)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
-
-                  {merged.tokens.length === 0 && (
-                    <div className="px-4 py-3 text-xs text-center text-[color:var(--sf-muted)]">
-                      No alkane tokens
-                    </div>
-                  )}
                 </div>
               ) : (
-                <div className="px-4 py-4 text-xs text-center text-[color:var(--sf-muted)]">
-                  Unable to load balances
+                <div className="divide-y divide-white/[0.04]">
+                  {/* BTC skeleton */}
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 flex-shrink-0"><BtcSkeletonIcon /></div>
+                      <div className="animate-pulse">
+                        <div className="h-3 w-14 bg-white/[0.06] rounded mb-1.5" />
+                        <div className="h-2 w-8 bg-white/[0.04] rounded" />
+                      </div>
+                    </div>
+                    <div className="h-3 w-16 bg-white/[0.06] rounded animate-pulse" />
+                  </div>
+                  {/* Token skeleton */}
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 flex-shrink-0"><AlkaneSkeletonIcon /></div>
+                      <div className="animate-pulse">
+                        <div className="h-3 w-14 bg-white/[0.06] rounded mb-1.5" />
+                        <div className="h-2 w-8 bg-white/[0.04] rounded" />
+                      </div>
+                    </div>
+                    <div className="h-3 w-16 bg-white/[0.06] rounded animate-pulse" />
+                  </div>
                 </div>
               )}
             </div>
