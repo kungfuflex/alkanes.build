@@ -1858,56 +1858,7 @@ const DieselTerminal = () => {
     return distributableSats / 100_000_000; // Convert to DIESEL units
   }, [mempoolStats?.nextBlockFees]);
 
-  // Lua script to scan mempool for DIESEL mints (runs server-side in one request)
-  // Checks both ancestor (tx pulls parents) and descendant (child pays for tx via CPFP) fee rates
-  const DIESEL_SCAN_SCRIPT = `
-local minFeeRate = tonumber(args[1]) or 1
-local DIESEL_PREFIX = "6a5d1214011400"
-
-local mempool = _RPC.btc_getrawmempool(true)
-
-local dieselCount = 0
-local totalMempool = 0
-local qualifying = 0
-
-for txid, entry in pairs(mempool) do
-  totalMempool = totalMempool + 1
-
-  -- Ancestor fee rate: can this TX get in with its parents?
-  local ancestorFeeRate = (entry.fees.ancestor * 100000000) / entry.ancestorsize
-
-  -- Descendant fee rate: can this TX get in via CPFP (child paying for it)?
-  local descendantFeeRate = (entry.fees.descendant * 100000000) / entry.descendantsize
-
-  -- TX qualifies if EITHER rate is high enough
-  -- Also add 10% buffer for borderline cases
-  local threshold = minFeeRate * 0.9
-
-  if ancestorFeeRate >= threshold or descendantFeeRate >= threshold then
-    qualifying = qualifying + 1
-    local tx = _RPC.btc_getrawtransaction(txid, true)
-
-    if tx and tx.vout then
-      for _, output in ipairs(tx.vout) do
-        if output.scriptPubKey and output.scriptPubKey.hex then
-          if string.sub(output.scriptPubKey.hex, 1, 14) == DIESEL_PREFIX then
-            dieselCount = dieselCount + 1
-            break
-          end
-        end
-      end
-    end
-  end
-end
-
-return {
-  total_mempool = totalMempool,
-  qualifying = qualifying,
-  diesel_mints = dieselCount
-}
-`;
-
-  // Scan mempool for DIESEL mint transactions via Lua script
+  // Scan mempool for DIESEL mint transactions via server-side API (cached)
   const scanForDieselMints = useCallback(async () => {
     if (!mempoolStats) return;
 
@@ -1917,26 +1868,13 @@ return {
     try {
       const minFeeForNextBlock = mempoolStats.minFee;
 
-      const rpcRes = await fetch(RPC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'lua_evalscript',
-          params: [DIESEL_SCAN_SCRIPT, minFeeForNextBlock.toString()]
-        })
-      });
+      const res = await fetch(`/api/competition?minFeeRate=${minFeeForNextBlock}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data = await res.json();
 
-      if (!rpcRes.ok) throw new Error(`RPC error: ${rpcRes.status}`);
-      const rpcData = await rpcRes.json();
+      if (!data.success) throw new Error(data.error || 'Unknown error');
 
-      if (rpcData.error) throw new Error(rpcData.error.message || JSON.stringify(rpcData.error));
-
-      const result = rpcData.result?.returns;
-      const calls = rpcData.result?.calls || 0;
-      const runtime = rpcData.result?.runtime || 0;
-
+      const result = data.data;
 
       if (result) {
         setScanProgress({
