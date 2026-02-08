@@ -142,15 +142,16 @@ describe("GET /api/governance/proposals", () => {
     expect(data.pagination.pages).toBe(5);
   });
 
-  it("handles database errors", async () => {
+  it("returns empty results on database errors", async () => {
     mockProposal.findMany.mockRejectedValue(new Error("DB error"));
 
     const request = new NextRequest("http://localhost/api/governance/proposals");
     const response = await GET(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to fetch proposals");
+    expect(response.status).toBe(200);
+    expect(data.proposals).toEqual([]);
+    expect(data.pagination.total).toBe(0);
   });
 });
 
@@ -193,6 +194,29 @@ describe("POST /api/governance/proposals", () => {
 
     expect(response.status).toBe(400);
     expect(data.error).toBe("At least 2 choices are required");
+  });
+
+  it("returns 401 when signature verification fails", async () => {
+    mockVerifySignature.mockResolvedValue(false);
+
+    const request = new NextRequest("http://localhost/api/governance/proposals", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Test",
+        body: "Content",
+        choices: ["For", "Against"],
+        author: "bc1qtest",
+        authorSig: "bad-sig",
+        authorPubkey: "deadbeef",
+        timestamp: Date.now(),
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe("Invalid signature");
   });
 
   it("creates proposal successfully", async () => {

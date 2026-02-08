@@ -282,6 +282,29 @@ describe("POST /api/governance/vote", () => {
     expect(data.error).toBe("Invalid choice");
   });
 
+  it("returns 401 when signature verification fails", async () => {
+    mockVerifySignature.mockResolvedValue(false);
+    mockProposal.findUnique.mockResolvedValue(mockActiveProposal);
+
+    const request = new NextRequest("http://localhost/api/governance/vote", {
+      method: "POST",
+      body: JSON.stringify({
+        proposalId: "prop-1",
+        voter: "bc1qvoter",
+        voterSig: "bad-sig",
+        voterPubkey: "deadbeef",
+        choice: 0,
+        timestamp: Date.now(),
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe("Invalid signature");
+  });
+
   it("returns 403 when voter has no DIESEL at snapshot block", async () => {
     mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt(0));
     mockProposal.findUnique.mockResolvedValue(mockActiveProposal);

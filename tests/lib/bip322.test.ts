@@ -261,5 +261,75 @@ describe("BIP-322 Signature Verification", () => {
       // Should not throw, defaults to mainnet
       expect(typeof result).toBe("boolean");
     });
+
+    it("strips recovery flag from 65-byte browser wallet signatures", async () => {
+      // Browser wallets return 65-byte sigs: [recovery_flag(1), r(32), s(32)]
+      // After stripping byte 0, the remaining 64 bytes should be tried
+      let verifiedSigLength = 0;
+      mockVerify.mockImplementation((_hash: any, _pk: any, sig: Buffer) => {
+        verifiedSigLength = sig.length;
+        return sig.length === 64; // Only accept 64-byte compact sigs
+      });
+
+      const sig65 = Buffer.alloc(65, 0xab);
+      sig65[0] = 0x1f; // recovery flag
+      const pubkey = Buffer.alloc(33, 0x02).toString("hex");
+
+      const result = await verifyMessageSignature(
+        "test",
+        "bc1qtest",
+        sig65.toString("base64"),
+        "mainnet",
+        pubkey
+      );
+      expect(result).toBe(true);
+      expect(verifiedSigLength).toBe(64);
+    });
+
+    it("tries bitcoin legacy message hash for browser wallets", async () => {
+      // Track which hash was used for successful verification
+      let successHash: Buffer | null = null;
+      let callCount = 0;
+      mockVerify.mockImplementation((hash: Buffer) => {
+        callCount++;
+        // Succeed on bitcoin-message hash attempt (second hash variant, first pubkey)
+        // Call pattern: sha256 x1, bitcoin-message x1, ...
+        if (callCount === 2) {
+          successHash = hash;
+          return true;
+        }
+        return false;
+      });
+
+      const sig = Buffer.alloc(64).toString("base64");
+      const pubkey = Buffer.alloc(33, 0x02).toString("hex");
+
+      const result = await verifyMessageSignature(
+        "test message",
+        "bc1qtest",
+        sig,
+        "mainnet",
+        pubkey
+      );
+      expect(result).toBe(true);
+      // The hash should be 32 bytes (SHA256 output)
+      expect(successHash).not.toBeNull();
+      expect(successHash!.length).toBe(32);
+    });
+
+    it("returns false for signatures with unsupported length", async () => {
+      mockVerify.mockReturnValue(false);
+      mockVerifySchnorr.mockReturnValue(false);
+
+      // 50-byte sig — not 64 or 65, should not match any variant
+      const sig = Buffer.alloc(50).toString("base64");
+      const result = await verifyMessageSignature(
+        "test",
+        "bc1qtest",
+        sig,
+        "mainnet"
+      );
+      expect(result).toBe(false);
+    });
   });
 });
