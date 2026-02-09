@@ -1,17 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 
 export default function PrivacyPolicyPage() {
   const t = useTranslations();
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1 max-w-4xl mx-auto px-4 py-12 w-full">
+    <main className="max-w-4xl mx-auto px-4 py-12 w-full">
         <article className="prose prose-invert max-w-none prose-headings:text-[color:var(--sf-text)] prose-p:text-[color:var(--sf-text)] prose-a:text-[color:var(--sf-primary)] prose-strong:text-[color:var(--sf-text)] prose-li:text-[color:var(--sf-text)]">
           <h1>Privacy Policy</h1>
           <p className="text-[color:var(--sf-muted)]">Last updated: January 2025</p>
@@ -120,9 +115,6 @@ export default function PrivacyPolicyPage() {
             or reach out via our community channels.
           </p>
         </article>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// Mock BIP-322 signature verification - must be before imports
+vi.mock("@/lib/bip322", () => ({
+  verifyMessageSignature: vi.fn().mockResolvedValue(true), // Default: signature valid
+}));
+
+// Mock alkanes-client module - must be before imports
+vi.mock("@/lib/alkanes-client", () => ({
+  alkanesClient: {
+    getDieselBalanceAtBlock: vi.fn().mockResolvedValue(BigInt('1000000')), // Default: has DIESEL
+  },
+}));
+
 // Mock prisma module - must be before imports
 vi.mock("@/lib/prisma", () => {
   return {
@@ -23,10 +35,14 @@ vi.mock("@/lib/prisma", () => {
 
 import { POST } from "@/app/api/governance/vote/route";
 import { prisma } from "@/lib/prisma";
+import { alkanesClient } from "@/lib/alkanes-client";
+import { verifyMessageSignature } from "@/lib/bip322";
 
 // Type assertions for mocks
 const mockProposal = prisma.proposal as any;
 const mockVote = prisma.vote as any;
+const mockAlkanesClient = alkanesClient as any;
+const mockVerifySignature = verifyMessageSignature as ReturnType<typeof vi.fn>;
 
 const mockActiveProposal = {
   id: "prop-1",
@@ -34,6 +50,7 @@ const mockActiveProposal = {
   choices: ["For", "Against", "Abstain"],
   author: "bc1qauthor",
   state: "ACTIVE",
+  snapshot: 900000,
   start: new Date(Date.now() - 86400000), // Started yesterday
   end: new Date(Date.now() + 86400000), // Ends tomorrow
   scores: ["100", "50", "25"],
@@ -64,9 +81,12 @@ const mockProposalWithEmptyScores = {
 describe("POST /api/governance/vote", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-set default mock implementations after clearAllMocks
+    mockVerifySignature.mockResolvedValue(true);
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('1000000'));
   });
 
-  it("casts a valid vote", async () => {
+  it("casts a valid vote with server-verified voting power", async () => {
     mockProposal.findUnique.mockResolvedValue(mockActiveProposal);
     mockVote.findUnique.mockResolvedValue(null);
     mockVote.create.mockResolvedValue({
@@ -75,7 +95,7 @@ describe("POST /api/governance/vote", () => {
       voter: "bc1qvoter",
       voterSig: "sig",
       choice: 0,
-      votingPower: "1000000",
+      votingPower: BigInt('1000000'),
     });
     mockProposal.update.mockResolvedValue({
       ...mockActiveProposal,
@@ -90,7 +110,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "signature123",
         choice: 0,
-        votingPower: "1000000",
         reason: "I support this proposal",
       }),
     });
@@ -100,10 +119,12 @@ describe("POST /api/governance/vote", () => {
 
     expect(response.status).toBe(201);
     expect(data.vote).toBeDefined();
+    expect(mockAlkanesClient.getDieselBalanceAtBlock).toHaveBeenCalledWith("bc1qvoter", 900000);
     expect(mockProposal.update).toHaveBeenCalled();
   });
 
   it("handles first vote on a choice (empty scores)", async () => {
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('1000000'));
     mockProposal.findUnique.mockResolvedValue(mockProposalWithEmptyScores);
     mockVote.findUnique.mockResolvedValue(null);
     mockVote.create.mockResolvedValue({
@@ -112,11 +133,11 @@ describe("POST /api/governance/vote", () => {
       voter: "bc1qvoter",
       voterSig: "sig",
       choice: 0,
-      votingPower: "1000000",
+      votingPower: BigInt('1000000'),
     });
     mockProposal.update.mockResolvedValue({
       ...mockProposalWithEmptyScores,
-      scores: ["1000000"], // Started from 0, now has first vote
+      scores: ["1000000"],
       totalVotes: "1000000",
     });
 
@@ -127,7 +148,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "signature123",
         choice: 0,
-        votingPower: "1000000",
       }),
     });
 
@@ -151,7 +171,7 @@ describe("POST /api/governance/vote", () => {
       method: "POST",
       body: JSON.stringify({
         proposalId: "prop-1",
-        // Missing other fields
+        // Missing voter, voterSig, choice
       }),
     });
 
@@ -172,7 +192,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "sig",
         choice: 0,
-        votingPower: "1000000",
       }),
     });
 
@@ -193,7 +212,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "sig",
         choice: 0,
-        votingPower: "1000000",
       }),
     });
 
@@ -214,7 +232,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "sig",
         choice: 0,
-        votingPower: "1000000",
       }),
     });
 
@@ -235,7 +252,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "sig",
         choice: 10, // Invalid - only 3 choices exist
-        votingPower: "1000000",
       }),
     });
 
@@ -256,7 +272,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "sig",
         choice: -1,
-        votingPower: "1000000",
       }),
     });
 
@@ -267,7 +282,53 @@ describe("POST /api/governance/vote", () => {
     expect(data.error).toBe("Invalid choice");
   });
 
+  it("returns 401 when signature verification fails", async () => {
+    mockVerifySignature.mockResolvedValue(false);
+    mockProposal.findUnique.mockResolvedValue(mockActiveProposal);
+
+    const request = new NextRequest("http://localhost/api/governance/vote", {
+      method: "POST",
+      body: JSON.stringify({
+        proposalId: "prop-1",
+        voter: "bc1qvoter",
+        voterSig: "bad-sig",
+        voterPubkey: "deadbeef",
+        choice: 0,
+        timestamp: Date.now(),
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe("Invalid signature");
+  });
+
+  it("returns 403 when voter has no DIESEL at snapshot block", async () => {
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt(0));
+    mockProposal.findUnique.mockResolvedValue(mockActiveProposal);
+
+    const request = new NextRequest("http://localhost/api/governance/vote", {
+      method: "POST",
+      body: JSON.stringify({
+        proposalId: "prop-1",
+        voter: "bc1qnocoins",
+        voterSig: "sig",
+        choice: 0,
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe("No DIESEL balance at snapshot block");
+    expect(mockAlkanesClient.getDieselBalanceAtBlock).toHaveBeenCalledWith("bc1qnocoins", 900000);
+  });
+
   it("returns 400 when voter already voted", async () => {
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('1000000'));
     mockProposal.findUnique.mockResolvedValue(mockActiveProposal);
     mockVote.findUnique.mockResolvedValue({
       id: "existing-vote",
@@ -283,7 +344,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "sig",
         choice: 0,
-        votingPower: "1000000",
       }),
     });
 
@@ -304,7 +364,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "sig",
         choice: 0,
-        votingPower: "1000000",
       }),
     });
 
@@ -315,7 +374,8 @@ describe("POST /api/governance/vote", () => {
     expect(data.error).toBe("Failed to cast vote");
   });
 
-  it("correctly updates proposal scores", async () => {
+  it("correctly updates proposal scores with server-verified power", async () => {
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('500000'));
     // Use fresh mock data for this test to avoid state from previous tests
     const freshProposal = {
       id: "prop-score-test",
@@ -323,6 +383,7 @@ describe("POST /api/governance/vote", () => {
       choices: ["For", "Against", "Abstain"],
       author: "bc1qauthor",
       state: "ACTIVE",
+      snapshot: 900000,
       start: new Date(Date.now() - 86400000),
       end: new Date(Date.now() + 86400000),
       scores: ["100", "50", "25"],
@@ -341,7 +402,6 @@ describe("POST /api/governance/vote", () => {
         voter: "bc1qvoter",
         voterSig: "sig",
         choice: 1, // Vote for "Against"
-        votingPower: "500000",
       }),
     });
 

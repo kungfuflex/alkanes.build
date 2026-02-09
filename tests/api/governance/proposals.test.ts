@@ -1,6 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// Mock BIP-322 signature verification - must be before imports
+vi.mock("@/lib/bip322", () => ({
+  verifyMessageSignature: vi.fn().mockResolvedValue(true), // Default: signature valid
+}));
+
+// Mock alkanes-client module - must be before imports
+vi.mock("@/lib/alkanes-client", () => ({
+  alkanesClient: {
+    getCurrentHeight: vi.fn().mockResolvedValue(900000),
+    getDieselBalanceAtBlock: vi.fn().mockResolvedValue(BigInt('2000000000')), // 20 DIESEL (above threshold)
+  },
+}));
+
 // Mock prisma module - must be before imports
 vi.mock("@/lib/prisma", () => {
   return {
@@ -49,11 +62,15 @@ vi.mock("@/lib/prisma", () => {
 
 import { GET, POST } from "@/app/api/governance/proposals/route";
 import { prisma } from "@/lib/prisma";
+import { alkanesClient } from "@/lib/alkanes-client";
+import { verifyMessageSignature } from "@/lib/bip322";
 
 // Type assertions for mocks
 const mockProposal = prisma.proposal as any;
 const mockSettings = prisma.governanceSettings as any;
 const mockTransaction = prisma.$transaction as any;
+const mockAlkanesClient = alkanesClient as any;
+const mockVerifySignature = verifyMessageSignature as ReturnType<typeof vi.fn>;
 
 describe("GET /api/governance/proposals", () => {
   beforeEach(() => {
@@ -125,21 +142,26 @@ describe("GET /api/governance/proposals", () => {
     expect(data.pagination.pages).toBe(5);
   });
 
-  it("handles database errors", async () => {
+  it("returns empty results on database errors", async () => {
     mockProposal.findMany.mockRejectedValue(new Error("DB error"));
 
     const request = new NextRequest("http://localhost/api/governance/proposals");
     const response = await GET(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to fetch proposals");
+    expect(response.status).toBe(200);
+    expect(data.proposals).toEqual([]);
+    expect(data.pagination.total).toBe(0);
   });
 });
 
 describe("POST /api/governance/proposals", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-set default mock implementations after clearAllMocks
+    mockVerifySignature.mockResolvedValue(true);
+    mockAlkanesClient.getCurrentHeight.mockResolvedValue(900000);
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('2000000000')); // 2000 DIESEL
   });
 
   it("returns 400 for missing required fields", async () => {
@@ -172,6 +194,29 @@ describe("POST /api/governance/proposals", () => {
 
     expect(response.status).toBe(400);
     expect(data.error).toBe("At least 2 choices are required");
+  });
+
+  it("returns 401 when signature verification fails", async () => {
+    mockVerifySignature.mockResolvedValue(false);
+
+    const request = new NextRequest("http://localhost/api/governance/proposals", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Test",
+        body: "Content",
+        choices: ["For", "Against"],
+        author: "bc1qtest",
+        authorSig: "bad-sig",
+        authorPubkey: "deadbeef",
+        timestamp: Date.now(),
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe("Invalid signature");
   });
 
   it("creates proposal successfully", async () => {
@@ -319,5 +364,99 @@ describe("POST /api/governance/proposals", () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe("Failed to create proposal");
+  });
+
+  it("auto-sets snapshot to current block height", async () => {
+    mockAlkanesClient.getCurrentHeight.mockResolvedValue(950000);
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('2000000000'));
+    mockSettings.findFirst.mockResolvedValue({ votingDelay: 0, votingPeriod: 100 });
+
+    let createdData: any = null;
+    mockTransaction.mockImplementation(async (fn: any) => {
+      const ctx = {
+        proposal: {
+          create: vi.fn().mockImplementation((args: any) => {
+            createdData = args.data;
+            return { id: "new-id" };
+          }),
+        },
+        category: { findUnique: vi.fn().mockResolvedValue({ id: "cat-1" }), create: vi.fn() },
+        discussion: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: "disc-1" }) },
+        post: { create: vi.fn() },
+        discussionParticipant: { create: vi.fn() },
+        userProfile: { upsert: vi.fn() },
+      };
+      return fn(ctx);
+    });
+    mockProposal.findUnique.mockResolvedValue({
+      id: "new-id",
+      title: "Test",
+      discussion: { id: "disc-1", slug: "test" },
+    });
+
+    const request = new NextRequest("http://localhost/api/governance/proposals", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Test",
+        body: "Content",
+        choices: ["For", "Against"],
+        author: "bc1qtest",
+        authorSig: "sig",
+      }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    expect(createdData.snapshot).toBe(950000);
+  });
+
+  it("returns 403 when author has insufficient DIESEL balance", async () => {
+    mockAlkanesClient.getCurrentHeight.mockResolvedValue(900000);
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt('5000000')); // 5 DIESEL (below 10 DIESEL threshold)
+    mockSettings.findFirst.mockResolvedValue({
+      votingDelay: 0,
+      votingPeriod: 100,
+    });
+
+    const request = new NextRequest("http://localhost/api/governance/proposals", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Test",
+        body: "Content",
+        choices: ["For", "Against"],
+        author: "bc1qpoor",
+        authorSig: "sig",
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe("Insufficient DIESEL balance. Required: 10 DIESEL");
+  });
+
+  it("returns 403 when author has zero DIESEL balance", async () => {
+    mockAlkanesClient.getCurrentHeight.mockResolvedValue(900000);
+    mockAlkanesClient.getDieselBalanceAtBlock.mockResolvedValue(BigInt(0));
+    mockSettings.findFirst.mockResolvedValue(null); // Uses defaults
+
+    const request = new NextRequest("http://localhost/api/governance/proposals", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Test",
+        body: "Content",
+        choices: ["For", "Against"],
+        author: "bc1qempty",
+        authorSig: "sig",
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe("Insufficient DIESEL balance. Required: 10 DIESEL");
   });
 });

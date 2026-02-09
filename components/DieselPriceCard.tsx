@@ -4,16 +4,18 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { usePoolPrices, useBtcPrice, usePoolCandles, usePoolVolume, useMarketStats, formatUsd, formatCompact } from "@/hooks/usePriceData";
 import { AreaPriceChart, type CandleDataPoint } from "@/components/charts";
+import { AlertCircle } from "lucide-react";
 
 export function DieselPriceCard() {
   const t = useTranslations("dashboard.diesel");
-  const { data: pools, isLoading: poolsLoading } = usePoolPrices();
-  const { data: btcPrice, isLoading: btcLoading } = useBtcPrice();
+  const { data: pools, isLoading: poolsLoading, error: poolsError } = usePoolPrices();
+  const { data: btcPrice, isLoading: btcLoading, error: btcError } = useBtcPrice();
   const { data: candles } = usePoolCandles("DIESEL_FRBTC", "hourly", 24);
   const { data: volume } = usePoolVolume("DIESEL_FRBTC");
   const { data: marketStats } = useMarketStats();
 
   const isLoading = poolsLoading || btcLoading;
+  const hasError = (poolsError || btcError) && !pools;
 
   const dieselPriceFrbtc = pools?.pools.DIESEL_FRBTC.price || 0;
   const dieselPriceUsd = btcPrice ? dieselPriceFrbtc * btcPrice.usd : 0;
@@ -69,68 +71,79 @@ export function DieselPriceCard() {
             height={32}
             className="rounded-lg flex-shrink-0"
           />
-          <span className="font-semibold text-[color:var(--sf-text)] truncate">{t("title")}</span>
+          <span className="text-lg font-bold text-[color:var(--sf-text)] truncate">{t("title")}</span>
         </div>
         <span className={`badge ${isPositiveChange ? 'badge-active' : 'badge-danger'} flex-shrink-0`}>
           {change24hStr}
         </span>
       </div>
 
-      <div className="p-5 overflow-hidden">
-        {/* Price */}
-        <div className="mb-5">
-          {isLoading ? (
-            <div className="space-y-2">
-              <div className="h-8 w-40 max-w-full bg-[color:var(--sf-outline)] rounded animate-pulse" />
-              <div className="h-6 w-24 max-w-full bg-[color:var(--sf-outline)] rounded animate-pulse" />
+      <div className="p-4 overflow-hidden min-h-[160px]">
+        {hasError ? (
+          <div className="flex flex-col items-center justify-center min-h-[140px] gap-3">
+            <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)] flex items-center justify-center">
+              <AlertCircle size={18} className="text-[color:var(--sf-muted)]" />
             </div>
-          ) : (
-            <div className="overflow-hidden">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-2xl sm:text-3xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums break-all">
-                  {dieselPriceFrbtc.toFixed(8)}
-                </span>
-                <span className="text-sm text-[color:var(--sf-muted)]">BTC</span>
-              </div>
-              <div className="text-lg sm:text-xl text-[color:var(--sf-muted)] font-mono tabular-nums">
-                {formatUsd(dieselPriceUsd)}
-              </div>
+            <p className="text-sm text-[color:var(--sf-muted)]">Failed to load price data</p>
+          </div>
+        ) : (
+          <>
+            {/* Price */}
+            <div className="mb-3">
+              {isLoading ? (
+                <div className="space-y-2">
+                  <div className="h-6 w-36 max-w-full bg-[color:var(--sf-outline)] rounded animate-pulse" />
+                  <div className="h-4 w-20 max-w-full bg-[color:var(--sf-outline)] rounded animate-pulse" />
+                </div>
+              ) : (
+                <div className="overflow-hidden">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-xl sm:text-2xl font-bold text-[color:var(--sf-text)] font-mono tabular-nums break-all">
+                      {dieselPriceFrbtc.toFixed(8)}
+                    </span>
+                    <span className="text-xs text-[color:var(--sf-muted)]">BTC</span>
+                  </div>
+                  <div className="text-base text-[color:var(--sf-muted)] font-mono tabular-nums">
+                    {formatUsd(dieselPriceUsd)}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Chart */}
-        <div className="mb-5 -mx-1 overflow-hidden">
-          <AreaPriceChart
-            data={(candles?.candles || []) as CandleDataPoint[]}
-            height={100}
-            showGradient={true}
-          />
-        </div>
+            {/* Chart */}
+            <div className="mb-3 -mx-1 overflow-hidden">
+              <AreaPriceChart
+                data={(candles?.candles || []) as CandleDataPoint[]}
+                height={72}
+                showGradient={true}
+              />
+            </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="min-w-0">
-            <div className="text-[color:var(--sf-muted)] text-xs mb-1">{t("high")}</div>
-            <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">
-              {high24hUsd > 0 ? formatUsd(high24hUsd) : "--"}
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="min-w-0">
+                <div className="text-[color:var(--sf-muted)] mb-0.5">{t("high")}</div>
+                <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">
+                  {high24hUsd > 0 ? formatUsd(high24hUsd) : "--"}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[color:var(--sf-muted)] mb-0.5">{t("low")}</div>
+                <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">
+                  {low24hUsd > 0 ? formatUsd(low24hUsd) : "--"}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[color:var(--sf-muted)] mb-0.5">{t("volume")}</div>
+                <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">{volume24hStr}</div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[color:var(--sf-muted)] mb-0.5">{t("marketCap")}</div>
+                <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">{marketCapStr}</div>
+              </div>
             </div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-[color:var(--sf-muted)] text-xs mb-1">{t("low")}</div>
-            <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">
-              {low24hUsd > 0 ? formatUsd(low24hUsd) : "--"}
-            </div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-[color:var(--sf-muted)] text-xs mb-1">{t("volume")}</div>
-            <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">{volume24hStr}</div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-[color:var(--sf-muted)] text-xs mb-1">{t("marketCap")}</div>
-            <div className="text-[color:var(--sf-text)] font-medium font-mono tabular-nums truncate">{marketCapStr}</div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

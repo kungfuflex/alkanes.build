@@ -336,7 +336,8 @@ export function WalletProvider({ children, network }: WalletProviderProps) {
     if (walletType === 'browser') {
       return browserAddress.publicKey;
     }
-    return addresses.nativeSegwit.pubkey;
+    // Use taproot pubkey if taproot address is primary, otherwise nativeSegwit
+    return addresses.taproot.pubkey || addresses.nativeSegwit.pubkey;
   }, [walletType, browserAddress, addresses]);
 
   // Create new wallet

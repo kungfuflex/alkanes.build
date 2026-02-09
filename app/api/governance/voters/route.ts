@@ -60,9 +60,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching voters:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch voters" },
-      { status: 500 }
-    );
+    // Return empty results instead of 500 so frontend renders gracefully
+    return NextResponse.json({ voters: [], total: 0 });
   }
 }

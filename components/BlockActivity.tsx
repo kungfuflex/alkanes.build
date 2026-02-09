@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { AlertCircle } from "lucide-react";
 
 interface BlockTracesResponse {
   success: boolean;
@@ -105,7 +106,7 @@ function GaugeChart({ value, max = 3000 }: { value: number; max?: number }) {
 }
 
 export function BlockActivity() {
-  const { data } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ["block-traces"],
     queryFn: async (): Promise<BlockTracesResponse["data"]> => {
       const res = await fetch("/api/block-traces");
@@ -124,20 +125,34 @@ export function BlockActivity() {
   // Show stale data if available, even when there's an error
   const hasData = !!data;
 
+  // Match dot color to gauge level
+  let dotColor = "#6b7280"; // gray (default/low)
+  if (data) {
+    if (data.txCount >= 1500) dotColor = "#4ade80"; // green (high)
+    else if (data.txCount >= 300) dotColor = "#fbbf24"; // yellow (medium)
+  }
+
   return (
     <div className="glass-card overflow-hidden w-full">
       <div className="card-header flex items-center justify-between">
-        <h3 className="font-semibold text-[color:var(--sf-text)]">Last Block Activity</h3>
+        <h3 className="text-lg font-bold text-[color:var(--sf-text)]">Alkanes Block Activity</h3>
         {data && (
           <span className="text-xs text-[color:var(--sf-muted)] font-mono flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: dotColor }} />
             {data.height.toLocaleString()}
           </span>
         )}
       </div>
 
-      <div className="p-5">
-        {hasData ? (
+      <div className="p-5 min-h-[160px] flex items-center justify-center">
+        {error && !hasData ? (
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)] flex items-center justify-center">
+              <AlertCircle size={18} className="text-[color:var(--sf-muted)]" />
+            </div>
+            <p className="text-sm text-[color:var(--sf-muted)]">Failed to load block data</p>
+          </div>
+        ) : hasData ? (
           <GaugeChart value={data.txCount} />
         ) : (
           <div className="flex flex-col items-center py-4">

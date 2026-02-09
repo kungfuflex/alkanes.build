@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { alkanesClient } from "@/lib/alkanes-client";
+import { serializeBigInt } from "@/lib/serialize";
+import { verifyMessageSignature } from "@/lib/bip322";
 
 /**
  * POST /api/governance/vote
@@ -8,15 +11,14 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { proposalId, voter, voterSig, choice, votingPower, reason } = body;
+    const { proposalId, voter, voterSig, voterPubkey, choice, reason } = body;
 
     // Validate required fields
     if (
       !proposalId ||
       !voter ||
       !voterSig ||
-      choice === undefined ||
-      !votingPower
+      choice === undefined
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -57,11 +59,50 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid choice" }, { status: 400 });
     }
 
-    // TODO: Verify BIP-322 signature
-    // The signature should sign: JSON.stringify({ proposalId, choice, voter })
+    // BIP-322 signature verification
+    const { timestamp } = body;
+    const messageToVerify = JSON.stringify({
+      proposalId,
+      choice,
+      timestamp: timestamp || Date.now(),
+    });
 
-    // TODO: Verify voting power by querying DIESEL balance at snapshot block
-    // For now, trust the provided voting power
+    const network = process.env.NEXT_PUBLIC_NETWORK as 'mainnet' | 'testnet' | 'regtest' || 'mainnet';
+
+    console.log('[Vote] Verifying signature:', {
+      voter,
+      messageToVerify,
+      sigLength: voterSig?.length,
+      pubkeyLength: voterPubkey?.length,
+      network
+    });
+
+    const isValidSignature = await verifyMessageSignature(
+      messageToVerify,
+      voter,
+      voterSig,
+      network,
+      voterPubkey
+    );
+
+    console.log('[Vote] Signature verification result:', isValidSignature);
+
+    if (!isValidSignature) {
+      console.warn('[Vote] Signature verification failed');
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 401 }
+      );
+    }
+
+    // Verify voting power by querying DIESEL balance at snapshot block
+    const serverVotingPower = await alkanesClient.getDieselBalanceAtBlock(voter, proposal.snapshot);
+    if (serverVotingPower <= BigInt(0)) {
+      return NextResponse.json(
+        { error: "No DIESEL balance at snapshot block" },
+        { status: 403 }
+      );
+    }
 
     // Check if voter already voted
     const existingVote = await prisma.vote.findUnique({
@@ -80,25 +121,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create vote
+    // Create vote with server-verified voting power
     const vote = await prisma.vote.create({
       data: {
         proposalId,
         voter,
         voterSig,
         choice,
-        votingPower: BigInt(votingPower),
+        votingPower: serverVotingPower,
         reason,
       },
     });
 
-    // Update proposal scores
+    // Update proposal scores using server-verified voting power
     const scores = proposal.scores as string[];
     scores[choice] = (
-      BigInt(scores[choice] || "0") + BigInt(votingPower)
+      BigInt(scores[choice] || "0") + serverVotingPower
     ).toString();
 
-    const totalVotes = BigInt(proposal.totalVotes) + BigInt(votingPower);
+    const totalVotes = BigInt(proposal.totalVotes) + serverVotingPower;
 
     await prisma.proposal.update({
       where: { id: proposalId },
@@ -108,7 +149,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ vote }, { status: 201 });
+    return NextResponse.json({
+      vote: serializeBigInt(vote),
+      _debug: {
+        signatureVerified: isValidSignature,
+        message: messageToVerify,
+        sigBytes: Buffer.from(voterSig, 'base64').length
+      }
+    }, { status: 201 });
   } catch (error) {
     console.error("Error casting vote:", error);
     return NextResponse.json(

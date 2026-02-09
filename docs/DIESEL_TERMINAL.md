@@ -106,53 +106,34 @@ const MEMPOOL_API = 'https://mempool.space/api/v1/fees/mempool-blocks';
 
 #### Competition Scanning (AUTO-SCAN)
 
-Automatically counts DIESEL mints in mempool every 15 seconds:
+Automatically counts DIESEL mints in mempool every 15 seconds.
 
-```lua
-local minFeeRate = tonumber(args[1]) or 1
-local DIESEL_PREFIX = "6a5d1214011400"
+**Architecture:** The scan runs server-side via `GET /api/competition?minFeeRate=X` with Redis caching (TTL 15s). The Lua script (`btc_getrawmempool(true)` + `btc_getrawtransaction` per qualifying TX) is expensive, and the result is identical for all users (same mempool), so it executes once on the server and all clients receive the cached result.
 
-local mempool = _RPC.btc_getrawmempool(true)
-
-local dieselCount = 0
-local totalMempool = 0
-local qualifying = 0
-
-for txid, entry in pairs(mempool) do
-  totalMempool = totalMempool + 1
-
-  -- Ancestor fee rate: can this TX get in with its parents?
-  local ancestorFeeRate = (entry.fees.ancestor * 100000000) / entry.ancestorsize
-
-  -- Descendant fee rate: can this TX get in via CPFP (child paying for it)?
-  local descendantFeeRate = (entry.fees.descendant * 100000000) / entry.descendantsize
-
-  -- TX qualifies if EITHER rate is high enough (with 10% buffer)
-  local threshold = minFeeRate * 0.9
-
-  if ancestorFeeRate >= threshold or descendantFeeRate >= threshold then
-    qualifying = qualifying + 1
-    local tx = _RPC.btc_getrawtransaction(txid, true)
-
-    if tx and tx.vout then
-      for _, output in ipairs(tx.vout) do
-        if output.scriptPubKey and output.scriptPubKey.hex then
-          if string.sub(output.scriptPubKey.hex, 1, 14) == DIESEL_PREFIX then
-            dieselCount = dieselCount + 1
-            break
-          end
-        end
-      end
-    end
-  end
-end
-
-return {
-  total_mempool = totalMempool,
-  qualifying = qualifying,
-  diesel_mints = dieselCount
-}
 ```
+Client A ──► /api/competition ──► Redis cache hit  → instant response
+Client B ──► /api/competition ──► Redis cache hit  → instant response
+Client C ──► /api/competition ──► Redis cache miss → lua_evalscript → cache 15s → response
+```
+
+**Key files:**
+- `app/api/competition/route.ts` — server-side API endpoint + Lua script
+- `components/DieselTerminal.tsx` — client polling (`scanForDieselMints`)
+
+**Cache key:** `competition:scan:{Math.max(1, Math.round(minFeeRate))}` — fractional rates share the same cache entry.
+
+**Client call:**
+```typescript
+const res = await fetch(`/api/competition?minFeeRate=${minFeeForNextBlock}`);
+const data = await res.json();
+// data.data = { total_mempool, qualifying, diesel_mints }
+```
+
+**Lua script** (in `app/api/competition/route.ts`):
+- Iterates all mempool TXs via `_RPC.btc_getrawmempool(true)`
+- Filters by ancestor/descendant fee rate >= threshold (with 10% buffer)
+- For qualifying TXs, fetches decoded TX and checks OP_RETURN for DIESEL prefix `6a5d1214011400`
+- Returns `{ total_mempool, qualifying, diesel_mints }`
 
 ### 6. DIESEL Minting
 
@@ -589,7 +570,14 @@ const RPC_URL = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subf
 | `btc_getrawmempool(true)` | All mempool txids with fee info |
 | `btc_getrawtransaction(txid, true)` | Decoded transaction |
 | `btc_sendrawtransaction(hex)` | Broadcast transaction |
-| `lua_evalscript(script, ...args)` | Execute Lua script |
+| `lua_evalscript(script, ...args)` | Execute Lua script (server-side only) |
+
+### Internal APIs (Next.js)
+
+| API | Description |
+|-----|-------------|
+| `/api/competition?minFeeRate=X` | Competition scan (server-side, Redis cached 15s) |
+| `/api/pools?pool=DIESEL_FRBTC` | Price from DIESEL/frBTC pool |
 
 ### External APIs
 
@@ -599,7 +587,6 @@ const RPC_URL = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subf
 | `mempool.space/api/v1/mining/difficulty-adjustments/1m` | Difficulty adjustment data |
 | `mempool.space/api/address/{addr}/utxo` | UTXOs for address |
 | `mempool.space/api/tx/{txid}/hex` | Raw transaction hex |
-| `/api/pools?pool=DIESEL_FRBTC` | Price from DIESEL/frBTC pool |
 
 ## Example btc_getrawmempool(true) Response
 

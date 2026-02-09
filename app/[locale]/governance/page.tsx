@@ -5,8 +5,6 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@/context/WalletContext";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { ViewToggle } from "@/components/governance/ViewToggle";
 import {
   formatAddress,
@@ -14,6 +12,9 @@ import {
   formatTimeRemaining,
   formatRelativeTime,
 } from "@/lib/utils";
+import { VotingProgressBar } from "@/components/governance/VotingProgressBar";
+import AddressAvatar from "@/components/AddressAvatar";
+import { Plus } from "lucide-react";
 
 interface Proposal {
   id: string;
@@ -37,11 +38,14 @@ export default function GovernancePage() {
   const { isConnected } = useWallet();
   const [view, setView] = useState<"proposals" | "voters">("proposals");
   const [filter, setFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["proposals", filter],
+    queryKey: ["proposals", filter, page],
     queryFn: async () => {
       const params = new URLSearchParams();
+      params.set("page", page.toString());
+      params.set("limit", "12");
       if (filter !== "all") {
         params.set("state", filter);
       }
@@ -51,6 +55,8 @@ export default function GovernancePage() {
     },
   });
 
+  const totalPages = data?.pagination?.pages || 1;
+
   const filters = [
     { key: "all", label: t("governance.filters.all") },
     { key: "active", label: t("governance.filters.active") },
@@ -59,11 +65,8 @@ export default function GovernancePage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
+    <main className="py-8 px-4">
+      <div className="max-w-4xl mx-auto">
           {/* Page Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -75,9 +78,10 @@ export default function GovernancePage() {
             {isConnected && view === "proposals" && (
               <Link
                 href="/governance/create"
-                className="btn-primary text-sm"
+                className="btn-primary flex-shrink-0 !rounded-full !w-9 !h-9 !p-0 flex items-center justify-center sm:!rounded-xl sm:!w-auto sm:!h-auto sm:!px-5 sm:!py-2.5 text-sm"
               >
-                {t("governance.createProposal")}
+                <Plus size={16} className="sm:hidden" />
+                <span className="hidden sm:inline">{t("governance.createProposal")}</span>
               </Link>
             )}
           </div>
@@ -93,8 +97,8 @@ export default function GovernancePage() {
               {filters.map(({ key, label }) => (
                 <button
                   key={key}
-                  onClick={() => setFilter(key)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  onClick={() => { setFilter(key); setPage(1); }}
+                  className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
                     filter === key
                       ? "bg-[color:var(--sf-text)] text-[color:var(--sf-bg-start)]"
                       : "text-[color:var(--sf-muted)] border border-[color:var(--sf-outline)] hover:border-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)]"
@@ -129,25 +133,48 @@ export default function GovernancePage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {data?.proposals?.map((proposal: Proposal) => (
-                    <ProposalCard
-                      key={proposal.id}
-                      proposal={proposal}
-                      byLabel={t("governance.proposal.by")}
-                      votesLabel={t("governance.proposal.votes")}
-                      voteLabel={t("governance.proposal.vote")}
-                      startsLabel={t("governance.proposal.starts")}
-                      stateLabels={{
-                        ACTIVE: t("governance.states.ACTIVE"),
-                        PENDING: t("governance.states.PENDING"),
-                        CLOSED: t("governance.states.CLOSED"),
-                        EXECUTED: t("governance.states.EXECUTED"),
-                        CANCELLED: t("governance.states.CANCELLED"),
-                      }}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="glass-card overflow-hidden divide-y divide-[color:var(--sf-outline)]">
+                    {data?.proposals?.map((proposal: Proposal) => (
+                      <ProposalCard
+                        key={proposal.id}
+                        proposal={proposal}
+                        byLabel={t("governance.proposal.by")}
+                        startsLabel={t("governance.proposal.starts")}
+                        stateLabels={{
+                          ACTIVE: t("governance.states.ACTIVE"),
+                          PENDING: t("governance.states.PENDING"),
+                          CLOSED: t("governance.states.CLOSED"),
+                          EXECUTED: t("governance.states.EXECUTED"),
+                          CANCELLED: t("governance.states.CANCELLED"),
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-6">
+                      <button
+                        onClick={() => setPage(Math.max(1, page - 1))}
+                        disabled={page === 1}
+                        className="px-3 py-1.5 rounded-xl bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)] transition-colors"
+                      >
+                        {t("governance.pagination.previous")}
+                      </button>
+                      <span className="text-sm text-[color:var(--sf-muted)]">
+                        {page} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setPage(Math.min(totalPages, page + 1))}
+                        disabled={page === totalPages}
+                        className="px-3 py-1.5 rounded-xl bg-[color:var(--sf-surface)] text-[color:var(--sf-muted)] disabled:opacity-50 hover:bg-[color:var(--sf-outline)] transition-colors"
+                      >
+                        {t("governance.pagination.next")}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </>
           ) : (
@@ -155,29 +182,20 @@ export default function GovernancePage() {
           )}
         </div>
       </main>
-
-      <Footer />
-    </div>
   );
 }
 
 function ProposalCard({
   proposal,
   byLabel,
-  votesLabel,
-  voteLabel,
   startsLabel,
   stateLabels,
 }: {
   proposal: Proposal;
   byLabel: string;
-  votesLabel: string;
-  voteLabel: string;
   startsLabel: string;
   stateLabels: Record<string, string>;
 }) {
-  const totalVotes = BigInt(proposal.totalVotes || "0");
-
   // Handle scores - it might be a JSON string or already an array
   let scoresArray: string[] = [];
   if (typeof proposal.scores === "string") {
@@ -191,14 +209,6 @@ function ProposalCard({
   }
   const scores = scoresArray.map((s) => BigInt(s || "0"));
 
-  const stateClass = {
-    ACTIVE: "badge-active",
-    PENDING: "badge-pending",
-    CLOSED: "badge-closed",
-    EXECUTED: "badge-executed",
-    CANCELLED: "badge-closed",
-  }[proposal.state];
-
   // Binary voting: For vs Against
   const forVotes = scores[0] || BigInt(0);
   const againstVotes = scores[1] || BigInt(0);
@@ -211,68 +221,47 @@ function ProposalCard({
 
   const hasVotes = totalBinary > BigInt(0);
 
+  const dotColor =
+    proposal.state === "ACTIVE" ? "bg-green-400" :
+    proposal.state === "PENDING" ? "bg-yellow-400" :
+    proposal.state === "EXECUTED" ? "bg-blue-400" : "bg-gray-400";
+
   return (
-    <Link href={`/governance/${proposal.id}`} className="block">
-      <div className="glass-card hover:border-[color:var(--sf-muted)] transition-colors">
-        <div className="p-5">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`badge ${stateClass} text-[10px]`}>
-                  {stateLabels[proposal.state]}
-                </span>
-                <span className="text-xs text-[color:var(--sf-muted)]">
-                  {byLabel} {formatAddress(proposal.author)}
-                </span>
-              </div>
-              <h2 className="font-semibold text-[color:var(--sf-text)] line-clamp-2">
-                {proposal.title}
-              </h2>
-            </div>
-          </div>
-
-          {/* Progress Bar for Active Proposals */}
-          {proposal.state === "ACTIVE" && (
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1 flex gap-px">
-                {Array.from({ length: 160 }).map((_, i) => {
-                  const segmentThreshold = ((i + 1) / 160) * 100;
-                  const isFilled = hasVotes && forPercentage >= segmentThreshold;
-                  return (
-                    <div
-                      key={i}
-                      className={`flex-1 h-2.5 rounded-[1px] transition-colors ${
-                        isFilled
-                          ? "bg-[#4ade80]"
-                          : "bg-[#3a3a3a]"
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-              <span className="text-xs text-[color:var(--sf-muted)] tabular-nums w-16 text-right">
-                {hasVotes ? `${forPercentage}% For` : "No votes"}
-              </span>
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className="flex items-center justify-between text-xs text-[color:var(--sf-muted)]">
-            <span>
-              {proposal._count.votes} {proposal._count.votes !== 1 ? votesLabel : voteLabel}
-              {totalVotes > BigInt(0) && ` · ${formatDiesel(totalVotes)} DIESEL`}
-            </span>
-            <span>
-              {proposal.state === "ACTIVE"
-                ? formatTimeRemaining(proposal.end)
-                : proposal.state === "PENDING"
-                ? `${startsLabel} ${formatRelativeTime(proposal.start)}`
-                : formatRelativeTime(proposal.end)}
-            </span>
-          </div>
+    <Link
+      href={`/governance/${proposal.id}`}
+      className="flex items-center gap-3 px-5 py-5 hover:bg-white/[0.02] transition-colors overflow-hidden"
+    >
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 mb-0.5">
+          <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
+          <h2 className="text-[15px] font-medium text-[color:var(--sf-text)] truncate">
+            {proposal.title}
+          </h2>
         </div>
+        <p className="text-[13px] text-[color:var(--sf-muted)] truncate pl-3.5">
+          {byLabel} {formatAddress(proposal.author)}
+          {" · "}
+          {proposal.state === "ACTIVE"
+            ? formatTimeRemaining(proposal.end)
+            : proposal.state === "PENDING"
+            ? `${startsLabel} ${formatRelativeTime(proposal.start)}`
+            : formatRelativeTime(proposal.end)}
+        </p>
       </div>
+
+      {/* Progress bar */}
+      {proposal.state === "ACTIVE" && (
+        <div className="flex-shrink-0 w-[18%]">
+          <VotingProgressBar
+            forPercentage={forPercentage}
+            hasVotes={hasVotes}
+            forVotes={forVotes}
+            againstVotes={againstVotes}
+            showLabel={false}
+          />
+        </div>
+      )}
     </Link>
   );
 }
@@ -352,9 +341,12 @@ function VotersView() {
                   #{index + 1}
                 </td>
                 <td className="py-3 px-4">
-                  <span className="text-sm font-medium text-[color:var(--sf-text)] font-mono">
-                    {formatAddress(voter.voter)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <AddressAvatar address={voter.voter} size={24} />
+                    <span className="text-sm font-medium text-[color:var(--sf-text)] font-mono">
+                      {formatAddress(voter.voter)}
+                    </span>
+                  </div>
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className="text-sm text-[color:var(--sf-text)] font-mono tabular-nums">

@@ -5,8 +5,6 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress, cn } from "@/lib/utils";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 
 interface Post {
   id: string;
@@ -191,39 +189,28 @@ export default function DiscussionPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[color:var(--sf-primary)]" />
-        </div>
-        <Footer />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[color:var(--sf-primary)]" />
       </div>
     );
   }
 
   if (!discussion) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-[color:var(--sf-text)] mb-2">{t("forum.discussion.notFound.title")}</h1>
-            <p className="text-[color:var(--sf-muted)] mb-4">{t("forum.discussion.notFound.description")}</p>
-            <Link href="/forum" className="text-[color:var(--sf-primary)] hover:underline">
-              {t("forum.discussion.backToForum")}
-            </Link>
-          </div>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-[color:var(--sf-text)] mb-2">{t("forum.discussion.notFound.title")}</h1>
+          <p className="text-[color:var(--sf-muted)] mb-4">{t("forum.discussion.notFound.description")}</p>
+          <Link href="/forum" className="text-[color:var(--sf-primary)] hover:underline">
+            {t("forum.discussion.backToForum")}
+          </Link>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Back link and category */}
         <div className="flex items-center gap-4 mb-6">
           <Link
@@ -458,9 +445,6 @@ export default function DiscussionPage({
             )}
           </div>
         )}
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }

@@ -1,8 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { usePoolPrices, useBtcPrice, usePoolCandles, formatUsd, formatCompact } from "@/hooks/usePriceData";
 import { AreaPriceChart, type CandleDataPoint } from "@/components/charts";
 
@@ -94,10 +92,7 @@ export default function VaultsPage() {
       : null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="flex-1 py-8 px-4">
+    <main className="py-8 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Page Header */}
           <div className="mb-6">
@@ -152,10 +147,7 @@ export default function VaultsPage() {
             </div>
           )}
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </main>
   );
 }
 

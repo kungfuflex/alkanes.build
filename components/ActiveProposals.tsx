@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatAddress, formatTimeRemaining, formatRelativeTime } from "@/lib/utils";
+import { VotingProgressBar } from "@/components/governance/VotingProgressBar";
+import { Vote, AlertCircle } from "lucide-react";
 
 interface Proposal {
   id: string;
@@ -19,9 +21,10 @@ interface Proposal {
 
 export function ActiveProposals() {
   const t = useTranslations("dashboard.proposals");
+  const tCommon = useTranslations("common");
   const tGov = useTranslations("governance");
 
-  const { data } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ["activeProposals"],
     queryFn: async () => {
       const [activeRes, pendingRes] = await Promise.all([
@@ -43,39 +46,82 @@ export function ActiveProposals() {
     staleTime: 30000,
   });
 
+  const { data: votersData } = useQuery({
+    queryKey: ["votersCount"],
+    queryFn: async () => {
+      const res = await fetch("/api/governance/voters");
+      if (!res.ok) throw new Error("Failed to fetch voters");
+      return res.json();
+    },
+    staleTime: 60000,
+  });
+
   const proposals = data || [];
   const hasData = !!data;
+  const activeCount = proposals.filter((p) => p.state === "ACTIVE").length;
+  const totalVoters = votersData?.total || 0;
 
   return (
-    <div className="glass-card overflow-hidden w-full">
-      <div className="card-header flex items-center justify-between gap-2">
-        <h3 className="font-semibold text-[color:var(--sf-text)] truncate">{t("title")}</h3>
+    <div className="w-full">
+      <div className="flex items-center justify-between gap-2 mb-3 px-1">
+        <h3 className="text-lg font-bold text-[color:var(--sf-text)] truncate">{t("title")}</h3>
         <Link
           href="/governance"
           className="text-sm text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors whitespace-nowrap flex-shrink-0"
         >
-          View all →
+          {tCommon("viewAll")} →
         </Link>
       </div>
 
-      <div className="p-4 space-y-2 overflow-hidden">
-        {hasData && proposals.length === 0 ? (
-          <div className="p-4 text-center text-[color:var(--sf-muted)]">{tGov("noProposals")}</div>
-        ) : hasData ? (
-          proposals.map((proposal) => (
-            <ProposalRow
-              key={proposal.id}
-              proposal={proposal}
-              stateLabel={tGov(`states.${proposal.state}`)}
-            />
-          ))
-        ) : (
-          [1, 2, 3].map((i) => (
-            <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
-              <div className="h-4 bg-[color:var(--sf-outline)] rounded w-3/4 mb-2" />
-              <div className="h-3 bg-[color:var(--sf-outline)] rounded w-1/2" />
+      <div className="glass-card overflow-hidden" style={{ background: "#101010" }}>
+        <div className="rounded-b-3xl overflow-hidden bg-[color:var(--sf-surface)] divide-y divide-[color:var(--sf-outline)]">
+          {error ? (
+            <div className="flex flex-col items-center justify-center min-h-[160px] gap-3 p-6">
+              <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)] flex items-center justify-center">
+                <AlertCircle size={18} className="text-[color:var(--sf-muted)]" />
+              </div>
+              <p className="text-sm text-[color:var(--sf-muted)]">{tGov("error")}</p>
             </div>
-          ))
+          ) : hasData && proposals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[160px] gap-3 p-6">
+              <div className="w-10 h-10 rounded-full bg-[color:var(--sf-outline)] flex items-center justify-center">
+                <Vote size={18} className="text-[color:var(--sf-muted)]" />
+              </div>
+              <p className="text-sm text-[color:var(--sf-muted)]">{tGov("noProposals")}</p>
+              <Link
+                href="/governance/create"
+                className="text-xs text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors border border-[color:var(--sf-outline)] rounded-lg px-3 py-1.5"
+              >
+                {tGov("createProposal")} →
+              </Link>
+            </div>
+          ) : hasData ? (
+            proposals.map((proposal) => (
+              <ProposalRow
+                key={proposal.id}
+                proposal={proposal}
+                stateLabel={tGov(`states.${proposal.state}`)}
+              />
+            ))
+          ) : (
+            [1, 2, 3].map((i) => (
+              <div key={i} className="p-3 rounded-lg bg-[color:var(--sf-bg-end)] animate-pulse">
+                <div className="h-4 bg-[color:var(--sf-outline)] rounded w-3/4 mb-2" />
+                <div className="h-3 bg-[color:var(--sf-outline)] rounded w-1/2" />
+              </div>
+            ))
+          )}
+        </div>
+        {/* Footer */}
+        {hasData && (
+          <div className="px-5 py-3 flex items-center justify-between">
+            <p className="text-xs text-[color:var(--sf-muted)]">
+              Active: <span className="text-[color:var(--sf-text)] font-semibold tabular-nums">{activeCount}</span>
+            </p>
+            <p className="text-xs text-[color:var(--sf-muted)]">
+              Voters: <span className="text-[color:var(--sf-text)] font-semibold tabular-nums">{totalVoters}</span>
+            </p>
+          </div>
         )}
       </div>
     </div>
@@ -118,42 +164,46 @@ function ProposalRow({ proposal, stateLabel }: { proposal: Proposal; stateLabel:
 
   const hasVotes = totalVotes > BigInt(0);
 
-  // Match governance page segment count
-  const segmentCount = 160;
-
   return (
     <Link
       href={`/governance/${proposal.id}`}
-      className="block p-3 rounded-lg bg-black/20 backdrop-blur-sm border border-white/5 hover:bg-black/30 transition-colors group overflow-hidden"
+      className="flex items-center gap-3 px-5 py-4 hover:bg-white/[0.02] transition-colors group overflow-hidden"
     >
-      <div className="flex items-center justify-between gap-2 min-w-0">
-        <h4 className="font-medium text-sm text-[color:var(--sf-text)] truncate flex-1 min-w-0">
-          {proposal.title}
-        </h4>
-        <span className={`badge ${stateClass} text-[10px] flex-shrink-0`}>{stateLabel}</span>
+      {/* Left: content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 mb-0.5">
+          <span
+            className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+              proposal.state === "ACTIVE" ? "bg-green-400" :
+              proposal.state === "PENDING" ? "bg-yellow-400" :
+              proposal.state === "EXECUTED" ? "bg-blue-400" : "bg-gray-400"
+            }`}
+          />
+          <h4 className="text-[15px] text-[color:var(--sf-text)] truncate">
+            {proposal.title}
+          </h4>
+        </div>
+        <p className="text-[13px] text-[color:var(--sf-muted)] truncate pl-3.5">
+          {formatAddress(proposal.author)}
+          {" · "}
+          {proposal.state === "ACTIVE"
+            ? formatTimeRemaining(proposal.end)
+            : proposal.state === "PENDING"
+            ? formatRelativeTime(proposal.start)
+            : formatRelativeTime(proposal.end)}
+        </p>
       </div>
 
+      {/* Right: progress bar */}
       {proposal.state === "ACTIVE" && (
-        <div className="mt-3 flex items-center gap-2 overflow-hidden">
-          <div className="flex-1 flex gap-px min-w-0 overflow-hidden">
-            {Array.from({ length: segmentCount }).map((_, i) => {
-              const segmentThreshold = ((i + 1) / segmentCount) * 100;
-              const isFilled = hasVotes && forPercentage >= segmentThreshold;
-              return (
-                <div
-                  key={i}
-                  className={`flex-1 h-2.5 rounded-[1px] transition-colors min-w-0 ${
-                    isFilled
-                      ? "bg-[#4ade80]"
-                      : "bg-[#3a3a3a]"
-                  }`}
-                />
-              );
-            })}
-          </div>
-          <span className="text-[10px] text-[color:var(--sf-muted)] tabular-nums whitespace-nowrap flex-shrink-0">
-            {hasVotes ? `${forPercentage}%` : "No votes"}
-          </span>
+        <div className="flex-shrink-0 w-[20%]">
+          <VotingProgressBar
+            forPercentage={forPercentage}
+            hasVotes={hasVotes}
+            forVotes={forVotes}
+            againstVotes={againstVotes}
+            showLabel={false}
+          />
         </div>
       )}
     </Link>
