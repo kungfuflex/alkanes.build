@@ -6,6 +6,7 @@ import { useWalletBalances, formatBtcBalance } from "@/hooks/useWalletBalances";
 import * as bitcoin from "bitcoinjs-lib";
 import * as ecc from "@bitcoinerlab/secp256k1";
 import { AutoMintPanel } from "./AutoMintPanel";
+import { fetchWithTimeout } from "@/lib/fetch-utils";
 
 // Initialize ECC library for bitcoinjs-lib (required for P2TR addresses)
 bitcoin.initEccLib(ecc);
@@ -88,7 +89,7 @@ async function executeMint(
   if (utxoOverride) {
     utxo = utxoOverride;
   } else {
-    const utxoResponse = await fetch(`https://mempool.space/api/address/${address}/utxo`);
+    const utxoResponse = await fetchWithTimeout(`https://mempool.space/api/address/${address}/utxo`);
     const utxos = await utxoResponse.json();
     if (!utxos || utxos.length === 0) {
       throw new Error("No UTXOs available");
@@ -118,7 +119,7 @@ async function executeMint(
   if (utxo.rawTxHex) {
     rawTxHex = utxo.rawTxHex;
   } else {
-    const txResponse = await fetch(`https://mempool.space/api/tx/${utxo.txid}/hex`);
+    const txResponse = await fetchWithTimeout(`https://mempool.space/api/tx/${utxo.txid}/hex`);
     rawTxHex = await txResponse.text();
   }
 
@@ -171,7 +172,7 @@ async function executeMint(
   const txid = bitcoin.Transaction.fromHex(signedTxHex).getId();
 
   const rpcUrl = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || "https://mainnet.subfrost.io/v4/buildalkanes";
-  const broadcastResponse = await fetch(rpcUrl, {
+  const broadcastResponse = await fetchWithTimeout(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -558,6 +559,7 @@ const DieselTerminal = () => {
     totalVsize: number;
     feesExcludingLast: number;
     totalFees: number;
+    preRbfTotalFees: number | null; // Fees before first RBF (null = no RBF yet)
   };
   type CpfpData = {
     lastTxid: string;
@@ -581,6 +583,14 @@ const DieselTerminal = () => {
   // CPFP state - track last TX output for creating child
   const [cpfpData, setCpfpData] = useState<CpfpData | null>(null);
   const cpfpDataRef = useRef<CpfpData | null>(null);
+
+  // Session spending tracking (actual costs from handleMint/handleRbf/handleCpfp)
+  const [sessionSpent, setSessionSpent] = useState(0);
+  const adjustedChainsRef = useRef(new Set<string>());
+  const resetSessionSpent = useCallback(() => {
+    setSessionSpent(0);
+    adjustedChainsRef.current.clear();
+  }, []);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -696,7 +706,7 @@ const DieselTerminal = () => {
     if (!address) return;
     setLoadingUtxos(true);
     try {
-      const res = await fetch(RPC_URL, {
+      const res = await fetchWithTimeout(RPC_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -764,7 +774,7 @@ const DieselTerminal = () => {
     try {
       // Verify chain UTXO still exists (not confirmed or replaced)
       if (continuingChain) {
-        const checkRes = await fetch(RPC_URL, {
+        const checkRes = await fetchWithTimeout(RPC_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -884,11 +894,14 @@ const DieselTerminal = () => {
       const allTxids = [...existingTxids, ...txids];
 
       setMintResult({ txids: allTxids, totalFee });
+      setSessionSpent(prev => prev + newTxsFee);
 
       // Save RBF data for the combined chain
       if (lastTxInputUtxo) {
         const chainLen = existingChainLength + mintCount;
         const totalVsizeCalc = chainLen * TX_VSIZE;
+        // Preserve preRbfTotalFees from existing chain (for chain continuation after RBF)
+        const existingPreRbf = continuingChain ? rbfData?.preRbfTotalFees ?? null : null;
         setRbfData({
           lastTxInput: lastTxInputUtxo,
           lastTxFee: Number(lastTxFee) || 0,
@@ -896,6 +909,7 @@ const DieselTerminal = () => {
           totalVsize: totalVsizeCalc,
           feesExcludingLast: Number(feesExcludingLast) || 0,
           totalFees: Number(totalFee) || 0,
+          preRbfTotalFees: existingPreRbf,
         });
       }
 
@@ -913,6 +927,7 @@ const DieselTerminal = () => {
       // Save to chainsMap for UTXO-based chain tracking
       if (sourceUtxoKey && lastTxInputUtxo && newCpfpData) {
         const chainLen = existingChainLength + mintCount;
+        const existingPreRbf2 = continuingChain ? rbfData?.preRbfTotalFees ?? null : null;
         const newRbfData: RbfData = {
           lastTxInput: lastTxInputUtxo,
           lastTxFee: Number(lastTxFee) || 0,
@@ -920,6 +935,7 @@ const DieselTerminal = () => {
           totalVsize: chainLen * TX_VSIZE,
           feesExcludingLast: Number(feesExcludingLast) || 0,
           totalFees: Number(totalFee) || 0,
+          preRbfTotalFees: existingPreRbf2,
         };
 
         setChainsMap(prev => {
@@ -986,19 +1002,16 @@ const DieselTerminal = () => {
 
   const handleRbf = async (directRate?: number) => {
     if (!signTaprootPsbt || !address || !publicKey || !rbfData) {
-      setMintError("Missing data for RBF");
-      return;
+      throw new Error("Missing data for RBF");
     }
 
     const targetEffectiveRate = directRate ?? parseFloat(rbfFeeRate);
     if (isNaN(targetEffectiveRate) || targetEffectiveRate <= 0) {
-      setMintError("Enter valid target effective rate");
-      return;
+      throw new Error("Enter valid target effective rate");
     }
 
     if (!rbfData.totalVsize || rbfData.totalVsize <= 0) {
-      setMintError("Invalid chain data - try detecting chain again");
-      return;
+      throw new Error("Invalid chain data - try detecting chain again");
     }
 
     // Calculate required last TX fee to achieve target effective rate
@@ -1012,8 +1025,7 @@ const DieselTerminal = () => {
     const actualLastTxFee = Math.max(requiredLastTxFee, minLastTxFee);
 
     if (actualLastTxFee <= rbfData.lastTxFee) {
-      setMintError(`Target must be > ${currentEffectiveRate.toFixed(2)} sat/vB (min: ${minEffectiveRate.toFixed(2)})`);
-      return;
+      throw new Error(`Target must be > ${currentEffectiveRate.toFixed(2)} sat/vB (min: ${minEffectiveRate.toFixed(2)})`);
     }
 
     setIsRbfing(true);
@@ -1036,6 +1048,7 @@ const DieselTerminal = () => {
       const newTxids = [...oldTxids.slice(0, -1), result.txid]; // Replace last txid
 
       const newTotalFees = (rbfData.feesExcludingLast || 0) + actualLastTxFee;
+      setSessionSpent(prev => prev + (newTotalFees - rbfData.totalFees));
 
       setMintResult({ txids: newTxids, totalFee: newTotalFees });
 
@@ -1044,6 +1057,7 @@ const DieselTerminal = () => {
         ...rbfData,
         lastTxFee: actualLastTxFee,
         totalFees: newTotalFees,
+        preRbfTotalFees: rbfData.preRbfTotalFees ?? rbfData.totalFees,
       };
       setRbfData(newRbfData);
 
@@ -1082,20 +1096,17 @@ const DieselTerminal = () => {
 
   const handleCpfp = async (directRate?: number) => {
     if (!signTaprootPsbt || !address || !publicKey || !cpfpData || !rbfData) {
-      setMintError("Missing data for CPFP");
-      return;
+      throw new Error("Missing data for CPFP");
     }
 
     // Check chain length limit
     if (rbfData.chainLength >= MAX_CHAIN_LENGTH) {
-      setMintError(`Chain limit reached (${MAX_CHAIN_LENGTH} TXs). Use RBF instead.`);
-      return;
+      throw new Error(`Chain limit reached (${MAX_CHAIN_LENGTH} TXs). Use RBF instead.`);
     }
 
     const targetEffectiveRate = directRate ?? parseFloat(rbfFeeRate);
     if (isNaN(targetEffectiveRate) || targetEffectiveRate <= 0) {
-      setMintError("Enter valid target effective rate");
-      return;
+      throw new Error("Enter valid target effective rate");
     }
 
     // Calculate required child fee to achieve target effective rate for package
@@ -1111,8 +1122,7 @@ const DieselTerminal = () => {
     // Check if we have enough balance in the last output
     const dustLimit = 330; // P2TR dust limit
     if (cpfpData.lastOutputValue - actualChildFee < dustLimit) {
-      setMintError(`Insufficient balance for CPFP: need ${actualChildFee + dustLimit} sats, have ${cpfpData.lastOutputValue}`);
-      return;
+      throw new Error(`Insufficient balance for CPFP: need ${actualChildFee + dustLimit} sats, have ${cpfpData.lastOutputValue}`);
     }
 
     setIsRbfing(true);
@@ -1143,6 +1153,7 @@ const DieselTerminal = () => {
       const newTotalFees = rbfData.totalFees + actualChildFee;
       const newChainLength = rbfData.chainLength + 1;
       const newTotalVsizeActual = newChainLength * TX_VSIZE;
+      setSessionSpent(prev => prev + actualChildFee);
 
       setMintResult({ txids: newTxids, totalFee: newTotalFees });
 
@@ -1154,6 +1165,7 @@ const DieselTerminal = () => {
         totalVsize: newTotalVsizeActual,
         feesExcludingLast: rbfData.totalFees, // Previous total becomes "excluding last"
         totalFees: newTotalFees,
+        preRbfTotalFees: rbfData.preRbfTotalFees ?? null,
       };
       setRbfData(newRbfData);
 
@@ -1196,7 +1208,7 @@ const DieselTerminal = () => {
 
     try {
       // Fetch all transactions for the address
-      const txsResponse = await fetch(`https://mempool.space/api/address/${address}/txs`);
+      const txsResponse = await fetchWithTimeout(`https://mempool.space/api/address/${address}/txs`);
       const txs = await txsResponse.json();
 
       // Filter unconfirmed transactions
@@ -1337,7 +1349,7 @@ const DieselTerminal = () => {
         // Build RBF data
         let lastTxInput: UtxoInput;
         if (chainLen >= 2 && secondToLastTx) {
-          const rawTxRes = await fetch(`https://mempool.space/api/tx/${secondToLastTx.txid}/hex`);
+          const rawTxRes = await fetchWithTimeout(`https://mempool.space/api/tx/${secondToLastTx.txid}/hex`);
           const rawTxHex = await rawTxRes.text();
           lastTxInput = {
             txid: secondToLastTx.txid,
@@ -1346,7 +1358,7 @@ const DieselTerminal = () => {
             rawTxHex,
           };
         } else {
-          const rawTxRes = await fetch(`https://mempool.space/api/tx/${sourceUtxo.txid}/hex`);
+          const rawTxRes = await fetchWithTimeout(`https://mempool.space/api/tx/${sourceUtxo.txid}/hex`);
           const rawTxHex = await rawTxRes.text();
           lastTxInput = {
             txid: sourceUtxo.txid,
@@ -1363,10 +1375,11 @@ const DieselTerminal = () => {
           totalVsize: Number(totalVsize) || 0,
           feesExcludingLast: Number(feesExcludingLast) || 0,
           totalFees: Number(totalFees) || 0,
+          preRbfTotalFees: null,
         };
 
         // Build CPFP data
-        const lastTxRawRes = await fetch(`https://mempool.space/api/tx/${lastTx.txid}/hex`);
+        const lastTxRawRes = await fetchWithTimeout(`https://mempool.space/api/tx/${lastTx.txid}/hex`);
         const lastTxRawHex = await lastTxRawRes.text();
         const lastOutputValue = lastTx.vout[0]?.value || 0;
 
@@ -1433,7 +1446,7 @@ const DieselTerminal = () => {
 
     const checkConfirmation = async () => {
       try {
-        const res = await fetch(RPC_URL, {
+        const res = await fetchWithTimeout(RPC_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1451,29 +1464,48 @@ const DieselTerminal = () => {
           return;
         }
 
-        // If lastTxid doesn't exist (RBF didn't make it to mempool),
-        // check if the FIRST tx of the original chain was confirmed instead
         const lastTxNotFound = data.error || !data.result;
 
-        if (lastTxNotFound && mintResult?.txids && mintResult.txids.length > 0) {
+        // Check if the original chain was confirmed (RBF race condition).
+        // After RBF, lastTxid is the replacement TX. If the block confirmed the
+        // ORIGINAL chain before the RBF propagated, the RBF TX may still appear
+        // in esplora (status: unconfirmed) but is actually invalid.
+        // We detect this by checking if the first TX of the chain is confirmed.
+        if (mintResult?.txids && mintResult.txids.length > 0) {
           const firstTxid = mintResult.txids[0];
-          const firstTxRes = await fetch(RPC_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 1,
-              method: 'esplora_tx',
-              params: [firstTxid],
-            }),
-          });
-          const firstTxData = await firstTxRes.json();
+          // Only need cross-check when lastTxid differs from firstTxid (RBF happened)
+          // or when lastTxid is not found at all
+          if (lastTxNotFound || firstTxid !== cpfpData.lastTxid) {
+            const firstTxRes = await fetchWithTimeout(RPC_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'esplora_tx',
+                params: [firstTxid],
+              }),
+            });
+            const firstTxData = await firstTxRes.json();
 
-          // If first TX is confirmed, original chain was mined (RBF lost the race)
-          // If first TX also not found, chain was evicted - clear anyway
-          if (firstTxData.result?.status?.confirmed || firstTxData.error || !firstTxData.result) {
-            clearChainData();
-            return;
+            // If first TX is confirmed, original chain was mined (RBF lost the race)
+            if (firstTxData.result?.status?.confirmed) {
+              // Subtract invalid RBF cost from session spending
+              if (currentChainUtxoKey && !adjustedChainsRef.current.has(currentChainUtxoKey) && rbfData?.preRbfTotalFees != null) {
+                const overpay = rbfData.totalFees - rbfData.preRbfTotalFees;
+                if (overpay > 0) {
+                  setSessionSpent(prev => Math.max(0, prev - overpay));
+                  adjustedChainsRef.current.add(currentChainUtxoKey);
+                }
+              }
+              clearChainData();
+              return;
+            }
+            // If first TX also not found, chain was evicted - clear anyway
+            if (firstTxData.error || !firstTxData.result) {
+              clearChainData();
+              return;
+            }
           }
         }
 
@@ -1482,7 +1514,7 @@ const DieselTerminal = () => {
           clearChainData();
         }
       } catch {
-        // Ignore errors, will retry next interval
+        // Network/timeout errors — will retry next interval
       }
     };
 
@@ -1523,7 +1555,7 @@ const DieselTerminal = () => {
       for (const [utxoKey, chainData] of chainsMap) {
         try {
           // Check lastTxid (could be RBF replacement)
-          const lastTxRes = await fetch(RPC_URL, {
+          const lastTxRes = await fetchWithTimeout(RPC_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1541,34 +1573,49 @@ const DieselTerminal = () => {
             continue;
           }
 
-          // If lastTxid doesn't exist (RBF didn't make it to mempool),
-          // check if the FIRST tx of the original chain was confirmed instead
           const lastTxNotFound = lastTxData.error || !lastTxData.result;
 
-          if (lastTxNotFound && chainData.mintResult.txids.length > 0) {
+          // Check if original chain was confirmed (RBF race condition).
+          // After RBF, lastTxid is the replacement TX. The block may have confirmed
+          // the ORIGINAL chain, making the RBF invalid — but esplora may still
+          // return the RBF TX as unconfirmed. Cross-check with the first TX.
+          if (chainData.mintResult.txids.length > 0) {
             const firstTxid = chainData.mintResult.txids[0];
-            const firstTxRes = await fetch(RPC_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 1,
-                method: 'esplora_tx',
-                params: [firstTxid],
-              }),
-            });
-            const firstTxData = await firstTxRes.json();
+            if (lastTxNotFound || firstTxid !== chainData.cpfpData.lastTxid) {
+              const firstTxRes = await fetchWithTimeout(RPC_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  jsonrpc: '2.0',
+                  id: 1,
+                  method: 'esplora_tx',
+                  params: [firstTxid],
+                }),
+              });
+              const firstTxData = await firstTxRes.json();
 
-            // If first TX is confirmed, original chain was mined (RBF lost the race)
-            // If first TX also not found, something is wrong - remove chain anyway
-            if (firstTxData.result?.status?.confirmed || firstTxData.error || !firstTxData.result) {
-              confirmedKeys.push(utxoKey);
-              continue;
+              // If first TX is confirmed, original chain was mined (RBF lost the race)
+              if (firstTxData.result?.status?.confirmed) {
+                // Subtract invalid RBF cost from session spending
+                if (!adjustedChainsRef.current.has(utxoKey) && chainData.rbfData.preRbfTotalFees != null) {
+                  const overpay = chainData.rbfData.totalFees - chainData.rbfData.preRbfTotalFees;
+                  if (overpay > 0) {
+                    setSessionSpent(prev => Math.max(0, prev - overpay));
+                    adjustedChainsRef.current.add(utxoKey);
+                  }
+                }
+                confirmedKeys.push(utxoKey);
+                continue;
+              }
+              // If first TX also not found, chain was evicted
+              if (firstTxData.error || !firstTxData.result) {
+                confirmedKeys.push(utxoKey);
+                continue;
+              }
             }
           }
 
-          // If lastTxid not found and first TX not found/not confirmed,
-          // the chain was likely evicted from mempool entirely - remove it
+          // If lastTxid not found for any reason, clear the chain
           if (lastTxNotFound) {
             confirmedKeys.push(utxoKey);
           }
@@ -1633,7 +1680,7 @@ const DieselTerminal = () => {
 
   // Competition scanning state
   const [isScanning, setIsScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState({ checked: 0, total: 0, found: 0 });
+  const [scanProgress, setScanProgress] = useState({ nextBlockTxs: 0, found: 0 });
   const [detectedCompetition, setDetectedCompetition] = useState<number | null>(null);
   const [autoCompetition, setAutoCompetition] = useState(true); // Auto-update competition from scan
 
@@ -1650,7 +1697,7 @@ const DieselTerminal = () => {
   const fetchBlockHeight = useCallback(async () => {
     try {
       // Get block count
-      const countRes = await fetch(RPC_URL, {
+      const countRes = await fetchWithTimeout(RPC_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1660,7 +1707,6 @@ const DieselTerminal = () => {
           params: []
         })
       });
-      if (!countRes.ok) throw new Error(`HTTP ${countRes.status}`);
       const countData = await countRes.json();
 
       if (countData.result) {
@@ -1668,7 +1714,7 @@ const DieselTerminal = () => {
         setBlockHeight(height);
 
         // Get block hash for this height
-        const hashRes = await fetch(RPC_URL, {
+        const hashRes = await fetchWithTimeout(RPC_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1682,7 +1728,7 @@ const DieselTerminal = () => {
 
         if (hashData.result) {
           // Get block header to get timestamp
-          const headerRes = await fetch(RPC_URL, {
+          const headerRes = await fetchWithTimeout(RPC_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1714,8 +1760,8 @@ const DieselTerminal = () => {
   // Fetch difficulty adjustment data and calculate average block time
   const fetchDifficultyData = useCallback(async () => {
     try {
-      const res = await fetch('https://mempool.space/api/v1/mining/difficulty-adjustments/1m');
-      if (!res.ok) return;
+      const res = await fetchWithTimeout('https://mempool.space/api/v1/mining/difficulty-adjustments/1m');
+      // fetchWithTimeout throws on non-2xx, so no need for res.ok check
       const data = await res.json();
 
       if (data && data.length > 0 && blockHeight && blockTime) {
@@ -1752,8 +1798,7 @@ const DieselTerminal = () => {
   // Fetch pool price from DIESEL/frBTC pool
   const fetchPoolPrice = useCallback(async () => {
     try {
-      const res = await fetch('/api/pools?pool=DIESEL_FRBTC');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetchWithTimeout('/api/pools?pool=DIESEL_FRBTC');
       const data = await res.json();
 
       if (data.success && data.data?.price) {
@@ -1792,8 +1837,7 @@ const DieselTerminal = () => {
   // Fetch mempool data
   const fetchMempool = useCallback(async () => {
     try {
-      const res = await fetch(MEMPOOL_API);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetchWithTimeout(MEMPOOL_API);
       const data: MempoolBlock[] = await res.json();
       setMempoolBlocks(data);
       setMempoolError(null);
@@ -1858,28 +1902,27 @@ const DieselTerminal = () => {
     return distributableSats / 100_000_000; // Convert to DIESEL units
   }, [mempoolStats?.nextBlockFees]);
 
+  const MIN_SCAN_DISPLAY_MS = 1500;
+
   // Scan mempool for DIESEL mint transactions via server-side API (cached)
   const scanForDieselMints = useCallback(async () => {
     if (!mempoolStats) return;
 
     setIsScanning(true);
-    setScanProgress({ checked: 0, total: 0, found: 0 });
+    const scanStart = Date.now();
 
     try {
-      const minFeeForNextBlock = mempoolStats.minFee;
-
-      const res = await fetch(`/api/competition?minFeeRate=${minFeeForNextBlock}`);
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const res = await fetchWithTimeout('/api/competition').catch(() => null);
+      if (!res) return; // Network/timeout error — silently skip, will retry next interval
       const data = await res.json();
 
-      if (!data.success) throw new Error(data.error || 'Unknown error');
+      if (!data.success) return; // Server-side error — skip
 
       const result = data.data;
 
       if (result) {
         setScanProgress({
-          checked: result.qualifying,
-          total: result.total_mempool,
+          nextBlockTxs: result.next_block_txs,
           found: result.diesel_mints
         });
 
@@ -1891,13 +1934,19 @@ const DieselTerminal = () => {
       }
 
     } catch (err) {
-      console.error('[DieselTerminal] Scan error:', err);
+      // Silently skip — will retry next interval
     } finally {
-      setIsScanning(false);
+      const elapsed = Date.now() - scanStart;
+      const remaining = MIN_SCAN_DISPLAY_MS - elapsed;
+      if (remaining > 0) {
+        setTimeout(() => setIsScanning(false), remaining);
+      } else {
+        setIsScanning(false);
+      }
     }
   }, [mempoolStats, autoCompetition]);
 
-  // Auto-scan competition every 5 seconds
+  // Auto-scan competition every 15 seconds
   useEffect(() => {
     if (!mempoolStats) return;
 
@@ -1912,7 +1961,7 @@ const DieselTerminal = () => {
     }, COMPETITION_REFRESH_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [mempoolStats?.minFee]); // Re-run when minFee changes
+  }, [mempoolStats?.minFee]); // Re-run when minFee changes (new block)
 
   // Current time state for elapsed time calculation (updates every second)
   const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000));
@@ -2135,9 +2184,12 @@ const DieselTerminal = () => {
               <span className="text-[#ff4444] font-bold">{Math.max(0, competition - Array.from(chainsMap.values()).reduce((sum, c) => sum + c.rbfData.chainLength, 0))}</span>
               <div className="absolute top-full left-0 mt-2 px-3 py-2 bg-[#1a1a1a] border border-[#404040] text-sm text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-64 pointer-events-none z-50">
                 <div className="text-orange-500 font-bold mb-1">EFFECTIVE COMPETITION</div>
-                <div>Competing mints minus your chains</div>
+                <div>Competing mints in next block</div>
                 <div className="mt-1 text-[#707070]">Total detected: {competition}</div>
                 <div className="text-[#707070]">Your TXs: {Array.from(chainsMap.values()).reduce((sum, c) => sum + c.rbfData.chainLength, 0)}</div>
+                {scanProgress.nextBlockTxs > 0 && (
+                  <div className="mt-1 text-[#707070]">Next block: {scanProgress.nextBlockTxs.toLocaleString()} TXs</div>
+                )}
               </div>
             </div>
             {isScanning ? (
@@ -2172,6 +2224,8 @@ const DieselTerminal = () => {
             blockReward={blockReward}
             dieselPrice={dieselPrice}
             competition={competition}
+            sessionSpent={sessionSpent}
+            onResetSpent={resetSessionSpent}
             onMint={handleMint}
             onRbf={handleRbf}
             onCpfp={handleCpfp}

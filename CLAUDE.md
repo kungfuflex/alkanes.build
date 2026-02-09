@@ -197,6 +197,13 @@ OP_RETURN for DIESEL mint:
 6a5d1214011400ff7f818cec82d08bc0a88281d215
 ```
 
+### Competition Scanner
+
+Uses `btc_getblocktemplate` RPC to count DIESEL mints in the projected next block. Single RPC call returns all TXs with raw hex — search for DIESEL prefix `6a5d1214011400` via `string.includes`. No Lua scripts, no `getrawtransaction`. Cached 15s in Redis.
+
+- `app/api/competition/route.ts` — API endpoint (direct RPC to `btc_getblocktemplate`)
+- `GET /api/competition` → `{ next_block_txs, diesel_mints }`
+
 ### RBF Race Condition — Chain Confirmation Check
 
 **Problem**: When sending an RBF transaction, a block may be mined BEFORE the RBF reaches the mempool:

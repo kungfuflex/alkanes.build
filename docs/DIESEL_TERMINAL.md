@@ -106,34 +106,38 @@ const MEMPOOL_API = 'https://mempool.space/api/v1/fees/mempool-blocks';
 
 #### Competition Scanning (AUTO-SCAN)
 
-Automatically counts DIESEL mints in mempool every 15 seconds.
+Automatically counts DIESEL mints in the next block every 15 seconds.
 
-**Architecture:** The scan runs server-side via `GET /api/competition?minFeeRate=X` with Redis caching (TTL 15s). The Lua script (`btc_getrawmempool(true)` + `btc_getrawtransaction` per qualifying TX) is expensive, and the result is identical for all users (same mempool), so it executes once on the server and all clients receive the cached result.
+**Architecture:** Uses `btc_getblocktemplate` RPC — returns the exact block a miner would build, with raw TX hex for every transaction. The server searches each TX for the DIESEL OP_RETURN prefix via `string.includes`. No Lua scripts, no `getrawtransaction` calls. Result is cached in Redis (TTL 15s) since it's identical for all users.
 
 ```
 Client A ──► /api/competition ──► Redis cache hit  → instant response
 Client B ──► /api/competition ──► Redis cache hit  → instant response
-Client C ──► /api/competition ──► Redis cache miss → lua_evalscript → cache 15s → response
+Client C ──► /api/competition ──► Redis cache miss → btc_getblocktemplate → cache 15s → response
 ```
 
+**Why `getblocktemplate`:**
+- **1 RPC call** instead of thousands (`getrawmempool` + `getrawtransaction` per TX)
+- **Exact** block composition — fee rate sorting and block size limit already applied by the miner
+- **No threshold tuning** — no `minFeeRate` parameter, no 0.9x buffer, no histogram estimation
+
 **Key files:**
-- `app/api/competition/route.ts` — server-side API endpoint + Lua script
+- `app/api/competition/route.ts` — server-side API endpoint (direct RPC, no Lua)
 - `components/DieselTerminal.tsx` — client polling (`scanForDieselMints`)
 
-**Cache key:** `competition:scan:{Math.max(1, Math.round(minFeeRate))}` — fractional rates share the same cache entry.
+**Cache key:** `competition:scan`
 
 **Client call:**
 ```typescript
-const res = await fetch(`/api/competition?minFeeRate=${minFeeForNextBlock}`);
+const res = await fetch('/api/competition');
 const data = await res.json();
-// data.data = { total_mempool, qualifying, diesel_mints }
+// data.data = { next_block_txs, diesel_mints }
 ```
 
-**Lua script** (in `app/api/competition/route.ts`):
-- Iterates all mempool TXs via `_RPC.btc_getrawmempool(true)`
-- Filters by ancestor/descendant fee rate >= threshold (with 10% buffer)
-- For qualifying TXs, fetches decoded TX and checks OP_RETURN for DIESEL prefix `6a5d1214011400`
-- Returns `{ total_mempool, qualifying, diesel_mints }`
+**Server logic** (in `app/api/competition/route.ts`):
+- Calls `btc_getblocktemplate({ rules: ["segwit"] })` — returns ~3000-5000 TXs with raw hex
+- Searches each `tx.data` for DIESEL prefix `6a5d1214011400` via `string.includes`
+- Returns `{ next_block_txs, diesel_mints }`
 
 ### 6. DIESEL Minting
 
@@ -266,25 +270,32 @@ const chainsMap = new Map<string, ChainData>();
 
 The panel automatically disappears when the chain is mined:
 
-- Every 30 seconds, checks the status of the last TX via `esplora_tx`
+- Every 30 seconds (and on each new block), checks the status of the last TX via `esplora_tx`
 - If `status.confirmed === true`, all chain data is cleared
 - Balances are refreshed automatically
 
+**RBF Race Condition Handling:**
+
+After an RBF, `lastTxid` points to the replacement TX. If a block confirms the ORIGINAL chain before the RBF propagates, the RBF TX becomes invalid. However, `esplora_tx` may still return the RBF TX as unconfirmed (cached data). The confirmation check handles this with a cross-check:
+
+1. Check `lastTxid` — if confirmed → clear chain (normal case)
+2. If `lastTxid` is unconfirmed AND differs from `firstTxid` (i.e., RBF happened):
+   - Cross-check `mintResult.txids[0]` (first TX of the original chain)
+   - If first TX is confirmed → original chain was mined, RBF is dead → clear chain
+   - If first TX not found → chain was evicted from mempool → clear chain
+3. If `lastTxid` not found at all → clear chain
+
 ```typescript
-// Confirmation check via Subfrost RPC
-const res = await fetch(RPC_URL, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'esplora_tx',
-    params: [cpfpData.lastTxid],
-  }),
-});
-const data = await res.json();
-if (data.result?.status?.confirmed) {
-  // Clear chain data
+// Cross-check: detect when RBF TX is invalid because original chain was confirmed
+if (mintResult?.txids && mintResult.txids.length > 0) {
+  const firstTxid = mintResult.txids[0];
+  if (lastTxNotFound || firstTxid !== cpfpData.lastTxid) {
+    // Check if first TX of original chain is confirmed
+    const firstTxData = await checkTx(firstTxid);
+    if (firstTxData.result?.status?.confirmed) {
+      clearChainData(); // Original chain mined, RBF lost the race
+    }
+  }
 }
 ```
 
@@ -456,15 +467,21 @@ const totalCost = mintCount * feePerTx;          // Total for batch
 
 **Stale Fee Detection:**
 
-After chain confirmation, waits for fresh mempool data before new mint:
+After chain confirmation, waits for fresh mempool data before new mint.
+Two unlock conditions (whichever comes first):
+1. Fee rate changes by > 0.001 sat/vB (fresh data arrived)
+2. 30 second timeout (3 refresh cycles — prevents stuck state in quiet mempool)
 
 ```typescript
 // Store fee rate when chain confirms
 feeAtConfirmation.current = currentFeeRate;
 waitingForFreshFees.current = true;
+waitStartTime.current = Date.now();
 
-// Wait until fee rate changes (fresh data)
-if (Math.abs(currentFeeRate - feeAtConfirmation.current) > 0.001) {
+// Unblock on fee change OR timeout (30s)
+const feeChanged = Math.abs(currentFeeRate - feeAtConfirmation.current) > 0.001;
+const timedOut = Date.now() - waitStartTime.current >= 30_000;
+if (feeChanged || timedOut) {
   waitingForFreshFees.current = false;
   // Now safe to start new mint
 }
@@ -576,7 +593,7 @@ const RPC_URL = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subf
 
 | API | Description |
 |-----|-------------|
-| `/api/competition?minFeeRate=X` | Competition scan (server-side, Redis cached 15s) |
+| `/api/competition` | Competition scan via `getblocktemplate` (Redis cached 15s) |
 | `/api/pools?pool=DIESEL_FRBTC` | Price from DIESEL/frBTC pool |
 
 ### External APIs
@@ -652,6 +669,10 @@ psbt.addInput({
 |--------------|------------|
 | P2TR (Taproot) | 330 sats |
 | P2WPKH (Native SegWit) | 546 sats |
+
+## Planned Improvements
+
+See [DIESEL_TERMINAL_IMPROVEMENTS.md](./DIESEL_TERMINAL_IMPROVEMENTS.md) for the prioritized backlog of improvements (fetch timeouts, response validation, state persistence, etc.).
 
 ## Dependencies
 
