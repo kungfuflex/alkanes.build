@@ -19,6 +19,10 @@ interface AutoMintPanelProps {
   dieselPrice: number;             // DIESEL price in satoshis (p)
   competition: number;             // Number of competing mints (M)
 
+  // Session spending (tracked by DieselTerminal with actual costs)
+  sessionSpent: number;
+  onResetSpent: () => void;
+
   // Actions
   onMint: (count: number, feeRate: number) => Promise<void>;
   onRbf: (targetRate: number) => Promise<void>;
@@ -43,6 +47,8 @@ export function AutoMintPanel({
   blockReward,
   dieselPrice,
   competition,
+  sessionSpent,
+  onResetSpent,
   onMint,
   onRbf,
   onCpfp,
@@ -55,7 +61,6 @@ export function AutoMintPanel({
   const [mintCount, setMintCount] = useState('20');
   const [rbfBuffer, setRbfBuffer] = useState('10');  // RBF buffer % above mempool rate
   const [sessionLimit, setSessionLimit] = useState('');  // Session spending limit in sats (empty = no limit)
-  const [sessionSpent, setSessionSpent] = useState(0);  // Total sats spent this session
   const [status, setStatus] = useState<string | null>(null);
 
   // Track if we've already triggered for current conditions
@@ -104,6 +109,10 @@ export function AutoMintPanel({
   // Track fee rate at confirmation to detect stale data
   const feeAtConfirmation = useRef<number | null>(null);
   const waitingForFreshFees = useRef(false);
+  const waitStartTime = useRef<number>(0);
+
+  // Max time to wait for fresh fees before proceeding anyway (3 refresh cycles)
+  const FRESH_FEE_TIMEOUT_MS = 30_000;
 
   // Reset triggered state when conditions change
   useEffect(() => {
@@ -121,6 +130,9 @@ export function AutoMintPanel({
     }
   }, [currentEffectiveRate, currentFeeRate, rbfMultiplier]);
 
+  // Ref to hold the fresh-fee timeout timer
+  const freshFeeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Reset triggered when chain is confirmed (hasActiveChain: true → false)
   useEffect(() => {
     if (prevHasActiveChain.current && !hasActiveChain) {
@@ -128,22 +140,43 @@ export function AutoMintPanel({
       // Store current fee rate to detect when fresh data arrives
       feeAtConfirmation.current = currentFeeRate;
       waitingForFreshFees.current = true;
+      waitStartTime.current = Date.now();
       setStatus('CONFIRMED — waiting for fresh fees...');
       setTriggered(false);
       setRbfTriggered(false);
+
+      // Fallback timer: unblock after FRESH_FEE_TIMEOUT_MS even if fee stays the same
+      if (freshFeeTimer.current) clearTimeout(freshFeeTimer.current);
+      freshFeeTimer.current = setTimeout(() => {
+        if (waitingForFreshFees.current) {
+          waitingForFreshFees.current = false;
+          feeAtConfirmation.current = null;
+          waitStartTime.current = 0;
+          setStatus(null);
+        }
+      }, FRESH_FEE_TIMEOUT_MS);
     }
     prevHasActiveChain.current = hasActiveChain;
+
+    return () => {
+      if (freshFeeTimer.current) clearTimeout(freshFeeTimer.current);
+    };
   }, [hasActiveChain, currentFeeRate]);
 
-  // Detect when fresh fee data arrives after confirmation
+  // Detect when fresh fee data arrives after confirmation (or timeout)
   useEffect(() => {
-    if (waitingForFreshFees.current && feeAtConfirmation.current !== null) {
-      // Fee rate changed - fresh data arrived
-      if (Math.abs(currentFeeRate - feeAtConfirmation.current) > 0.001) {
-        waitingForFreshFees.current = false;
-        feeAtConfirmation.current = null;
-        setStatus(null);
-      }
+    if (!waitingForFreshFees.current) return;
+
+    const feeChanged = feeAtConfirmation.current !== null &&
+      Math.abs(currentFeeRate - feeAtConfirmation.current) > 0.001;
+    const timedOut = waitStartTime.current > 0 &&
+      Date.now() - waitStartTime.current >= FRESH_FEE_TIMEOUT_MS;
+
+    if (feeChanged || timedOut) {
+      waitingForFreshFees.current = false;
+      feeAtConfirmation.current = null;
+      waitStartTime.current = 0;
+      setStatus(null);
     }
   }, [currentFeeRate]);
 
@@ -185,8 +218,6 @@ export function AutoMintPanel({
 
       onMint(effectiveMintCount, currentFeeRate)
         .then(() => {
-          // Track spending
-          setSessionSpent(prev => prev + estimatedCost);
           // Reset RBF trigger for new chain
           setRbfTriggered(false);
           // Status will be updated by the ACTIVE branch on next tick
@@ -253,13 +284,13 @@ export function AutoMintPanel({
 
       onRbf(targetRate)
         .then(() => {
-          // Track RBF spending
-          setSessionSpent(prev => prev + rbfCost);
           setStatus(`RBF OK: now @ ${targetRate.toFixed(2)} sat/vB`);
         })
         .catch((err) => {
           setStatus(`RBF ERROR: ${err.message}`);
-          setRbfTriggered(false); // Allow retry on error
+          // Don't reset rbfTriggered here — it causes infinite retry loop.
+          // rbfTriggered resets naturally when conditions change
+          // (fee rate update, effective rate change, fee goes out of range).
         });
     }
   }, [enabled, autoRbf, hasActiveChain, isMinting, isRbfing, rbfTriggered, feeInRange, currentEffectiveRate, currentFeeRate, rbfMultiplier, chainLength, hasSessionLimit, sessionRemaining, onRbf]);
@@ -267,6 +298,8 @@ export function AutoMintPanel({
   // Update status when waiting (chains info is in PENDING CHAINS section)
   useEffect(() => {
     if (!enabled || isMinting || isRbfing) return;
+    // Don't overwrite CONFIRMED status while waiting for fresh fees
+    if (waitingForFreshFees.current) return;
 
     if (chainsCount === 0) {
       setStatus('WAITING...');
@@ -391,7 +424,7 @@ export function AutoMintPanel({
               )}
               {sessionSpent > 0 && (
                 <button
-                  onClick={() => setSessionSpent(0)}
+                  onClick={onResetSpent}
                   className="text-[#505050] hover:text-orange-500 text-xs ml-1"
                   title="Reset session spending"
                 >

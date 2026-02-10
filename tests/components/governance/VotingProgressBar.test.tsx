@@ -37,7 +37,7 @@ describe("VotingProgressBar", () => {
     // Green bar should exist with 75% width
     const greenBar = container.querySelector('[style*="width: 75%"]');
     expect(greenBar).toBeDefined();
-    expect(greenBar?.getAttribute("style")).toContain("#4ade80");
+    expect(greenBar?.getAttribute("style")).toContain("#34d058");
   });
 
   it("formats large vote amounts with K suffix", () => {
