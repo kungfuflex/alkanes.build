@@ -7,12 +7,28 @@ import * as bitcoin from "bitcoinjs-lib";
 import * as ecc from "@bitcoinerlab/secp256k1";
 import { AutoMintPanel } from "./AutoMintPanel";
 import { fetchWithTimeout } from "@/lib/fetch-utils";
+import type {
+  UtxoInput, RbfData, CpfpData, ChainData, ChainConfig, ChainAutoState, SwapQuote,
+  PersistedChainConfig,
+} from './diesel-terminal/types';
+import {
+  TX_VSIZE, MAX_CHAIN_LENGTH, INCREMENTAL_RELAY_FEE,
+  DEFAULT_CHAIN_CONFIG, emptyAutoState, emptyRbfData, emptyCpfpData,
+  FRESH_FEE_TIMEOUT_MS, EPSILON,
+  DIESEL_BASE_REWARD, DIESEL_BASE_REWARD_SATS,
+  SPLIT_TX_BASE_VSIZE, P2TR_OUTPUT_VSIZE, DIESEL_OPRETURN_VSIZE,
+  LOCALSTORAGE_CHAINS_KEY,
+  P2TR_DUST_LIMIT,
+} from './diesel-terminal/constants';
+import { useActionQueue } from './diesel-terminal/useActionQueue';
+import { useMultiChainAutoMint } from './diesel-terminal/useMultiChainAutoMint';
+import { ChainConfigEditor } from './diesel-terminal/ChainConfigEditor';
+import { TerminalWalletSidebar } from './diesel-terminal/TerminalWalletSidebar';
+import { BtcSkeletonIcon, AlkaneSkeletonIcon } from '@/components/SkeletonIcons';
+import { ProtoStone, Cellpack, encodeRunestoneProtostone } from '@alkanes/ts-sdk';
 
 // Initialize ECC library for bitcoinjs-lib (required for P2TR addresses)
 bitcoin.initEccLib(ecc);
-
-// Fixed vsize for DIESEL mint transaction (P2TR input + P2TR output + OP_RETURN)
-const TX_VSIZE = 141;
 
 /**
  * Convert witness stack to script witness (serialized format)
@@ -62,12 +78,7 @@ function getDieselMintOpReturn(): Uint8Array {
   return bytes;
 }
 
-interface UtxoInput {
-  txid: string;
-  vout: number;
-  value: number;
-  rawTxHex?: string;
-}
+// UtxoInput imported from diesel-terminal/types
 
 /**
  * Execute a single DIESEL mint transaction
@@ -199,299 +210,6 @@ async function executeMint(
   return { txid: result.result, outputValue, rawTxHex: signedTxHex, inputUtxo };
 }
 
-// Terminal-styled Connect Modal
-function TerminalConnectModal({
-  isOpen,
-  onClose,
-  onUnlock,
-  onRestore,
-  onCreate,
-  hasKeystore,
-  isLoading,
-  error
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onUnlock: (password: string) => Promise<void>;
-  onRestore: (mnemonic: string, password: string) => Promise<void>;
-  onCreate: (password: string) => Promise<string>;
-  hasKeystore: boolean;
-  isLoading: boolean;
-  error: string | null;
-}) {
-  const [view, setView] = useState<'main' | 'unlock' | 'restore' | 'create' | 'showMnemonic'>('main');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [mnemonic, setMnemonic] = useState('');
-  const [generatedMnemonic, setGeneratedMnemonic] = useState('');
-  const [mnemonicCopied, setMnemonicCopied] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      setView(hasKeystore ? 'unlock' : 'main');
-      setPassword('');
-      setConfirmPassword('');
-      setMnemonic('');
-      setGeneratedMnemonic('');
-      setMnemonicCopied(false);
-      setLocalError(null);
-    }
-  }, [isOpen, hasKeystore]);
-
-  if (!isOpen) return null;
-
-  const handleUnlock = async () => {
-    try {
-      setLocalError(null);
-      await onUnlock(password);
-      onClose();
-    } catch (e) {
-      setLocalError(e instanceof Error ? e.message : 'Failed to unlock');
-    }
-  };
-
-  const handleRestore = async () => {
-    if (!mnemonic.trim()) {
-      setLocalError('Enter mnemonic phrase');
-      return;
-    }
-    if (password.length < 8) {
-      setLocalError('Password must be at least 8 characters');
-      return;
-    }
-    try {
-      setLocalError(null);
-      await onRestore(mnemonic.trim(), password);
-      onClose();
-    } catch (e) {
-      setLocalError(e instanceof Error ? e.message : 'Failed to restore');
-    }
-  };
-
-  const handleCreate = async () => {
-    if (password.length < 8) {
-      setLocalError('Password must be at least 8 characters');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setLocalError('Passwords do not match');
-      return;
-    }
-    try {
-      setLocalError(null);
-      const newMnemonic = await onCreate(password);
-      setGeneratedMnemonic(newMnemonic);
-      setView('showMnemonic');
-    } catch (e) {
-      setLocalError(e instanceof Error ? e.message : 'Failed to create wallet');
-    }
-  };
-
-  const copyMnemonic = () => {
-    navigator.clipboard.writeText(generatedMnemonic);
-    setMnemonicCopied(true);
-    setTimeout(() => setMnemonicCopied(false), 2000);
-  };
-
-  const displayError = localError || error;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90" onClick={onClose}>
-      <div
-        className="bg-[#0a0a0a] border border-orange-500/50 w-full max-w-md font-mono text-sm"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-orange-500/50 bg-orange-500/10">
-          <span className="text-orange-500 font-bold">WALLET CONNECT</span>
-          <button onClick={onClose} className="text-[#505050] hover:text-orange-500">
-            [ESC]
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-5">
-          {view === 'main' && (
-            <div className="space-y-4">
-              <div className="text-[#707070] mb-4">SELECT ACTION:</div>
-              <button
-                onClick={() => setView('create')}
-                className="w-full text-left px-4 py-3 border border-[#252525] hover:border-orange-500 hover:bg-orange-500/10 text-[#00ff88]"
-              >
-                {'>'} CREATE NEW WALLET
-              </button>
-              <button
-                onClick={() => setView('restore')}
-                className="w-full text-left px-4 py-3 border border-[#252525] hover:border-orange-500 hover:bg-orange-500/10 text-[#00d4ff]"
-              >
-                {'>'} RESTORE FROM MNEMONIC
-              </button>
-              {hasKeystore && (
-                <button
-                  onClick={() => setView('unlock')}
-                  className="w-full text-left px-4 py-3 border border-[#252525] hover:border-orange-500 hover:bg-orange-500/10 text-[#ffcc00]"
-                >
-                  {'>'} UNLOCK EXISTING WALLET
-                </button>
-              )}
-            </div>
-          )}
-
-          {view === 'unlock' && (
-            <div className="space-y-4">
-              <div className="text-[#707070]">ENTER PASSWORD:</div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-                placeholder="********"
-                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00ff88] outline-none focus:border-orange-500"
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setView('main')}
-                  className="px-4 py-2 border border-[#303030] text-[#707070] hover:text-orange-500 hover:border-orange-500"
-                >
-                  BACK
-                </button>
-                <button
-                  onClick={handleUnlock}
-                  disabled={isLoading || !password}
-                  className="flex-1 px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/20 disabled:opacity-50"
-                >
-                  {isLoading ? 'UNLOCKING...' : 'UNLOCK'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {view === 'restore' && (
-            <div className="space-y-4">
-              <div className="text-[#707070]">MNEMONIC PHRASE:</div>
-              <textarea
-                value={mnemonic}
-                onChange={e => setMnemonic(e.target.value)}
-                placeholder="word1 word2 word3 ..."
-                rows={3}
-                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00d4ff] outline-none focus:border-orange-500 resize-none"
-                autoFocus
-              />
-              <div className="text-[#707070]">PASSWORD (min 8 chars):</div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleRestore()}
-                placeholder="********"
-                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00ff88] outline-none focus:border-orange-500"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setView('main')}
-                  className="px-4 py-2 border border-[#303030] text-[#707070] hover:text-orange-500 hover:border-orange-500"
-                >
-                  BACK
-                </button>
-                <button
-                  onClick={handleRestore}
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/20 disabled:opacity-50"
-                >
-                  {isLoading ? 'RESTORING...' : 'RESTORE'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {view === 'create' && (
-            <div className="space-y-4">
-              <div className="text-[#707070]">CREATE NEW WALLET</div>
-              <div className="text-[#ffcc00]/80 text-xs px-3 py-2 border border-[#ffcc00]/30 bg-[#ffcc00]/5">
-                A new mnemonic phrase will be generated. Make sure to save it!
-              </div>
-              <div className="text-[#707070]">PASSWORD (min 8 chars):</div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="********"
-                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00ff88] outline-none focus:border-orange-500"
-                autoFocus
-              />
-              <div className="text-[#707070]">CONFIRM PASSWORD:</div>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                placeholder="********"
-                className="w-full bg-[#050505] border border-[#252525] px-4 py-2 text-[#00ff88] outline-none focus:border-orange-500"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setView('main')}
-                  className="px-4 py-2 border border-[#303030] text-[#707070] hover:text-orange-500 hover:border-orange-500"
-                >
-                  BACK
-                </button>
-                <button
-                  onClick={handleCreate}
-                  disabled={isLoading || password.length < 8}
-                  className="flex-1 px-4 py-2 border border-[#00ff88] text-[#00ff88] hover:bg-[#00ff88]/20 disabled:opacity-50"
-                >
-                  {isLoading ? 'CREATING...' : 'CREATE WALLET'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {view === 'showMnemonic' && (
-            <div className="space-y-4">
-              <div className="text-[#00ff88] font-bold text-base">WALLET CREATED!</div>
-              <div className="text-[#ff4444]/90 text-xs px-3 py-2 border border-[#ff4444]/30 bg-[#ff4444]/5">
-                ⚠ SAVE THIS MNEMONIC! It cannot be recovered if lost.
-              </div>
-              <div className="text-[#707070]">YOUR MNEMONIC PHRASE:</div>
-              <div
-                className="bg-[#050505] border border-[#252525] px-4 py-3 text-[#00d4ff] break-all cursor-pointer hover:border-[#00d4ff]"
-                onClick={copyMnemonic}
-              >
-                {generatedMnemonic}
-              </div>
-              <button
-                onClick={copyMnemonic}
-                className={`w-full px-4 py-2 border ${mnemonicCopied ? 'border-[#00ff88] text-[#00ff88] bg-[#00ff88]/10' : 'border-[#00d4ff] text-[#00d4ff] hover:bg-[#00d4ff]/20'}`}
-              >
-                {mnemonicCopied ? '✓ COPIED!' : 'COPY MNEMONIC'}
-              </button>
-              <button
-                onClick={onClose}
-                className="w-full px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/20"
-              >
-                I SAVED IT - CONTINUE
-              </button>
-            </div>
-          )}
-
-          {/* Error display */}
-          {displayError && (
-            <div className="mt-4 px-4 py-2 border border-[#ff4444]/50 bg-[#ff4444]/10 text-[#ff4444]">
-              ERROR: {displayError}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-4 py-2 border-t border-[#252525] text-[#404040] text-xs">
-          TURBO DIESEL TERMINAL
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Flash animation hook - returns className when value changes
 function useFlash<T>(value: T, duration = 500): string {
@@ -538,51 +256,95 @@ interface MempoolBlock {
 
 const DieselTerminal = () => {
   // Wallet state
-  const { isConnected, address, account, network, hasStoredKeystore, unlockWallet, restoreWallet, createWallet, signTaprootPsbt, disconnect, wallet } = useWallet();
+  const { isConnected, address, account, network, hasStoredKeystore, unlockWallet, restoreWallet, createWallet, signTaprootPsbt, disconnect, wallet, client } = useWallet();
   const publicKey = account?.taproot?.pubkey || "";
-  const { data: balances, refetch: refetchBalances } = useWalletBalances(address);
-  const [showConnectModal, setShowConnectModal] = useState(false);
+  const { data: balances, isLoading: balancesLoading, refetch: refetchBalances } = useWalletBalances(address);
+  const [walletSidebarVisible, setWalletSidebarVisible] = useState(false);
+  const [walletSidebarOpen, setWalletSidebarOpen] = useState(false);
+  const [walletSidebarClosing, setWalletSidebarClosing] = useState(false);
+  const openWalletSidebar = useCallback(() => {
+    setWalletSidebarVisible(true);
+    requestAnimationFrame(() => { setWalletSidebarOpen(true); setWalletSidebarClosing(false); });
+  }, []);
+  const closeWalletSidebar = useCallback(() => {
+    setWalletSidebarClosing(true);
+    setTimeout(() => { setWalletSidebarVisible(false); setWalletSidebarOpen(false); setWalletSidebarClosing(false); }, 250);
+  }, []);
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
 
   // Mint state
   const [isMinting, setIsMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
-  const [mintResult, setMintResult] = useState<{ txids: string[]; totalFee: number } | null>(null);
   const [mintProgress, setMintProgress] = useState({ current: 0, total: 0 });
 
-  // Chain data types
-  type RbfData = {
-    lastTxInput: UtxoInput;
-    lastTxFee: number;
-    chainLength: number;
-    totalVsize: number;
-    feesExcludingLast: number;
-    totalFees: number;
-    preRbfTotalFees: number | null; // Fees before first RBF (null = no RBF yet)
-  };
-  type CpfpData = {
-    lastTxid: string;
-    lastOutputValue: number;
-    lastRawTxHex: string;
-  };
-  type ChainData = {
-    mintResult: { txids: string[]; totalFee: number };
-    rbfData: RbfData;
-    cpfpData: CpfpData;
-  };
+  // Types imported from diesel-terminal/types
 
-  // Store chains by source UTXO key (txid:vout)
+  // Chain ID counter for generating unique chain keys
+  const chainCounterRef = useRef(0);
+  const nextChainId = () => `chain-${++chainCounterRef.current}`;
+
+  // Store chains by chain ID (chain-{N})
   const [chainsMap, setChainsMap] = useState<Map<string, ChainData>>(new Map());
+  const [chainsLoaded, setChainsLoaded] = useState(false);
+  const chainsMapRef = useRef(chainsMap);
+  chainsMapRef.current = chainsMap;
 
-  // RBF state - data needed to replace the last TX
-  const [rbfData, setRbfData] = useState<RbfData | null>(null);
+  // Load chain state from localStorage on mount (client-only)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LOCALSTORAGE_CHAINS_KEY);
+      if (saved) {
+        const configs: PersistedChainConfig[] = JSON.parse(saved);
+        if (configs.length > 0) {
+          const map = new Map<string, ChainData>();
+          for (const c of configs) {
+            map.set(c.id, {
+              mintResult: c.mintResult ?? { txids: [], totalFee: 0 },
+              rbfData: c.rbfData ?? emptyRbfData(),
+              cpfpData: c.cpfpData ?? emptyCpfpData(),
+              config: c.config,
+              autoState: {
+                ...emptyAutoState(),
+                enabled: c.autoEnabled ?? false,
+              },
+              boundUtxo: c.boundUtxo,
+              sourceUtxo: c.sourceUtxo,
+            });
+          }
+          chainCounterRef.current = Math.max(0, ...configs.map(c => parseInt(c.id.replace('chain-', '')) || 0));
+          setChainsMap(map);
+        }
+      }
+    } catch { /* ignore corrupt localStorage */ }
+    setChainsLoaded(true);
+  }, []);
+
+  // Persist chain state to localStorage (skip until initial load completes)
+  useEffect(() => {
+    if (!chainsLoaded) return;
+    const configs: PersistedChainConfig[] = [];
+    for (const [id, chain] of chainsMap) {
+      configs.push({
+        id,
+        config: chain.config,
+        mintResult: chain.mintResult,
+        rbfData: chain.rbfData,
+        cpfpData: chain.cpfpData,
+        boundUtxo: chain.boundUtxo,
+        sourceUtxo: chain.sourceUtxo,
+        autoEnabled: chain.autoState.enabled,
+      });
+    }
+    localStorage.setItem(LOCALSTORAGE_CHAINS_KEY, JSON.stringify(configs));
+  }, [chainsMap, chainsLoaded]);
+
+  // Global auto-mint enabled flag
+  const [autoMintGlobalEnabled, setAutoMintGlobalEnabled] = useState(false);
+
+  // RBF fee rate input (for manual RBF/CPFP)
   const [rbfFeeRate, setRbfFeeRate] = useState('');
   const [isRbfing, setIsRbfing] = useState(false);
-
-  // CPFP state - track last TX output for creating child
-  const [cpfpData, setCpfpData] = useState<CpfpData | null>(null);
-  const cpfpDataRef = useRef<CpfpData | null>(null);
 
   // Session spending tracking (actual costs from handleMint/handleRbf/handleCpfp)
   const [sessionSpent, setSessionSpent] = useState(0);
@@ -592,83 +354,28 @@ const DieselTerminal = () => {
     adjustedChainsRef.current.clear();
   }, []);
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    cpfpDataRef.current = cpfpData;
-  }, [cpfpData]);
+  // Session limit
+  const [sessionLimit, setSessionLimit] = useState(0); // 0 = no limit
 
-  // Track which UTXO started the current chain
-  const [currentChainUtxoKey, setCurrentChainUtxoKey] = useState<string | null>(null);
+  // Expanded chain rows (for inline config editor)
+  const [expandedChains, setExpandedChains] = useState<Set<string>>(new Set());
 
   // UTXO selection state
   const [availableUtxos, setAvailableUtxos] = useState<UtxoInput[]>([]);
-  const [selectedUtxo, setSelectedUtxo] = useState<UtxoInput | null>(null);
-  const [showUtxoSelector, setShowUtxoSelector] = useState(false);
   const [loadingUtxos, setLoadingUtxos] = useState(false);
 
   // Block height state (declared early for use in confirmation check useEffect)
   const [blockHeight, setBlockHeight] = useState<number | null>(null);
 
-  // Helper to get UTXO key
-  const getUtxoKey = (utxo: UtxoInput | null) => utxo ? `${utxo.txid}:${utxo.vout}` : null;
+  // Derive first chain for CPFP preview (backwards compat)
+  const firstChainEntry = useMemo(() => {
+    if (chainsMap.size === 0) return null;
+    const [key, data] = chainsMap.entries().next().value as [string, ChainData];
+    return { chainId: key, ...data };
+  }, [chainsMap]);
 
-  // Load chain data when UTXO selection changes
-  useEffect(() => {
-    const key = getUtxoKey(selectedUtxo);
-    if (key && chainsMap.has(key)) {
-      const chain = chainsMap.get(key)!;
-      setMintResult(chain.mintResult);
-      setRbfData(chain.rbfData);
-      setCpfpData(chain.cpfpData);
-      setCurrentChainUtxoKey(key);
-    } else if (selectedUtxo) {
-      // New UTXO selected with no chain - clear current chain display
-      setMintResult(null);
-      setRbfData(null);
-      setCpfpData(null);
-      setCurrentChainUtxoKey(null);
-    }
-    // Don't clear if selectedUtxo is null (auto mode) - keep showing current chain
-  }, [selectedUtxo, chainsMap]);
-
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [depositCopied, setDepositCopied] = useState(false);
-  const [showWalletMenu, setShowWalletMenu] = useState(false);
-  const [showMnemonic, setShowMnemonic] = useState(false);
-  const [mnemonicCopied, setMnemonicCopied] = useState(false);
-  const [seedPassword, setSeedPassword] = useState('');
-  const [seedPasswordError, setSeedPasswordError] = useState<string | null>(null);
-  const [verifyingSeedPassword, setVerifyingSeedPassword] = useState(false);
-
-  // Handle Esc key to close modals
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (showDepositModal) {
-          setShowDepositModal(false);
-          setShowMnemonic(false);
-          setSeedPassword('');
-          setSeedPasswordError(null);
-        }
-        if (showConnectModal) {
-          setShowConnectModal(false);
-        }
-        if (showWalletMenu) {
-          setShowWalletMenu(false);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [showDepositModal, showConnectModal, showWalletMenu]);
-
-  const handleCopyAddress = async () => {
-    if (address) {
-      await navigator.clipboard.writeText(address);
-      setDepositCopied(true);
-      setTimeout(() => setDepositCopied(false), 2000);
-    }
-  };
+  const rbfData = firstChainEntry ? firstChainEntry.rbfData : null;
+  const cpfpData = firstChainEntry ? firstChainEntry.cpfpData : null;
 
   const handleUnlock = async (password: string) => {
     setWalletLoading(true);
@@ -701,7 +408,7 @@ const DieselTerminal = () => {
     }
   };
 
-  // Fetch available UTXOs via Subfrost RPC
+  // Fetch available UTXOs via Subfrost RPC (confirmed + unconfirmed with ancestor count)
   const fetchUtxos = useCallback(async () => {
     if (!address) return;
     setLoadingUtxos(true);
@@ -718,16 +425,47 @@ const DieselTerminal = () => {
       });
       const data = await res.json();
       if (data.result && Array.isArray(data.result)) {
-        // Filter to only confirmed UTXOs, then sort by value descending
-        const sorted = data.result
-          .filter((u: any) => u.status?.confirmed === true)
-          .map((u: any) => ({
-            txid: u.txid,
-            vout: u.vout,
-            value: u.value,
-            confirmed: true,
-          }))
-          .sort((a: UtxoInput, b: UtxoInput) => b.value - a.value);
+        const allUtxos: UtxoInput[] = data.result.map((u: any) => ({
+          txid: u.txid,
+          vout: u.vout,
+          value: u.value,
+          confirmed: u.status?.confirmed === true,
+        }));
+
+        // Fetch ancestor count for unconfirmed UTXOs
+        const unconfirmed = allUtxos.filter(u => !u.confirmed);
+        if (unconfirmed.length > 0) {
+          const mempoolRequests = unconfirmed.map((u, i) =>
+            fetchWithTimeout(RPC_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: i,
+                method: 'btc_getmempoolentry',
+                params: [u.txid],
+              }),
+            }).then(r => r.json()).catch(() => null)
+          );
+          const results = await Promise.all(mempoolRequests);
+          const ancestorMap = new Map<string, number>();
+          results.forEach((r, i) => {
+            if (r?.result?.ancestorcount != null) {
+              ancestorMap.set(unconfirmed[i].txid, r.result.ancestorcount);
+            }
+          });
+          allUtxos.forEach(u => {
+            if (!u.confirmed && ancestorMap.has(u.txid)) {
+              u.ancestorCount = ancestorMap.get(u.txid);
+            }
+          });
+        }
+
+        // Sort: confirmed first, then by value descending
+        const sorted = allUtxos.sort((a, b) => {
+          if (a.confirmed !== b.confirmed) return a.confirmed ? -1 : 1;
+          return b.value - a.value;
+        });
         setAvailableUtxos(sorted);
       }
     } catch (err) {
@@ -737,34 +475,32 @@ const DieselTerminal = () => {
     }
   }, [address]);
 
-  // Handle mint execution
-  const handleMint = async (mintCount: number, feeRateSatVb: number) => {
+  // Ref for checkChainAndRestart — defined later but used in error handlers via ref
+  const checkChainAndRestartRef = useRef<(chainId: string) => Promise<boolean>>(async () => false);
+
+  // Handle mint execution (parametrized by chainId)
+  const handleMintForChain = useCallback(async (chainId: string, mintCount: number, feeRateSatVb: number) => {
     if (!signTaprootPsbt || !address || !publicKey) {
-      setMintError("Wallet not connected or taproot key missing");
-      return;
+      throw new Error("Wallet not connected or taproot key missing");
     }
 
     if (mintCount <= 0) {
-      setMintError("Nothing to mint");
-      return;
+      throw new Error("Nothing to mint");
     }
 
-    // Block if RBF is in progress to prevent race conditions
-    if (isRbfing) {
-      setMintError("RBF in progress - wait and retry");
-      return;
-    }
+    // Look up chain data from chainsMap (use ref to avoid stale closure)
+    const existingChain = chainsMapRef.current.get(chainId);
+    const chainCpfpData = existingChain?.cpfpData;
+    const chainRbfData = existingChain?.rbfData;
+    const chainMintResult = existingChain?.mintResult;
 
-    // Check if we're continuing an existing chain
-    const continuingChain = cpfpData && rbfData && rbfData.chainLength > 0;
-    const existingChainLength = continuingChain ? rbfData!.chainLength : 0;
-    const existingTotalFees = continuingChain ? rbfData!.totalFees : 0;
-    const existingTxids = continuingChain && mintResult ? mintResult.txids : [];
+    const continuingChain = chainCpfpData && chainRbfData && chainRbfData.chainLength > 0;
+    const existingChainLength = continuingChain ? chainRbfData!.chainLength : 0;
+    const existingTotalFees = continuingChain ? chainRbfData!.totalFees : 0;
+    const existingTxids = continuingChain && chainMintResult ? chainMintResult.txids : [];
 
-    // Check chain limit (25 max)
-    if (existingChainLength + mintCount > 25) {
-      setMintError(`Chain limit: can only add ${25 - existingChainLength} more TXs`);
-      return;
+    if (existingChainLength + mintCount > MAX_CHAIN_LENGTH) {
+      throw new Error(`Chain limit: can only add ${MAX_CHAIN_LENGTH - existingChainLength} more TXs`);
     }
 
     setIsMinting(true);
@@ -777,115 +513,131 @@ const DieselTerminal = () => {
         const checkRes = await fetchWithTimeout(RPC_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'esplora_tx',
-            params: [cpfpData!.lastTxid],
-          }),
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_tx', params: [chainCpfpData!.lastTxid] }),
         });
         const checkData = await checkRes.json();
 
         if (checkData.result?.status?.confirmed) {
-          // Chain was confirmed - clear data and start fresh
-          setRbfData(null);
-          setCpfpData(null);
-          setMintResult(null);
-          if (currentChainUtxoKey) {
-            setChainsMap(prev => {
-              const newMap = new Map(prev);
-              newMap.delete(currentChainUtxoKey);
-              return newMap;
+          // Reset chain state but keep config (user must delete manually)
+          setChainsMap(prev => {
+            const m = new Map(prev);
+            const c = m.get(chainId);
+            if (c) m.set(chainId, {
+              ...c, mintResult: { txids: [], totalFee: 0 },
+              rbfData: emptyRbfData(), cpfpData: emptyCpfpData(),
+              autoState: { ...c.autoState, triggered: false, status: 'CONFIRMED — reset' },
+              boundUtxo: undefined,
             });
-            setCurrentChainUtxoKey(null);
-          }
-          setMintError("Chain confirmed - cleared, try again");
+            return m;
+          });
+          setMintError("Chain confirmed - reset, will retry");
           setIsMinting(false);
           refetchBalances();
           return;
         }
 
         if (checkData.error) {
-          // TX not found - might have been replaced by RBF
-          setMintError("Chain UTXO not found - may have been replaced");
-          setIsMinting(false);
-          return;
+          throw new Error("Chain UTXO not found - may have been replaced");
         }
       }
+
       const txids: string[] = [];
-      // If continuing chain, start from last TX output
-      // Otherwise, use selected UTXO if set (or auto-select in executeMint)
+
+      // Find the UTXO for new chains (lazy selection)
+      let startUtxo: UtxoInput | undefined;
+      if (!continuingChain) {
+        const chainEntry = chainsMapRef.current.get(chainId);
+
+        // 1. Try boundUtxo (already minted before)
+        if (chainEntry?.boundUtxo && chainEntry.boundUtxo.value > 0) {
+          startUtxo = chainEntry.boundUtxo;
+        }
+
+        // 2. Try sourceUtxo (restart — change output from confirmed chain)
+        if (!startUtxo && chainEntry?.sourceUtxo && chainEntry.sourceUtxo.value > 0) {
+          startUtxo = chainEntry.sourceUtxo;
+        }
+
+        // 3. Auto-select a free confirmed UTXO
+        if (!startUtxo) {
+          const usedUtxos = new Set<string>();
+          for (const [, c] of chainsMapRef.current) {
+            if (c.boundUtxo) usedUtxos.add(`${c.boundUtxo.txid}:${c.boundUtxo.vout}`);
+            if (c.sourceUtxo) usedUtxos.add(`${c.sourceUtxo.txid}:${c.sourceUtxo.vout}`);
+          }
+          const minValue = TX_VSIZE * feeRateSatVb * mintCount + P2TR_DUST_LIMIT;
+
+          // Use cached UTXOs first; if empty, fetch fresh
+          let utxoPool = availableUtxos;
+          if (utxoPool.length === 0 && address) {
+            try {
+              const res = await fetchWithTimeout(RPC_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_address::utxo', params: [address] }),
+              });
+              const data = await res.json();
+              if (data.result && Array.isArray(data.result)) {
+                utxoPool = data.result.map((u: any) => ({
+                  txid: u.txid, vout: u.vout, value: u.value,
+                  confirmed: u.status?.confirmed === true,
+                }));
+                setAvailableUtxos(utxoPool);
+              }
+            } catch { /* fall through to NO_FREE_UTXO */ }
+          }
+
+          const free = utxoPool.find(u =>
+            u.confirmed && !usedUtxos.has(`${u.txid}:${u.vout}`)
+            && u.value >= minValue
+          );
+          if (!free) {
+            throw new Error('NO_FREE_UTXO');
+          }
+          startUtxo = free;
+        }
+
+        // Save boundUtxo to chain
+        setChainsMap(prev => {
+          const m = new Map(prev);
+          const c = m.get(chainId);
+          if (c) m.set(chainId, { ...c, boundUtxo: startUtxo });
+          return m;
+        });
+      }
+
       let nextUtxo: UtxoInput | undefined = continuingChain ? {
-        txid: cpfpData!.lastTxid,
+        txid: chainCpfpData!.lastTxid,
         vout: 0,
-        value: cpfpData!.lastOutputValue,
-        rawTxHex: cpfpData!.lastRawTxHex,
-      } : selectedUtxo || undefined;
-      let lastTxInputUtxo: UtxoInput | undefined = undefined; // Track input to last TX for RBF
-      let lastResult: { txid: string; outputValue: number; rawTxHex: string } | undefined = undefined; // Track last TX for CPFP
+        value: chainCpfpData!.lastOutputValue,
+        rawTxHex: chainCpfpData!.lastRawTxHex,
+      } : startUtxo;
+
+      let lastTxInputUtxo: UtxoInput | undefined = undefined;
+      let lastResult: { txid: string; outputValue: number; rawTxHex: string } | undefined = undefined;
       let newTxsFee = 0;
-      let feesExcludingLast = continuingChain ? rbfData!.totalFees : 0; // Start with existing fees
-
-      // Track source UTXO for this chain
-      let sourceUtxoKey = continuingChain ? currentChainUtxoKey : (selectedUtxo ? getUtxoKey(selectedUtxo) : null);
-
-      // Capture the cpfpData we're working with for staleness check
-      const initialCpfpTxid = cpfpData?.lastTxid || null;
+      let feesExcludingLast = continuingChain ? chainRbfData!.totalFees : 0;
 
       for (let i = 0; i < mintCount; i++) {
         setMintProgress({ current: i + 1, total: mintCount });
 
-        // Check for stale data before each TX (especially important for first TX in chain continuation)
-        if (i === 0 && continuingChain) {
-          // Verify cpfpData hasn't changed (e.g., by RBF)
-          if (cpfpDataRef.current?.lastTxid !== initialCpfpTxid) {
-            throw new Error("Chain data changed during mint - retry");
-          }
-        }
-
         const result = await executeMint(
-          signTaprootPsbt,
-          address,
-          publicKey,
-          feeRateSatVb,
-          network,
-          nextUtxo
+          signTaprootPsbt, address, publicKey, feeRateSatVb, network, nextUtxo
         );
 
         txids.push(result.txid);
-        lastResult = result; // Track for CPFP
+        lastResult = result;
         const fee = nextUtxo ? nextUtxo.value - result.outputValue : Math.ceil(TX_VSIZE * feeRateSatVb);
         newTxsFee += fee;
 
-        // Capture source UTXO key from first TX if not already set
-        if (i === 0 && !sourceUtxoKey && result.inputUtxo) {
-          sourceUtxoKey = `${result.inputUtxo.txid}:${result.inputUtxo.vout}`;
-        }
+        if (i < mintCount - 1) feesExcludingLast += fee;
 
-        // Track fees excluding last TX (for RBF effective rate calculation)
-        if (i < mintCount - 1) {
-          feesExcludingLast += fee;
-        }
-
-        // For single TX (no chain continuation), use the input from executeMint
-        // For chain, use the previous TX output
         if (i === mintCount - 1) {
-          // This is the last TX - save its input for RBF
-          if (mintCount === 1 && !continuingChain) {
-            lastTxInputUtxo = result.inputUtxo;
-          } else {
-            lastTxInputUtxo = nextUtxo;
-          }
+          lastTxInputUtxo = (mintCount === 1 && !continuingChain) ? result.inputUtxo : nextUtxo;
         }
 
-        // Prepare next UTXO in chain
         if (i < mintCount - 1) {
-          nextUtxo = {
-            txid: result.txid,
-            vout: 0,
-            value: result.outputValue,
-            rawTxHex: result.rawTxHex,
-          };
+          nextUtxo = { txid: result.txid, vout: 0, value: result.outputValue, rawTxHex: result.rawTxHex };
         }
       }
 
@@ -893,41 +645,13 @@ const DieselTerminal = () => {
       const totalFee = existingTotalFees + newTxsFee;
       const allTxids = [...existingTxids, ...txids];
 
-      setMintResult({ txids: allTxids, totalFee });
       setSessionSpent(prev => prev + newTxsFee);
 
-      // Save RBF data for the combined chain
-      if (lastTxInputUtxo) {
+      // Save to chainsMap
+      if (lastTxInputUtxo && lastResult) {
         const chainLen = existingChainLength + mintCount;
-        const totalVsizeCalc = chainLen * TX_VSIZE;
-        // Preserve preRbfTotalFees from existing chain (for chain continuation after RBF)
-        const existingPreRbf = continuingChain ? rbfData?.preRbfTotalFees ?? null : null;
-        setRbfData({
-          lastTxInput: lastTxInputUtxo,
-          lastTxFee: Number(lastTxFee) || 0,
-          chainLength: chainLen,
-          totalVsize: totalVsizeCalc,
-          feesExcludingLast: Number(feesExcludingLast) || 0,
-          totalFees: Number(totalFee) || 0,
-          preRbfTotalFees: existingPreRbf,
-        });
-      }
-
-      // Save CPFP data - output of last TX for creating child
-      const newCpfpData = lastResult ? {
-        lastTxid: lastResult.txid,
-        lastOutputValue: lastResult.outputValue,
-        lastRawTxHex: lastResult.rawTxHex,
-      } : null;
-
-      if (newCpfpData) {
-        setCpfpData(newCpfpData);
-      }
-
-      // Save to chainsMap for UTXO-based chain tracking
-      if (sourceUtxoKey && lastTxInputUtxo && newCpfpData) {
-        const chainLen = existingChainLength + mintCount;
-        const existingPreRbf2 = continuingChain ? rbfData?.preRbfTotalFees ?? null : null;
+        const existingPreRbf = continuingChain ? chainRbfData?.preRbfTotalFees ?? null : null;
+        const existingPreRbfLastTxid = continuingChain ? chainRbfData?.preRbfLastTxid ?? null : null;
         const newRbfData: RbfData = {
           lastTxInput: lastTxInputUtxo,
           lastTxFee: Number(lastTxFee) || 0,
@@ -935,49 +659,101 @@ const DieselTerminal = () => {
           totalVsize: chainLen * TX_VSIZE,
           feesExcludingLast: Number(feesExcludingLast) || 0,
           totalFees: Number(totalFee) || 0,
-          preRbfTotalFees: existingPreRbf2,
+          preRbfTotalFees: existingPreRbf,
+          preRbfLastTxid: existingPreRbfLastTxid,
+        };
+        const newCpfpData: CpfpData = {
+          lastTxid: lastResult.txid,
+          lastOutputValue: lastResult.outputValue,
+          lastRawTxHex: lastResult.rawTxHex,
         };
 
         setChainsMap(prev => {
           const newMap = new Map(prev);
-          newMap.set(sourceUtxoKey!, {
+          const existing = prev.get(chainId);
+          newMap.set(chainId, {
             mintResult: { txids: allTxids, totalFee },
             rbfData: newRbfData,
             cpfpData: newCpfpData,
+            config: existing?.config ?? { ...DEFAULT_CHAIN_CONFIG },
+            autoState: existing?.autoState ? {
+              ...existing.autoState,
+              triggered: false,
+              errorCount: 0,
+              lastErrorTime: null,
+              status: `MINTED ${chainLen} TXs`,
+            } : emptyAutoState(),
+            boundUtxo: existing?.boundUtxo,
           });
           return newMap;
         });
-        setCurrentChainUtxoKey(sourceUtxoKey);
       }
 
       refetchBalances();
-      // Keep selectedUtxo - user's manual choice persists for auto-mint cycles
     } catch (err) {
-      setMintError(err instanceof Error ? err.message : "Mint failed");
+      const errMsg = err instanceof Error ? err.message : "Mint failed";
+
+      // NO_FREE_UTXO — soft error, don't count as failure
+      if (errMsg === 'NO_FREE_UTXO') {
+        setChainsMap(prev => {
+          const c = prev.get(chainId);
+          if (!c) return prev;
+          const newMap = new Map(prev);
+          newMap.set(chainId, {
+            ...c,
+            autoState: { ...c.autoState, triggered: false, lastErrorTime: Date.now(), status: 'NO FREE UTXO — waiting...' },
+          });
+          return newMap;
+        });
+        setIsMinting(false);
+        setMintProgress({ current: 0, total: 0 });
+        return;
+      }
+
+      setMintError(errMsg);
+      const isInputGone = errMsg.includes('missingorspent') || errMsg.includes('missing-inputs') || errMsg.includes('txn-mempool-conflict');
+      if (isInputGone) {
+        const handled = await checkChainAndRestartRef.current(chainId);
+        if (handled) { throw err; }
+        // Not yet handled — esplora lagging. Set cooldown, DON'T increment errorCount.
+        setChainsMap(prev => {
+          const c = prev.get(chainId);
+          if (!c) return prev;
+          const newMap = new Map(prev);
+          newMap.set(chainId, {
+            ...c,
+            autoState: { ...c.autoState, triggered: false, lastErrorTime: Date.now(), status: 'CONFIRMING — waiting for detection...' },
+          });
+          return newMap;
+        });
+        throw err;
+      }
+      // Other errors: increment errorCount (stops at 3)
+      setChainsMap(prev => {
+        const chain = prev.get(chainId);
+        if (!chain) return prev;
+        const newMap = new Map(prev);
+        const newErrorCount = (chain.autoState.errorCount || 0) + 1;
+        newMap.set(chainId, {
+          ...chain,
+          autoState: {
+            ...chain.autoState,
+            triggered: false,
+            status: newErrorCount >= 3
+              ? `ERROR (stopped): ${errMsg}`
+              : `ERROR (${newErrorCount}/3): ${errMsg}`,
+            errorCount: newErrorCount,
+            lastErrorTime: Date.now(),
+          },
+        });
+        return newMap;
+      });
+      throw err;
     } finally {
       setIsMinting(false);
       setMintProgress({ current: 0, total: 0 });
     }
-  };
-
-  // Handle RBF - replace last TX to achieve target EFFECTIVE rate for entire chain
-  // Bitcoin RBF requires: new_fee >= old_fee + (incremental_relay_fee * vsize)
-  const INCREMENTAL_RELAY_FEE = 1; // sat/vB
-
-  // Calculate current effective rate and minimum for RBF
-  const currentEffectiveRate = rbfData && rbfData.totalVsize > 0
-    ? rbfData.totalFees / rbfData.totalVsize
-    : 0;
-
-  // Minimum new last TX fee for RBF to be accepted
-  const minLastTxFee = rbfData
-    ? (rbfData.lastTxFee || 0) + Math.ceil(TX_VSIZE * INCREMENTAL_RELAY_FEE)
-    : 0;
-
-  // Minimum effective rate achievable with RBF
-  const minEffectiveRate = rbfData && rbfData.totalVsize > 0
-    ? ((rbfData.feesExcludingLast || 0) + minLastTxFee) / rbfData.totalVsize
-    : 0;
+  }, [signTaprootPsbt, address, publicKey, network, availableUtxos, refetchBalances]);
 
   // Calculate CPFP preview based on current input
   const cpfpPreview = useMemo(() => {
@@ -1000,204 +776,370 @@ const DieselTerminal = () => {
     };
   }, [rbfData, cpfpData, rbfFeeRate]);
 
-  const handleRbf = async (directRate?: number) => {
-    if (!signTaprootPsbt || !address || !publicKey || !rbfData) {
+  // Handle RBF (parametrized by chainId)
+  const handleRbfForChain = useCallback(async (chainId: string, targetEffectiveRate: number) => {
+    if (!signTaprootPsbt || !address || !publicKey) {
       throw new Error("Missing data for RBF");
     }
 
-    const targetEffectiveRate = directRate ?? parseFloat(rbfFeeRate);
-    if (isNaN(targetEffectiveRate) || targetEffectiveRate <= 0) {
-      throw new Error("Enter valid target effective rate");
-    }
+    const chain = chainsMapRef.current.get(chainId);
+    if (!chain) throw new Error("Chain not found");
 
-    if (!rbfData.totalVsize || rbfData.totalVsize <= 0) {
+    const chainRbfData = chain.rbfData;
+    if (!chainRbfData.totalVsize || chainRbfData.totalVsize <= 0) {
       throw new Error("Invalid chain data - try detecting chain again");
     }
 
-    // Calculate required last TX fee to achieve target effective rate
-    // targetEffectiveRate = totalFees / totalVsize
-    // newTotalFees = targetEffectiveRate * totalVsize
-    // newLastTxFee = newTotalFees - feesExcludingLast
-    const feesExcludingLast = rbfData.feesExcludingLast || 0;
-    const requiredLastTxFee = Math.ceil(targetEffectiveRate * rbfData.totalVsize - feesExcludingLast);
+    const feesExcludingLast = chainRbfData.feesExcludingLast || 0;
+    const requiredLastTxFee = Math.ceil(targetEffectiveRate * chainRbfData.totalVsize - feesExcludingLast);
+    const chainMinLastTxFee = (chainRbfData.lastTxFee || 0) + Math.ceil(TX_VSIZE * INCREMENTAL_RELAY_FEE);
+    const actualLastTxFee = Math.max(requiredLastTxFee, chainMinLastTxFee);
 
-    // Ensure we meet minimum RBF requirements
-    const actualLastTxFee = Math.max(requiredLastTxFee, minLastTxFee);
-
-    if (actualLastTxFee <= rbfData.lastTxFee) {
-      throw new Error(`Target must be > ${currentEffectiveRate.toFixed(2)} sat/vB (min: ${minEffectiveRate.toFixed(2)})`);
+    if (actualLastTxFee <= chainRbfData.lastTxFee) {
+      const effRate = chainRbfData.totalFees / chainRbfData.totalVsize;
+      const minEff = (feesExcludingLast + chainMinLastTxFee) / chainRbfData.totalVsize;
+      throw new Error(`Target must be > ${effRate.toFixed(2)} sat/vB (min: ${minEff.toFixed(2)})`);
     }
 
     setIsRbfing(true);
     setMintError(null);
 
     try {
-      // Re-execute mint with the same input but higher fee
       const result = await executeMint(
-        signTaprootPsbt,
-        address,
-        publicKey,
-        0, // fee rate ignored when exactFee is provided
-        network,
-        rbfData.lastTxInput,
-        actualLastTxFee // exact fee in sats
+        signTaprootPsbt, address, publicKey, 0, network,
+        chainRbfData.lastTxInput, actualLastTxFee
       );
 
-      // Update state
-      const oldTxids = mintResult?.txids || [];
-      const newTxids = [...oldTxids.slice(0, -1), result.txid]; // Replace last txid
+      const oldTxids = chain.mintResult.txids;
+      const newTxids = [...oldTxids.slice(0, -1), result.txid];
+      const newTotalFees = feesExcludingLast + actualLastTxFee;
+      setSessionSpent(prev => prev + (newTotalFees - chainRbfData.totalFees));
 
-      const newTotalFees = (rbfData.feesExcludingLast || 0) + actualLastTxFee;
-      setSessionSpent(prev => prev + (newTotalFees - rbfData.totalFees));
-
-      setMintResult({ txids: newTxids, totalFee: newTotalFees });
-
-      // Update RBF data for potential further bumps
+      const oldLastTxid = chain.mintResult.txids[chain.mintResult.txids.length - 1];
       const newRbfData: RbfData = {
-        ...rbfData,
+        ...chainRbfData,
         lastTxFee: actualLastTxFee,
         totalFees: newTotalFees,
-        preRbfTotalFees: rbfData.preRbfTotalFees ?? rbfData.totalFees,
+        preRbfTotalFees: chainRbfData.preRbfTotalFees ?? chainRbfData.totalFees,
+        preRbfLastTxid: chainRbfData.preRbfLastTxid ?? oldLastTxid,
       };
-      setRbfData(newRbfData);
-
-      // Update CPFP data - the RBF created a new last TX
       const newCpfpData: CpfpData = {
         lastTxid: result.txid,
         lastOutputValue: result.outputValue,
         lastRawTxHex: result.rawTxHex,
       };
-      setCpfpData(newCpfpData);
 
-      // Update chainsMap
-      if (currentChainUtxoKey) {
-        setChainsMap(prev => {
-          const newMap = new Map(prev);
-          newMap.set(currentChainUtxoKey, {
-            mintResult: { txids: newTxids, totalFee: newTotalFees },
-            rbfData: newRbfData,
-            cpfpData: newCpfpData,
-          });
-          return newMap;
+      setChainsMap(prev => {
+        const newMap = new Map(prev);
+        newMap.set(chainId, {
+          ...chain,
+          mintResult: { txids: newTxids, totalFee: newTotalFees },
+          rbfData: newRbfData,
+          cpfpData: newCpfpData,
+          autoState: { ...chain.autoState, rbfTriggered: false, errorCount: 0, lastErrorTime: null, status: `RBF OK: ${targetEffectiveRate.toFixed(2)} sat/vB` },
         });
-      }
+        return newMap;
+      });
 
       setRbfFeeRate('');
       refetchBalances();
     } catch (err) {
-      setMintError(err instanceof Error ? err.message : "RBF failed");
+      const errMsg = err instanceof Error ? err.message : "RBF failed";
+      setMintError(errMsg);
+      const isInputGone = errMsg.includes('missingorspent') || errMsg.includes('missing-inputs') || errMsg.includes('txn-mempool-conflict');
+      if (isInputGone) {
+        const handled = await checkChainAndRestartRef.current(chainId);
+        if (handled) { throw err; }
+        setChainsMap(prev => {
+          const c = prev.get(chainId);
+          if (!c) return prev;
+          const newMap = new Map(prev);
+          newMap.set(chainId, {
+            ...c,
+            autoState: { ...c.autoState, rbfTriggered: false, lastErrorTime: Date.now(), status: 'CONFIRMING — waiting for detection...' },
+          });
+          return newMap;
+        });
+        throw err;
+      }
+      // Other errors: increment errorCount (stops at 3)
+      setChainsMap(prev => {
+        const c = prev.get(chainId);
+        if (!c) return prev;
+        const newMap = new Map(prev);
+        const newErrorCount = (c.autoState.errorCount || 0) + 1;
+        newMap.set(chainId, {
+          ...c,
+          autoState: {
+            ...c.autoState,
+            status: newErrorCount >= 3
+              ? `RBF ERROR (stopped): ${errMsg}`
+              : `RBF ERROR (${newErrorCount}/3): ${errMsg}`,
+            errorCount: newErrorCount,
+            lastErrorTime: Date.now(),
+          },
+        });
+        return newMap;
+      });
+      throw err;
     } finally {
       setIsRbfing(false);
     }
-  };
+  }, [signTaprootPsbt, address, publicKey, network, refetchBalances]);
 
-  // Handle CPFP - create child TX with high fee to pull up entire package
-  const MAX_CHAIN_LENGTH = 25; // Bitcoin mempool limit
-
-  const handleCpfp = async (directRate?: number) => {
-    if (!signTaprootPsbt || !address || !publicKey || !cpfpData || !rbfData) {
+  // Handle CPFP (parametrized by chainId)
+  const handleCpfpForChain = useCallback(async (chainId: string, targetEffectiveRate: number) => {
+    if (!signTaprootPsbt || !address || !publicKey) {
       throw new Error("Missing data for CPFP");
     }
 
-    // Check chain length limit
-    if (rbfData.chainLength >= MAX_CHAIN_LENGTH) {
+    const chain = chainsMapRef.current.get(chainId);
+    if (!chain) throw new Error("Chain not found");
+
+    const chainRbfData = chain.rbfData;
+    const chainCpfpData = chain.cpfpData;
+
+    if (chainRbfData.chainLength >= MAX_CHAIN_LENGTH) {
       throw new Error(`Chain limit reached (${MAX_CHAIN_LENGTH} TXs). Use RBF instead.`);
     }
 
-    const targetEffectiveRate = directRate ?? parseFloat(rbfFeeRate);
-    if (isNaN(targetEffectiveRate) || targetEffectiveRate <= 0) {
-      throw new Error("Enter valid target effective rate");
-    }
+    const newTotalVsize = chainRbfData.totalVsize + TX_VSIZE;
+    const requiredChildFee = Math.ceil(targetEffectiveRate * newTotalVsize - chainRbfData.totalFees);
+    const actualChildFee = Math.max(requiredChildFee, 1);
 
-    // Calculate required child fee to achieve target effective rate for package
-    // targetRate = (currentFees + childFee) / (currentVsize + childVsize)
-    // childFee = targetRate * (currentVsize + childVsize) - currentFees
-    const newTotalVsize = rbfData.totalVsize + TX_VSIZE;
-    const requiredChildFee = Math.ceil(targetEffectiveRate * newTotalVsize - rbfData.totalFees);
-
-    // With Bitcoin Core package relay, child can have very low individual fee
-    // as long as package rate meets mempool requirements
-    const actualChildFee = Math.max(requiredChildFee, 1); // At least 1 sat
-
-    // Check if we have enough balance in the last output
-    const dustLimit = 330; // P2TR dust limit
-    if (cpfpData.lastOutputValue - actualChildFee < dustLimit) {
-      throw new Error(`Insufficient balance for CPFP: need ${actualChildFee + dustLimit} sats, have ${cpfpData.lastOutputValue}`);
+    const dustLimit = 330;
+    if (chainCpfpData.lastOutputValue - actualChildFee < dustLimit) {
+      throw new Error(`Insufficient balance for CPFP: need ${actualChildFee + dustLimit} sats, have ${chainCpfpData.lastOutputValue}`);
     }
 
     setIsRbfing(true);
     setMintError(null);
 
     try {
-      // Create child TX spending the last TX output
       const childUtxo: UtxoInput = {
-        txid: cpfpData.lastTxid,
+        txid: chainCpfpData.lastTxid,
         vout: 0,
-        value: cpfpData.lastOutputValue,
-        rawTxHex: cpfpData.lastRawTxHex,
+        value: chainCpfpData.lastOutputValue,
+        rawTxHex: chainCpfpData.lastRawTxHex,
       };
 
       const result = await executeMint(
-        signTaprootPsbt,
-        address,
-        publicKey,
-        0, // fee rate ignored when exactFee is provided
-        network,
-        childUtxo,
-        actualChildFee // exact fee in sats
+        signTaprootPsbt, address, publicKey, 0, network, childUtxo, actualChildFee
       );
 
-      // Update state - add new TX to chain
-      const oldTxids = mintResult?.txids || [];
-      const newTxids = [...oldTxids, result.txid];
-      const newTotalFees = rbfData.totalFees + actualChildFee;
-      const newChainLength = rbfData.chainLength + 1;
-      const newTotalVsizeActual = newChainLength * TX_VSIZE;
+      const newTxids = [...chain.mintResult.txids, result.txid];
+      const newTotalFees = chainRbfData.totalFees + actualChildFee;
+      const newChainLength = chainRbfData.chainLength + 1;
       setSessionSpent(prev => prev + actualChildFee);
 
-      setMintResult({ txids: newTxids, totalFee: newTotalFees });
-
-      // Update RBF data for potential further bumps
       const newRbfData: RbfData = {
-        lastTxInput: childUtxo, // The child's input is the parent's output
+        lastTxInput: childUtxo,
         lastTxFee: actualChildFee,
         chainLength: newChainLength,
-        totalVsize: newTotalVsizeActual,
-        feesExcludingLast: rbfData.totalFees, // Previous total becomes "excluding last"
+        totalVsize: newChainLength * TX_VSIZE,
+        feesExcludingLast: chainRbfData.totalFees,
         totalFees: newTotalFees,
-        preRbfTotalFees: rbfData.preRbfTotalFees ?? null,
+        preRbfTotalFees: chainRbfData.preRbfTotalFees ?? null,
+        preRbfLastTxid: chainRbfData.preRbfLastTxid ?? null,
       };
-      setRbfData(newRbfData);
-
-      // Update CPFP data for the new last TX
       const newCpfpData: CpfpData = {
         lastTxid: result.txid,
         lastOutputValue: result.outputValue,
         lastRawTxHex: result.rawTxHex,
       };
-      setCpfpData(newCpfpData);
 
-      // Update chainsMap
-      if (currentChainUtxoKey) {
-        setChainsMap(prev => {
-          const newMap = new Map(prev);
-          newMap.set(currentChainUtxoKey, {
-            mintResult: { txids: newTxids, totalFee: newTotalFees },
-            rbfData: newRbfData,
-            cpfpData: newCpfpData,
-          });
-          return newMap;
+      setChainsMap(prev => {
+        const newMap = new Map(prev);
+        newMap.set(chainId, {
+          ...chain,
+          mintResult: { txids: newTxids, totalFee: newTotalFees },
+          rbfData: newRbfData,
+          cpfpData: newCpfpData,
         });
-      }
+        return newMap;
+      });
 
       setRbfFeeRate('');
       refetchBalances();
     } catch (err) {
       setMintError(err instanceof Error ? err.message : "CPFP failed");
+      throw err;
     } finally {
       setIsRbfing(false);
     }
-  };
+  }, [signTaprootPsbt, address, publicKey, network, refetchBalances]);
+
+  // Handle split UTXO: 1 P2TR input → N P2TR outputs + DIESEL mint OP_RETURN
+  const handleSplitUtxo = useCallback(async (
+    utxo: UtxoInput, outputs: number[], feeRate: number
+  ): Promise<string> => {
+    if (!signTaprootPsbt || !address || !publicKey) {
+      throw new Error("Wallet not connected");
+    }
+
+    const btcNetwork = network === "mainnet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
+    const isP2TR = address.startsWith("bc1p") || address.startsWith("tb1p");
+    if (!isP2TR) throw new Error("Split only supports P2TR addresses");
+
+    // Validate total (vsize includes OP_RETURN for DIESEL mint)
+    const totalOutputs = outputs.reduce((s, v) => s + v, 0);
+    const vsize = SPLIT_TX_BASE_VSIZE + outputs.length * P2TR_OUTPUT_VSIZE + DIESEL_OPRETURN_VSIZE;
+    const fee = Math.ceil(vsize * feeRate);
+    if (totalOutputs + fee !== utxo.value) {
+      throw new Error(`Amounts mismatch: outputs ${totalOutputs} + fee ${fee} != input ${utxo.value}`);
+    }
+
+    // Build DIESEL mint protostone via ts-sdk
+    // mint rune 1:0 (UNCOMMON GOODS) + protostone for DIESEL alkane 2:0, opcode 77
+    const cellpack = new Cellpack(BigInt(2), BigInt(0), [BigInt(77)]);
+    const { encodedRunestone } = encodeRunestoneProtostone({
+      mint: { block: BigInt(1), tx: BigInt(0) },
+      protostones: [
+        ProtoStone.message({
+          protocolTag: BigInt(1),
+          calldata: cellpack.serialize(),
+          pointer: 0,
+          refundPointer: 0,
+        }),
+      ],
+    });
+
+    // Fetch raw TX hex for the input
+    let rawTxHex: string;
+    if (utxo.rawTxHex) {
+      rawTxHex = utxo.rawTxHex;
+    } else {
+      const txRes = await fetchWithTimeout(`https://mempool.space/api/tx/${utxo.txid}/hex`);
+      rawTxHex = await txRes.text();
+    }
+
+    const outputScript = bitcoin.address.toOutputScript(address, btcNetwork);
+    const pubKeyBuffer = Buffer.from(publicKey, "hex");
+    const tapInternalKey = pubKeyBuffer.length === 33 ? pubKeyBuffer.subarray(1) : pubKeyBuffer;
+
+    const psbt = new bitcoin.Psbt({ network: btcNetwork });
+    psbt.addInput({
+      hash: utxo.txid,
+      index: utxo.vout,
+      sequence: 0xfffffffd,
+      witnessUtxo: { script: outputScript, value: BigInt(utxo.value) },
+      tapInternalKey,
+    });
+
+    // P2TR outputs (split amounts)
+    for (const amount of outputs) {
+      psbt.addOutput({ address, value: BigInt(amount) });
+    }
+
+    // DIESEL mint OP_RETURN (protostone)
+    psbt.addOutput({ script: encodedRunestone, value: BigInt(0) });
+
+    const signedBase64 = await signTaprootPsbt(psbt.toBase64());
+    const signedPsbt = bitcoin.Psbt.fromBase64(signedBase64, { network: btcNetwork });
+    const input0 = signedPsbt.data.inputs[0];
+
+    let signedTxHex: string;
+    if (input0.tapKeySig) {
+      signedPsbt.finalizeInput(0, () => ({
+        finalScriptWitness: witnessStackToScriptWitness([Buffer.from(input0.tapKeySig!)]),
+      }));
+      signedTxHex = signedPsbt.extractTransaction().toHex();
+    } else if (input0.finalScriptWitness) {
+      signedTxHex = signedPsbt.extractTransaction().toHex();
+    } else {
+      throw new Error("Signing failed - no signature in PSBT");
+    }
+
+    const broadcastRes = await fetchWithTimeout(RPC_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "btc_sendrawtransaction", params: [signedTxHex] }),
+    });
+    const result = await broadcastRes.json();
+    if (result.error) {
+      throw new Error(`Broadcast failed: ${result.error.message || JSON.stringify(result.error)}`);
+    }
+
+    // Refresh UTXOs after split
+    fetchUtxos();
+
+    return result.result;
+  }, [signTaprootPsbt, address, publicKey, network, fetchUtxos]);
+
+  // --- Swap quote ---
+  const handleGetSwapQuote = useCallback(async (
+    tokenIn: string, tokenOut: string, amountIn: string
+  ): Promise<SwapQuote | null> => {
+    const espo = (client as any)?.provider?.espo;
+    if (!espo?.findBestSwapPath) return null;
+
+    const result = await espo.findBestSwapPath(
+      tokenIn, tokenOut, 'exact_in', amountIn,
+      undefined, undefined, undefined, undefined, 30, 1
+    );
+
+    const hops = result.hops || [];
+    return {
+      amountIn: String(result.amount_in ?? amountIn),
+      amountOut: String(result.amount_out ?? '0'),
+      route: hops.length > 0
+        ? hops.map((h: any) => `${h.token_in} → ${h.token_out} (${h.pool})`).join(' | ')
+        : 'direct',
+      feeBps: result.fee_bps ?? 30,
+      hops: hops.length,
+    };
+  }, [client]);
+
+  const dieselBalance = useMemo(() => {
+    const token = balances?.tokens?.find((t: any) => t.runeId === '2:0');
+    return token?.balance ? Number(token.balance) : 0;
+  }, [balances]);
+
+  const frbtcBalance = useMemo(() => {
+    const token = balances?.tokens?.find((t: any) => t.runeId === '32:0');
+    return token?.balance ? Number(token.balance) : 0;
+  }, [balances]);
+
+  // --- Mempool fee rate (early ref for hooks) ---
+  const [mempoolFeeRate, setMempoolFeeRate] = useState(0);
+
+  // --- Action Queue & Multi-Chain Auto-Mint ---
+  const actionQueue = useActionQueue({
+    onMint: handleMintForChain,
+    onRbf: handleRbfForChain,
+    onCpfp: handleCpfpForChain,
+  });
+
+  const { startFreshFeeTimeout } = useMultiChainAutoMint({
+    chainsMap,
+    setChainsMap,
+    currentFeeRate: mempoolFeeRate,
+    globalEnabled: autoMintGlobalEnabled,
+    isProcessingAction: actionQueue.isProcessing || isMinting || isRbfing,
+    sessionSpent,
+    sessionLimit,
+    enqueue: actionQueue.enqueue,
+    hasAction: actionQueue.hasAction,
+  });
+
+  // Add new chain (UTXO selected lazily at mint time)
+  const handleAddChain = useCallback((config: ChainConfig) => {
+    const id = nextChainId();
+    setChainsMap(prev => {
+      const m = new Map(prev);
+      m.set(id, {
+        mintResult: { txids: [], totalFee: 0 },
+        rbfData: emptyRbfData(),
+        cpfpData: emptyCpfpData(),
+        config,
+        autoState: {
+          ...emptyAutoState(),
+          enabled: autoMintGlobalEnabled,
+        },
+      });
+      return m;
+    });
+  }, [autoMintGlobalEnabled]);
 
   // Detect existing unconfirmed chains from mempool (finds ALL chains per UTXO)
   const detectExistingChain = useCallback(async () => {
@@ -1239,23 +1181,23 @@ const DieselTerminal = () => {
       // Find ALL chain starts (TXs that spend from outside our unconfirmed set)
       // Each chain start represents a different source UTXO
       // NOTE: Chain start may not be a DIESEL tx itself (e.g., a regular tx that starts the chain)
-      const chainStarts: Array<{ tx: any; sourceUtxoKey: string; sourceUtxo: { txid: string; vout: number; value: number } }> = [];
+      const chainStarts: Array<{ tx: any; sourceUtxo: { txid: string; vout: number; value: number }; sourceKey: string }> = [];
 
       for (const tx of unconfirmedTxs) {
         for (const vin of tx.vin) {
           if (!txMap.has(vin.txid)) {
             // This TX spends from a confirmed UTXO - it's a chain start
-            const sourceUtxoKey = `${vin.txid}:${vin.vout}`;
+            const sourceKey = `${vin.txid}:${vin.vout}`;
             // Check if we already found a chain from this UTXO
-            if (!chainStarts.some(cs => cs.sourceUtxoKey === sourceUtxoKey)) {
+            if (!chainStarts.some(cs => cs.sourceKey === sourceKey)) {
               chainStarts.push({
                 tx,
-                sourceUtxoKey,
                 sourceUtxo: {
                   txid: vin.txid,
                   vout: vin.vout,
                   value: vin.prevout?.value || 0,
                 },
+                sourceKey,
               });
             }
             break;
@@ -1273,7 +1215,7 @@ const DieselTerminal = () => {
       const newChainsMap = new Map<string, ChainData>();
 
       for (const chainStartInfo of chainStarts) {
-        const { tx: chainStart, sourceUtxoKey, sourceUtxo } = chainStartInfo;
+        const { tx: chainStart, sourceUtxo } = chainStartInfo;
 
         // Follow the chain
         const chainTxids: string[] = [];
@@ -1376,6 +1318,7 @@ const DieselTerminal = () => {
           feesExcludingLast: Number(feesExcludingLast) || 0,
           totalFees: Number(totalFees) || 0,
           preRbfTotalFees: null,
+          preRbfLastTxid: null,
         };
 
         // Build CPFP data
@@ -1392,35 +1335,35 @@ const DieselTerminal = () => {
         const mintResult = { txids: chainTxids, totalFee: totalFees };
 
         // Save to chainsMap
-        newChainsMap.set(sourceUtxoKey, { mintResult, rbfData, cpfpData });
+        const detectedChainId = nextChainId();
+        newChainsMap.set(detectedChainId, {
+          mintResult, rbfData, cpfpData,
+          config: { ...DEFAULT_CHAIN_CONFIG },
+          autoState: emptyAutoState(),
+          sourceUtxo,
+          boundUtxo: sourceUtxo,
+        });
       }
 
-      // Update chainsMap with all detected chains
+      // Update chainsMap with detected chains (skip duplicates by matching first txid)
       setChainsMap(prev => {
+        // Collect first txids of existing chains to detect duplicates
+        const existingFirstTxids = new Set<string>();
+        for (const [, existing] of prev) {
+          if (existing.mintResult.txids.length > 0) {
+            existingFirstTxids.add(existing.mintResult.txids[0]);
+          }
+        }
         const merged = new Map(prev);
         for (const [key, value] of newChainsMap) {
+          const firstTxid = value.mintResult.txids[0];
+          if (firstTxid && existingFirstTxids.has(firstTxid)) continue; // Skip duplicate
           merged.set(key, value);
         }
         return merged;
       });
 
-      // Display the appropriate chain based on selection
-      const targetUtxoKey = selectedUtxo ? getUtxoKey(selectedUtxo) : null;
-      const chainToDisplay = targetUtxoKey && newChainsMap.has(targetUtxoKey)
-        ? newChainsMap.get(targetUtxoKey)
-        : newChainsMap.values().next().value; // First found if no selection
-
-      if (chainToDisplay) {
-        setMintResult(chainToDisplay.mintResult);
-        setRbfData(chainToDisplay.rbfData);
-        setCpfpData(chainToDisplay.cpfpData);
-
-        // Set currentChainUtxoKey
-        const displayKey = targetUtxoKey && newChainsMap.has(targetUtxoKey)
-          ? targetUtxoKey
-          : newChainsMap.keys().next().value;
-        setCurrentChainUtxoKey(displayKey || null);
-      }
+      // chainsMap is now the source of truth; no standalone state to set
 
       if (newChainsMap.size === 0) {
         setMintError("No DIESEL chains found");
@@ -1431,229 +1374,280 @@ const DieselTerminal = () => {
     } finally {
       setIsMinting(false);
     }
-  }, [address, selectedUtxo]);
+  }, [address]);
 
-  // Auto-detect chain on mount if wallet is connected
+  // Auto-detect chain on mount if wallet is connected + fetch UTXOs for AutoMintPanel
   useEffect(() => {
-    if (isConnected && address && !mintResult) {
-      detectExistingChain();
+    if (!chainsLoaded) return; // Wait for localStorage restore before detecting
+    if (isConnected && address) {
+      fetchUtxos();
+      detectExistingChain(); // Always detect — dedup by first txid prevents duplicates
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, chainsLoaded]);
 
-  // Check if chain is confirmed or TX disappeared (RBF replaced) and clear data
-  useEffect(() => {
-    if (!cpfpData?.lastTxid) return;
-
-    const checkConfirmation = async () => {
-      try {
-        const res = await fetchWithTimeout(RPC_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'esplora_tx',
-            params: [cpfpData.lastTxid],
-          }),
-        });
-        const data = await res.json();
-
-        // If lastTxid is confirmed, chain is done
-        if (data.result?.status?.confirmed) {
-          clearChainData();
-          return;
-        }
-
-        const lastTxNotFound = data.error || !data.result;
-
-        // Check if the original chain was confirmed (RBF race condition).
-        // After RBF, lastTxid is the replacement TX. If the block confirmed the
-        // ORIGINAL chain before the RBF propagated, the RBF TX may still appear
-        // in esplora (status: unconfirmed) but is actually invalid.
-        // We detect this by checking if the first TX of the chain is confirmed.
-        if (mintResult?.txids && mintResult.txids.length > 0) {
-          const firstTxid = mintResult.txids[0];
-          // Only need cross-check when lastTxid differs from firstTxid (RBF happened)
-          // or when lastTxid is not found at all
-          if (lastTxNotFound || firstTxid !== cpfpData.lastTxid) {
-            const firstTxRes = await fetchWithTimeout(RPC_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 1,
-                method: 'esplora_tx',
-                params: [firstTxid],
-              }),
-            });
-            const firstTxData = await firstTxRes.json();
-
-            // If first TX is confirmed, original chain was mined (RBF lost the race)
-            if (firstTxData.result?.status?.confirmed) {
-              // Subtract invalid RBF cost from session spending
-              if (currentChainUtxoKey && !adjustedChainsRef.current.has(currentChainUtxoKey) && rbfData?.preRbfTotalFees != null) {
-                const overpay = rbfData.totalFees - rbfData.preRbfTotalFees;
-                if (overpay > 0) {
-                  setSessionSpent(prev => Math.max(0, prev - overpay));
-                  adjustedChainsRef.current.add(currentChainUtxoKey);
-                }
-              }
-              clearChainData();
-              return;
-            }
-            // If first TX also not found, chain was evicted - clear anyway
-            if (firstTxData.error || !firstTxData.result) {
-              clearChainData();
-              return;
-            }
-          }
-        }
-
-        // If lastTxid not found for any reason, clear the chain
-        if (lastTxNotFound) {
-          clearChainData();
-        }
-      } catch {
-        // Network/timeout errors — will retry next interval
-      }
-    };
-
-    const clearChainData = () => {
-      setRbfData(null);
-      setCpfpData(null);
-      setMintResult(null);
-      setRbfFeeRate('');
-
-      // Remove from chainsMap
-      if (currentChainUtxoKey) {
-        setChainsMap(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(currentChainUtxoKey);
-          return newMap;
-        });
-        setCurrentChainUtxoKey(null);
-      }
-
-      refetchBalances();
-    };
-
-    // Check immediately
-    checkConfirmation();
-
-    // Then check every 30 seconds
-    const interval = setInterval(checkConfirmation, 30000);
-    return () => clearInterval(interval);
-  }, [cpfpData?.lastTxid, refetchBalances, currentChainUtxoKey, blockHeight, mintResult?.txids]); // blockHeight triggers immediate check on new block
-
-  // Check ALL chains in chainsMap for confirmation and remove confirmed ones
+  // Check ALL chains in chainsMap for confirmation
+  // Handles auto-restart in-place (same chainId, reset state, set sourceUtxo)
   useEffect(() => {
     if (chainsMap.size === 0) return;
 
-    const checkAllChains = async () => {
-      const confirmedKeys: string[] = [];
+    const currentFeeRate = mempoolStats?.minFee || 0;
 
-      for (const [utxoKey, chainData] of chainsMap) {
+    // Helper to build restart state for a chain (in-place)
+    const makeRestartState = (chainData: ChainData, restartTxid: string, restartOutputValue: number): Partial<ChainData> => ({
+      mintResult: { txids: [], totalFee: 0 },
+      rbfData: emptyRbfData(),
+      cpfpData: emptyCpfpData(),
+      config: { ...chainData.config },
+      autoState: {
+        enabled: true, triggered: false, rbfTriggered: false,
+        waitingForFreshFees: true, feeAtConfirmation: currentFeeRate,
+        waitStartTime: Date.now(), status: 'CONFIRMED — waiting for fresh fees',
+        errorCount: 0, lastErrorTime: null,
+      },
+      sourceUtxo: restartOutputValue > 0 ? { txid: restartTxid, vout: 0, value: restartOutputValue } : undefined,
+      boundUtxo: undefined, // Reset — will be re-selected at mint time
+    });
+
+    const checkAllChains = async () => {
+      // chainId → restart data (in-place)
+      const restartInPlace: Map<string, Partial<ChainData>> = new Map();
+      const deleteKeys: string[] = [];
+      const restoredChains: Array<{ chainId: string; lastValidTxid: string; lastValidOutputValue: number; validTxids: string[] }> = [];
+      const currentChainsMap = chainsMapRef.current;
+
+      for (const [chainId, chainData] of currentChainsMap) {
+        // Skip chains with no TXs (not yet minted)
+        if (chainData.mintResult.txids.length === 0) continue;
+
         try {
-          // Check lastTxid (could be RBF replacement)
           const lastTxRes = await fetchWithTimeout(RPC_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 1,
-              method: 'esplora_tx',
-              params: [chainData.cpfpData.lastTxid],
-            }),
+            body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_tx', params: [chainData.cpfpData.lastTxid] }),
           });
           const lastTxData = await lastTxRes.json();
 
-          // If lastTxid is confirmed, chain is done
           if (lastTxData.result?.status?.confirmed) {
-            confirmedKeys.push(utxoKey);
+            if (chainData.config.autoRestart && autoMintGlobalEnabled) {
+              const lastTxid = chainData.cpfpData.lastTxid;
+              restartInPlace.set(chainId, makeRestartState(chainData, lastTxid, chainData.cpfpData.lastOutputValue));
+            } else {
+              deleteKeys.push(chainId);
+            }
             continue;
           }
 
           const lastTxNotFound = lastTxData.error || !lastTxData.result;
 
-          // Check if original chain was confirmed (RBF race condition).
-          // After RBF, lastTxid is the replacement TX. The block may have confirmed
-          // the ORIGINAL chain, making the RBF invalid — but esplora may still
-          // return the RBF TX as unconfirmed. Cross-check with the first TX.
-          if (chainData.mintResult.txids.length > 0) {
-            const firstTxid = chainData.mintResult.txids[0];
-            if (lastTxNotFound || firstTxid !== chainData.cpfpData.lastTxid) {
-              const firstTxRes = await fetchWithTimeout(RPC_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  jsonrpc: '2.0',
-                  id: 1,
-                  method: 'esplora_tx',
-                  params: [firstTxid],
-                }),
-              });
-              const firstTxData = await firstTxRes.json();
+          // Last TX not found — walk chain backwards
+          if (lastTxNotFound) {
+            const txids = [...chainData.mintResult.txids];
+            if (chainData.rbfData.preRbfLastTxid) {
+              txids[txids.length - 1] = chainData.rbfData.preRbfLastTxid;
+            }
 
-              // If first TX is confirmed, original chain was mined (RBF lost the race)
-              if (firstTxData.result?.status?.confirmed) {
-                // Subtract invalid RBF cost from session spending
-                if (!adjustedChainsRef.current.has(utxoKey) && chainData.rbfData.preRbfTotalFees != null) {
-                  const overpay = chainData.rbfData.totalFees - chainData.rbfData.preRbfTotalFees;
-                  if (overpay > 0) {
-                    setSessionSpent(prev => Math.max(0, prev - overpay));
-                    adjustedChainsRef.current.add(utxoKey);
-                  }
+            let lastValidTxid: string | null = null;
+            let lastValidConfirmed = false;
+            let lastValidOutputValue = 0;
+            let lastValidIndex = -1;
+
+            for (let i = txids.length - 1; i >= 0; i--) {
+              try {
+                const res = await fetchWithTimeout(RPC_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_tx', params: [txids[i]] }),
+                });
+                const data = await res.json();
+                if (data.result) {
+                  lastValidTxid = txids[i];
+                  lastValidConfirmed = data.result.status?.confirmed === true;
+                  lastValidOutputValue = data.result.vout?.[0]?.value || 0;
+                  lastValidIndex = i;
+                  break;
                 }
-                confirmedKeys.push(utxoKey);
-                continue;
-              }
-              // If first TX also not found, chain was evicted
-              if (firstTxData.error || !firstTxData.result) {
-                confirmedKeys.push(utxoKey);
+              } catch {
                 continue;
               }
             }
+
+            if (!lastValidTxid) continue;
+
+            if (lastValidConfirmed) {
+              if (!adjustedChainsRef.current.has(chainId) && chainData.rbfData.preRbfTotalFees != null) {
+                const overpay = chainData.rbfData.totalFees - chainData.rbfData.preRbfTotalFees;
+                if (overpay > 0) {
+                  setSessionSpent(prev => Math.max(0, prev - overpay));
+                  adjustedChainsRef.current.add(chainId);
+                }
+              }
+              if (chainData.config.autoRestart && autoMintGlobalEnabled) {
+                restartInPlace.set(chainId, makeRestartState(chainData, lastValidTxid, lastValidOutputValue));
+              } else {
+                deleteKeys.push(chainId);
+              }
+              continue;
+            }
+
+            // Last valid TX still in mempool — RESTORE chain
+            restoredChains.push({
+              chainId,
+              lastValidTxid,
+              lastValidOutputValue,
+              validTxids: txids.slice(0, lastValidIndex + 1),
+            });
+            continue;
           }
 
-          // If lastTxid not found for any reason, clear the chain
-          if (lastTxNotFound) {
-            confirmedKeys.push(utxoKey);
+          // RBF cross-check
+          if (chainData.rbfData.preRbfLastTxid && chainData.rbfData.preRbfLastTxid !== chainData.cpfpData.lastTxid) {
+            const origTxRes = await fetchWithTimeout(RPC_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_tx', params: [chainData.rbfData.preRbfLastTxid] }),
+            });
+            const origTxData = await origTxRes.json();
+            if (origTxData.result?.status?.confirmed) {
+              if (!adjustedChainsRef.current.has(chainId) && chainData.rbfData.preRbfTotalFees != null) {
+                const overpay = chainData.rbfData.totalFees - chainData.rbfData.preRbfTotalFees;
+                if (overpay > 0) {
+                  setSessionSpent(prev => Math.max(0, prev - overpay));
+                  adjustedChainsRef.current.add(chainId);
+                }
+              }
+              if (chainData.config.autoRestart && autoMintGlobalEnabled) {
+                const origOutputValue = origTxData.result?.vout?.[0]?.value || 0;
+                restartInPlace.set(chainId, makeRestartState(chainData, chainData.rbfData.preRbfLastTxid!, origOutputValue));
+              } else {
+                deleteKeys.push(chainId);
+              }
+              continue;
+            }
+          }
+
+          // First TX cross-check
+          const firstTxid = chainData.mintResult.txids[0];
+          if (firstTxid && firstTxid !== chainData.cpfpData.lastTxid) {
+            try {
+              const firstTxRes = await fetchWithTimeout(RPC_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_tx', params: [firstTxid] }),
+              });
+              const firstTxData = await firstTxRes.json();
+              if (firstTxData.result?.status?.confirmed) {
+                if (!adjustedChainsRef.current.has(chainId) && chainData.rbfData.preRbfTotalFees != null) {
+                  const overpay = chainData.rbfData.totalFees - chainData.rbfData.preRbfTotalFees;
+                  if (overpay > 0) {
+                    setSessionSpent(prev => Math.max(0, prev - overpay));
+                    adjustedChainsRef.current.add(chainId);
+                  }
+                }
+                if (chainData.config.autoRestart && autoMintGlobalEnabled) {
+                  const restartTxid = chainData.rbfData.preRbfLastTxid || chainData.cpfpData.lastTxid;
+                  let restartOutputValue = 0;
+                  if (chainData.rbfData.preRbfLastTxid) {
+                    try {
+                      const restartRes = await fetchWithTimeout(RPC_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_tx', params: [restartTxid] }),
+                      });
+                      const restartData = await restartRes.json();
+                      restartOutputValue = restartData.result?.vout?.[0]?.value || 0;
+                    } catch { /* will fetch from wallet on next mint */ }
+                  } else {
+                    restartOutputValue = chainData.cpfpData.lastOutputValue;
+                  }
+                  restartInPlace.set(chainId, makeRestartState(chainData, restartTxid, restartOutputValue));
+                } else {
+                  deleteKeys.push(chainId);
+                }
+                continue;
+              }
+            } catch { /* ignore — will retry next cycle */ }
           }
         } catch {
           // Ignore errors for individual chains
         }
       }
 
-      // Remove confirmed chains
-      if (confirmedKeys.length > 0) {
+      // Update chainsMap: restart in-place, reset confirmed (keep config), restore recovered
+      if (restartInPlace.size > 0 || deleteKeys.length > 0 || restoredChains.length > 0) {
         setChainsMap(prev => {
           const newMap = new Map(prev);
-          for (const key of confirmedKeys) {
-            newMap.delete(key);
+          // Reset confirmed chains (keep config, clear active state)
+          for (const key of deleteKeys) {
+            const c = newMap.get(key);
+            if (c) {
+              newMap.set(key, {
+                ...c, mintResult: { txids: [], totalFee: 0 },
+                rbfData: emptyRbfData(), cpfpData: emptyCpfpData(),
+                autoState: { ...emptyAutoState(), status: 'CONFIRMED — idle' },
+                boundUtxo: undefined, sourceUtxo: undefined,
+              });
+            }
+          }
+          // In-place restart: update chain with fresh state, keep same chainId
+          for (const [chainId, restartData] of restartInPlace) {
+            const existing = newMap.get(chainId);
+            if (existing) {
+              newMap.set(chainId, { ...existing, ...restartData } as ChainData);
+            }
+          }
+          // Restore chains where RBF was evicted but original TXs still valid
+          for (const { chainId, lastValidTxid, lastValidOutputValue, validTxids } of restoredChains) {
+            const existing = newMap.get(chainId);
+            if (!existing) continue;
+            const originalTotalFee = existing.mintResult.totalFee;
+            const originalCount = existing.mintResult.txids.length;
+            const validCount = validTxids.length;
+            const estimatedValidFee = originalCount > 0
+              ? Math.round(originalTotalFee * (validCount / originalCount))
+              : originalTotalFee;
+            newMap.set(chainId, {
+              ...existing,
+              mintResult: { txids: validTxids, totalFee: estimatedValidFee },
+              cpfpData: { lastTxid: lastValidTxid, lastOutputValue: lastValidOutputValue, lastRawTxHex: '' },
+              rbfData: {
+                ...existing.rbfData,
+                lastTxInput: { txid: lastValidTxid, vout: 0, value: lastValidOutputValue },
+                lastTxFee: estimatedValidFee > 0 && validCount > 0
+                  ? Math.round(estimatedValidFee / validCount) : existing.rbfData.lastTxFee,
+                chainLength: validCount,
+                totalVsize: validCount * TX_VSIZE,
+                feesExcludingLast: estimatedValidFee - (estimatedValidFee > 0 && validCount > 0
+                  ? Math.round(estimatedValidFee / validCount) : 0),
+                totalFees: estimatedValidFee,
+                preRbfTotalFees: null,
+                preRbfLastTxid: null,
+              },
+              autoState: {
+                ...existing.autoState,
+                rbfTriggered: false, triggered: false,
+                status: `RECOVERED — ${validCount} TX${validCount > 1 ? 's' : ''} valid`,
+                errorCount: 0, lastErrorTime: null,
+              },
+            });
           }
           return newMap;
         });
 
-        // If current chain was confirmed, clear display
-        if (currentChainUtxoKey && confirmedKeys.includes(currentChainUtxoKey)) {
-          setRbfData(null);
-          setCpfpData(null);
-          setMintResult(null);
-          setCurrentChainUtxoKey(null);
+        // Start fresh-fee timeouts for restarted chains
+        for (const [chainId] of restartInPlace) {
+          startFreshFeeTimeout(chainId);
+        }
+
+        if (deleteKeys.length > 0 || restartInPlace.size > 0) {
           refetchBalances();
         }
       }
     };
 
-    // Check immediately
     checkAllChains();
-
-    // Retry after delays to account for indexer lag after new block
     const retry1 = setTimeout(checkAllChains, 2000);
     const retry2 = setTimeout(checkAllChains, 5000);
     const retry3 = setTimeout(checkAllChains, 10000);
-
-    // Then check every 30 seconds
     const interval = setInterval(checkAllChains, 30000);
     return () => {
       clearTimeout(retry1);
@@ -1661,11 +1655,7 @@ const DieselTerminal = () => {
       clearTimeout(retry3);
       clearInterval(interval);
     };
-  }, [chainsMap.size, currentChainUtxoKey, refetchBalances, blockHeight]); // blockHeight triggers immediate check on new block
-
-  // DIESEL constants (moved calculation after mempoolStats)
-  const DIESEL_BASE_REWARD = 3.125; // DIESEL units
-  const DIESEL_BASE_REWARD_SATS = 312_500_000; // in smallest units (8 decimals)
+  }, [chainsMap.size, refetchBalances, blockHeight, startFreshFeeTimeout, autoMintGlobalEnabled]);
   const [dieselPrice, setDieselPrice] = useState(2991);
   const [txCost, setTxCost] = useState(3.92);
   const [competition, setCompetition] = useState(100);
@@ -1887,6 +1877,141 @@ const DieselTerminal = () => {
     };
   }, [mempoolBlocks]);
 
+  // Sync mempoolFeeRate for hooks defined earlier
+  useEffect(() => {
+    if (mempoolStats?.minFee !== undefined) {
+      setMempoolFeeRate(mempoolStats.minFee);
+    }
+  }, [mempoolStats?.minFee]);
+
+  // Check if a chain's TXs are confirmed/evicted and restart if so.
+  // Called when broadcast fails with "missingorspent" — walks the chain backwards
+  // to find the last valid TX, gets actual output value from esplora, and restarts.
+  // Returns true if handled (chain removed/restarted).
+  const checkChainAndRestart = useCallback(async (chainId: string): Promise<boolean> => {
+    const chain = chainsMapRef.current.get(chainId);
+    if (!chain) return true;
+    if (chain.mintResult.txids.length === 0) {
+      // No txids — nothing to walk, just reset state (keep config)
+      setChainsMap(prev => {
+        const m = new Map(prev);
+        const c = m.get(chainId);
+        if (c) m.set(chainId, {
+          ...c, mintResult: { txids: [], totalFee: 0 },
+          rbfData: emptyRbfData(), cpfpData: emptyCpfpData(),
+          autoState: { ...c.autoState, triggered: false, status: null },
+          boundUtxo: undefined,
+        });
+        return m;
+      });
+      return true;
+    }
+
+    // Build original txid list — replace RBF replacement with original
+    const txids = [...chain.mintResult.txids];
+    if (chain.rbfData.preRbfLastTxid) {
+      txids[txids.length - 1] = chain.rbfData.preRbfLastTxid;
+    }
+
+    // Walk chain backwards to find the last valid TX
+    let lastValidTxid: string | null = null;
+    let lastValidConfirmed = false;
+    let lastValidOutputValue = 0;
+
+    for (let i = txids.length - 1; i >= 0; i--) {
+      try {
+        const res = await fetchWithTimeout(RPC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_tx', params: [txids[i]] }),
+        });
+        const data = await res.json();
+        if (data.result) {
+          lastValidTxid = txids[i];
+          lastValidConfirmed = data.result.status?.confirmed === true;
+          lastValidOutputValue = data.result.vout?.[0]?.value || 0;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (!lastValidTxid) return false;
+
+    if (!lastValidConfirmed) {
+      const firstTxid = txids[0];
+      if (firstTxid && firstTxid !== lastValidTxid) {
+        try {
+          const firstRes = await fetchWithTimeout(RPC_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'esplora_tx', params: [firstTxid] }),
+          });
+          const firstData = await firstRes.json();
+          if (firstData.result?.status?.confirmed) {
+            lastValidConfirmed = true;
+          }
+        } catch { /* ignore */ }
+      }
+      if (!lastValidConfirmed) return false;
+    }
+
+    // Chain confirmed — adjust session spending for RBF overpay
+    if (!adjustedChainsRef.current.has(chainId) && chain.rbfData.preRbfTotalFees != null) {
+      const overpay = chain.rbfData.totalFees - chain.rbfData.preRbfTotalFees;
+      if (overpay > 0) {
+        setSessionSpent(prev => Math.max(0, prev - overpay));
+        adjustedChainsRef.current.add(chainId);
+      }
+    }
+
+    const shouldRestart = chain.config.autoRestart && autoMintGlobalEnabled;
+    const currentFeeRate = mempoolStats?.minFee || 0;
+
+    setChainsMap(prev => {
+      const newMap = new Map(prev);
+      if (shouldRestart) {
+        // In-place restart: reset chain state, set sourceUtxo to change output
+        newMap.set(chainId, {
+          mintResult: { txids: [], totalFee: 0 },
+          rbfData: emptyRbfData(),
+          cpfpData: emptyCpfpData(),
+          config: { ...chain.config },
+          autoState: {
+            enabled: true, triggered: false, rbfTriggered: false,
+            waitingForFreshFees: true, feeAtConfirmation: currentFeeRate,
+            waitStartTime: Date.now(), status: 'CONFIRMED — waiting for fresh fees',
+            errorCount: 0, lastErrorTime: null,
+          },
+          sourceUtxo: lastValidOutputValue > 0
+            ? { txid: lastValidTxid!, vout: 0, value: lastValidOutputValue }
+            : undefined,
+          boundUtxo: undefined,
+        });
+      } else {
+        // Keep config, reset active state
+        const c = newMap.get(chainId);
+        if (c) {
+          newMap.set(chainId, {
+            ...c, mintResult: { txids: [], totalFee: 0 },
+            rbfData: emptyRbfData(), cpfpData: emptyCpfpData(),
+            autoState: { ...emptyAutoState(), status: 'CONFIRMED — idle' },
+            boundUtxo: undefined, sourceUtxo: undefined,
+          });
+        }
+      }
+      return newMap;
+    });
+
+    if (shouldRestart) startFreshFeeTimeout(chainId);
+    refetchBalances();
+    return true;
+  }, [autoMintGlobalEnabled, mempoolStats, refetchBalances, startFreshFeeTimeout]);
+
+  // Keep ref in sync so error handlers (defined before mempoolStats) can call it
+  checkChainAndRestartRef.current = checkChainAndRestart;
+
   // DIESEL block reward calculation based on protocol rules
   // Protocol fee = min(base_reward / 2, tx_fees) — always taken, capped at 50% of base
   // Distributable = base_reward - protocol_fee
@@ -2042,72 +2167,32 @@ const DieselTerminal = () => {
             balances ? (
               <div className="flex items-center gap-2 sm:gap-5 border-r border-[#303030] pr-2 sm:pr-4 mr-1 sm:mr-2">
                 <span className="flex items-center gap-1">
-                  <span className="text-[#707070] text-xs">BTC</span>
-                  <span className={`text-xs sm:text-sm ${balances.btcBalanceAvailable ? 'text-[#e0e0e0]' : 'text-[#505050] animate-pulse'}`}>{balances.btcBalanceAvailable ? formatBtcBalance(balances.btcBalance) : '-.----'}</span>
+                  <span className="w-5 h-5 flex-shrink-0"><BtcSkeletonIcon /></span>
+                  <span className={`text-xs sm:text-sm ${balances.btcBalanceAvailable ? 'text-[#e0e0e0]' : 'text-[#505050] animate-pulse'}`}>{balances.btcBalanceAvailable ? formatBtcBalance(balances.btcBalance, true) : '-.----'}</span>
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="text-[#707070] text-xs">DSL</span>
+                  <span className="w-4 h-4 flex-shrink-0"><AlkaneSkeletonIcon /></span>
                   <span className="text-[#e0e0e0] text-xs sm:text-sm">{balances.tokens?.find((t: any) => t.runeId === '2:0')?.balanceFormatted?.toFixed(2) || '0.00'}</span>
                 </span>
                 {balances.runes?.find((r: any) => r.spacedName === 'UNCOMMON•GOODS') && (
                   <span className="hidden sm:flex items-center gap-1">
-                    <span className="text-[#707070] text-xs">UG</span>
+                    <span className="text-white/30 font-semibold text-xl leading-none">⧉</span>
                     <span className="text-[#e0e0e0]">{balances.runes.find((r: any) => r.spacedName === 'UNCOMMON•GOODS')?.balanceFormatted?.toLocaleString() || '0'}</span>
                   </span>
                 )}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowWalletMenu(!showWalletMenu)}
-                    className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-2 sm:px-3 py-1 text-xs sm:text-sm tracking-wide transition-colors"
-                  >
-                    WALLET
-                  </button>
-                  {showWalletMenu && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setShowWalletMenu(false)} />
-                      <div className="absolute right-0 top-full mt-1 bg-[#0d0d0d] border border-[#404040] z-50 min-w-36">
-                        <button
-                          onClick={() => {
-                            setShowDepositModal(true);
-                            setShowWalletMenu(false);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm text-orange-500 hover:bg-orange-500/10 border-b border-[#252525]"
-                        >
-                          MANAGE
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowWalletMenu(false);
-                            navigator.clipboard.writeText(address || '');
-                            setDepositCopied(true);
-                            setTimeout(() => setDepositCopied(false), 2000);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm text-orange-500 hover:bg-orange-500/10 border-b border-[#252525]"
-                        >
-                          {depositCopied ? '✓ COPIED' : 'COPY ADDR'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            disconnect();
-                            setMintResult(null);
-                            setRbfData(null); setCpfpData(null);
-                            setShowWalletMenu(false);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm text-[#ff4444] hover:bg-[#ff4444]/10"
-                        >
-                          LOCK
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <button
+                  onClick={openWalletSidebar}
+                  className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-2 sm:px-3 py-1 text-xs sm:text-sm tracking-wide transition-colors"
+                >
+                  WALLET
+                </button>
               </div>
             ) : (
               <span className="text-[#505050] border-r border-[#303030] pr-4 mr-2 text-sm">LOADING...</span>
             )
           ) : (
             <button
-              onClick={() => setShowConnectModal(true)}
+              onClick={openWalletSidebar}
               className="text-orange-500 hover:bg-orange-500 hover:text-black border border-orange-500 px-3 py-1 text-sm tracking-wide transition-colors"
             >
               CONNECT
@@ -2158,7 +2243,7 @@ const DieselTerminal = () => {
                 </div>
                 <span className="text-[#252525] hidden sm:inline">│</span>
                 <div className="flex items-center gap-2 group relative">
-                  <span className="text-[#505050] text-xs border-b border-dotted border-[#505050] cursor-help">DSL</span>
+                  <span className="w-4 h-4 flex-shrink-0 cursor-help border-b border-dotted border-[#505050]"><AlkaneSkeletonIcon /></span>
                   {poolPriceLoading ? (
                     <span className="text-[#404040] animate-pulse">---</span>
                   ) : poolPrice !== null ? (
@@ -2213,29 +2298,22 @@ const DieselTerminal = () => {
         <div className="mt-2 sm:mt-3 border border-[#252525] bg-[#0d0d0d]">
           <AutoMintPanel
             currentFeeRate={mempoolStats?.minFee || 0}
-            currentEffectiveRate={currentEffectiveRate}
-            hasActiveChain={!!mintResult && mintResult.txids.length > 0}
-            chainLength={rbfData?.chainLength || 0}
-            chainsCount={chainsMap.size}
-            totalChainsTx={Array.from(chainsMap.values()).reduce((sum, c) => sum + c.rbfData.chainLength, 0)}
             isConnected={isConnected}
-            isMinting={isMinting}
-            isRbfing={isRbfing}
-            blockReward={blockReward}
-            dieselPrice={dieselPrice}
-            competition={competition}
+            globalEnabled={autoMintGlobalEnabled}
+            onGlobalEnabledChange={setAutoMintGlobalEnabled}
             sessionSpent={sessionSpent}
+            sessionLimit={sessionLimit}
+            onSessionLimitChange={setSessionLimit}
             onResetSpent={resetSessionSpent}
-            onMint={handleMint}
-            onRbf={handleRbf}
-            onCpfp={handleCpfp}
+            onLaunch={handleAddChain}
+            chainsCount={chainsMap.size}
           />
         </div>
       ) : (
         <div className="mt-3 border border-[#252525] bg-[#0d0d0d] p-4 text-center">
           <div className="text-[#505050] text-sm mb-3">CONNECT WALLET TO ENABLE AUTO-MINT</div>
           <button
-            onClick={() => setShowConnectModal(true)}
+            onClick={openWalletSidebar}
             className="px-6 py-2 text-sm font-bold border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black tracking-wide transition-colors"
           >
             CONNECT
@@ -2244,273 +2322,222 @@ const DieselTerminal = () => {
       )}
 
       {/* Active Chains List */}
-      {isConnected && chainsMap.size > 0 && (
+      {isConnected && (
         <div className="mt-2 sm:mt-3 border border-[#252525] bg-[#0d0d0d] relative z-10 overflow-visible">
           <div className="flex items-center justify-between px-2 sm:px-4 py-2 border-b border-[#252525] bg-[#0a0a0a]">
-            <span className="text-xs sm:text-sm"><span className="text-orange-500 font-bold">3</span><span className="text-[#404040] mx-1">│</span><span className="text-[#e0e0e0] tracking-wide">PENDING</span></span>
-            <span className="text-[#505050] text-xs">{chainsMap.size} CHAIN{chainsMap.size > 1 ? 'S' : ''}</span>
+            <span className="text-xs sm:text-sm">
+              <span className="text-orange-500 font-bold">3</span>
+              <span className="text-[#404040] mx-1">│</span>
+              <span className="text-[#e0e0e0] tracking-wide">CHAINS</span>
+              <span className="text-[#505050] ml-2">({chainsMap.size})</span>
+            </span>
           </div>
-          {/* Table header - outside scroll container for tooltips */}
-          <div className="grid grid-cols-12 gap-2 px-2 sm:px-4 py-2 text-xs text-[#505050] border-b border-[#1a1a1a] bg-[#080808] uppercase tracking-wider">
-            <div className="col-span-1 text-center group relative cursor-help">
-              <span className="border-b border-dotted border-[#505050]">TX</span>
-              <div className="absolute top-full left-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-32 pointer-events-none z-[100] normal-case">
-                Transactions in chain (max 25)
+          {chainsMap.size > 0 ? (
+            <>
+              {/* Table header */}
+              <div className="grid grid-cols-12 gap-1 px-2 sm:px-4 py-2 text-xs text-[#505050] border-b border-[#1a1a1a] bg-[#080808] uppercase tracking-wider">
+                <div className="col-span-1 text-center">ST</div>
+                <div className="col-span-1 text-center">TX</div>
+                <div className="col-span-1 text-right">ROI</div>
+                <div className="col-span-2 text-right">EXP</div>
+                <div className="col-span-2 text-right">COST</div>
+                <div className="col-span-1 text-right">P&L</div>
+                <div className="col-span-1 text-right">RATE</div>
+                <div className="col-span-3 text-right">ACT</div>
               </div>
-            </div>
-            <div className="col-span-2 text-right group relative cursor-help">
-              <span className="border-b border-dotted border-[#505050]">ROI</span>
-              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-40 pointer-events-none z-[100] normal-case">
-                Return on Investment (profit / cost × 100%)
-              </div>
-            </div>
-            <div className="col-span-2 text-right group relative cursor-help">
-              <span className="border-b border-dotted border-[#505050]">EXP</span>
-              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-44 pointer-events-none z-[100] normal-case">
-                Expected DIESEL emission share from block reward
-              </div>
-            </div>
-            <div className="col-span-2 text-right group relative cursor-help">
-              <span className="border-b border-dotted border-[#505050]">COST</span>
-              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-48 pointer-events-none z-[100] normal-case">
-                Total fees paid in sats. Price per DIESEL = cost / emission
-              </div>
-            </div>
-            <div className="col-span-2 text-right group relative cursor-help">
-              <span className="border-b border-dotted border-[#505050]">P&L</span>
-              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-40 pointer-events-none z-[100] normal-case">
-                Profit/Loss in satoshis (emission × price - cost)
-              </div>
-            </div>
-            <div className="col-span-1 text-right group relative cursor-help">
-              <span className="border-b border-dotted border-[#505050]">RATE</span>
-              <div className="absolute top-full right-0 mt-2 px-2 py-1.5 bg-[#1a1a1a] border border-[#404040] text-xs text-[#a0a0a0] opacity-0 group-hover:opacity-100 transition-opacity w-40 pointer-events-none z-[100] normal-case">
-                Effective fee rate (sat/vB). Red = below next block
-              </div>
-            </div>
-            <div className="col-span-2 text-right">ACT</div>
-          </div>
-          {/* Chains list */}
-          <div className="max-h-48 overflow-y-auto">
-            {Array.from(chainsMap.entries()).map(([utxoKey, chainData]) => {
-              const n = chainData.rbfData.chainLength;
-              const effectiveRate = chainData.rbfData.totalVsize > 0
-                ? chainData.rbfData.totalFees / chainData.rbfData.totalVsize
-                : 0;
-              const isLowFee = mempoolStats && effectiveRate < mempoolStats.minFee;
-              const isSelected = currentChainUtxoKey === utxoKey;
+              {/* Chains list */}
+              <div className="max-h-64 overflow-y-auto">
+                {Array.from(chainsMap.entries()).map(([chainId, chainData]) => {
+                  const n = chainData.rbfData.chainLength;
+                  const effectiveRate = chainData.rbfData.totalVsize > 0
+                    ? chainData.rbfData.totalFees / chainData.rbfData.totalVsize
+                    : 0;
+                  const isLowFee = mempoolStats && effectiveRate > 0 && effectiveRate < mempoolStats.minFee;
+                  const isExpanded = expandedChains.has(chainId);
 
-              // Calculate chain metrics
-              const pool = blockReward * 0.95; // 5% protocol fee
-              const totalMints = n + competition;
-              const emission = totalMints > 0 ? (n / totalMints) * pool : 0;
-              const costSats = chainData.rbfData.totalFees;
-              const costDiesel = dieselPrice > 0 ? costSats / dieselPrice : 0;
-              const profitDiesel = emission - costDiesel;
-              const profitSats = profitDiesel * dieselPrice;
-              const roi = costSats > 0 ? (profitSats / costSats) * 100 : 0;
-              const isProfitable = profitDiesel > 0;
+                  // Calculate chain metrics
+                  const pool = blockReward * 0.95;
+                  const totalMints = n + competition;
+                  const emission = totalMints > 0 ? (n / totalMints) * pool : 0;
+                  const costSats = chainData.rbfData.totalFees;
+                  const costDiesel = dieselPrice > 0 ? costSats / dieselPrice : 0;
+                  const profitDiesel = emission - costDiesel;
+                  const profitSats = profitDiesel * dieselPrice;
+                  const roi = costSats > 0 ? (profitSats / costSats) * 100 : 0;
+                  const isProfitable = profitDiesel > 0;
 
-              return (
-                <div
-                  key={utxoKey}
-                  className={`grid grid-cols-12 gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm border-b border-[#151515] hover:bg-[#151515] ${
-                    isSelected ? 'border-l-2 border-l-orange-500' : ''
-                  }`}
-                >
-                  <div className={`col-span-1 text-center ${
-                    n >= 25 ? 'text-[#ff4444]' : n >= 20 ? 'text-[#ffcc00]' : 'text-[#00ff88]'
-                  }`}>
-                    {n}<span className="text-[#303030]">/25</span>
-                  </div>
-                  <div className={`col-span-2 text-right font-bold ${roi >= 0 ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
-                    {roi >= 0 ? '+' : ''}{roi.toFixed(0)}%
-                  </div>
-                  <div className="col-span-2 text-right text-[#e0e0e0]">
-                    {emission.toFixed(2)}<span className="text-[#404040] text-xs ml-1">D</span>
-                  </div>
-                  <div className="col-span-2 text-right text-[#e0e0e0]">
-                    {costSats.toLocaleString()}<span className="text-[#404040] text-xs ml-1">s</span>
-                  </div>
-                  <div className={`col-span-2 text-right ${isProfitable ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
-                    {profitSats >= 0 ? '+' : ''}{Math.round(profitSats)}<span className="text-[#404040] text-xs ml-1">s</span>
-                  </div>
-                  <div className={`col-span-1 text-right ${isLowFee ? 'text-[#ff4444]' : 'text-[#e0e0e0]'}`}>
-                    {effectiveRate.toFixed(2)}
-                    {isLowFee && <span className="text-[#ff4444]">▼</span>}
-                  </div>
-                  <div className="col-span-2 text-right">
-                    <a
-                      href={`https://mempool.space/tx/${chainData.cpfpData.lastTxid}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2 py-1 text-xs text-orange-500 border border-orange-500/30 hover:bg-orange-500/10 transition-colors"
-                      title={utxoKey}
-                    >
-                      VIEW↗
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  // Status dot
+                  const statusColor = chainData.autoState.status?.startsWith('ERROR')
+                    ? 'bg-[#ff4444]'
+                    : chainData.autoState.waitingForFreshFees
+                      ? 'bg-[#ffcc00]'
+                      : !chainData.autoState.enabled
+                        ? 'bg-[#505050]'
+                        : chainData.mintResult.txids.length > 0
+                          ? 'bg-[#00ff88] animate-pulse'
+                          : 'bg-[#ffcc00]';
+
+                  return (
+                    <div key={chainId}>
+                      <div
+                        className="grid grid-cols-12 gap-1 px-2 sm:px-4 py-2 text-xs sm:text-sm border-b border-[#151515] hover:bg-[#151515] cursor-pointer"
+                        onClick={() => setExpandedChains(prev => {
+                          const next = new Set(prev);
+                          next.has(chainId) ? next.delete(chainId) : next.add(chainId);
+                          return next;
+                        })}
+                      >
+                        {/* Status dot */}
+                        <div className="col-span-1 flex items-center justify-center">
+                          <span className={`w-2 h-2 ${statusColor}`} />
+                        </div>
+                        <div className={`col-span-1 text-center ${
+                          n >= 25 ? 'text-[#ff4444]' : n >= 20 ? 'text-[#ffcc00]' : 'text-[#00ff88]'
+                        }`}>
+                          {n}<span className="text-[#303030]">/25</span>
+                        </div>
+                        <div className={`col-span-1 text-right font-bold ${roi >= 0 ? 'text-[#00ff88]' : 'text-[#ff4444]'}`}>
+                          {n > 0 ? `${roi >= 0 ? '+' : ''}${roi.toFixed(0)}%` : '-'}
+                        </div>
+                        <div className="col-span-2 text-right text-[#e0e0e0]">
+                          {n > 0 ? <>{emission.toFixed(2)}<span className="text-[#404040] text-xs ml-1">D</span></> : '-'}
+                        </div>
+                        <div className="col-span-2 text-right text-[#e0e0e0]">
+                          {costSats > 0 ? <>{costSats.toLocaleString()}<span className="text-[#404040] text-xs ml-1">s</span></> : '-'}
+                        </div>
+                        <div className={`col-span-1 text-right ${isProfitable ? 'text-[#00ff88]' : n > 0 ? 'text-[#ff4444]' : 'text-[#505050]'}`}>
+                          {n > 0 ? `${profitSats >= 0 ? '+' : ''}${Math.round(profitSats)}` : '-'}
+                        </div>
+                        <div className={`col-span-1 text-right ${isLowFee ? 'text-[#ff4444]' : 'text-[#e0e0e0]'}`}>
+                          {effectiveRate > 0 ? effectiveRate.toFixed(2) : '-'}
+                          {isLowFee && <span className="text-[#ff4444]">▼</span>}
+                        </div>
+                        <div className="col-span-3 text-right flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                          {/* Pause/Play */}
+                          <button
+                            onClick={() => {
+                              setChainsMap(prev => {
+                                const newMap = new Map(prev);
+                                const c = prev.get(chainId);
+                                if (!c) return prev;
+                                newMap.set(chainId, {
+                                  ...c,
+                                  autoState: { ...c.autoState, enabled: !c.autoState.enabled, triggered: false, rbfTriggered: false },
+                                });
+                                return newMap;
+                              });
+                            }}
+                            className={`px-1.5 py-0.5 text-xs border transition-colors ${
+                              chainData.autoState.enabled
+                                ? 'text-[#ffcc00] border-[#ffcc00]/30 hover:bg-[#ffcc00]/10'
+                                : 'text-[#00ff88] border-[#00ff88]/30 hover:bg-[#00ff88]/10'
+                            }`}
+                            title={chainData.autoState.enabled ? 'Pause' : 'Resume'}
+                          >
+                            {chainData.autoState.enabled ? '||' : '>'}
+                          </button>
+                          {/* Delete */}
+                          <button
+                            onClick={() => {
+                              setChainsMap(prev => { const m = new Map(prev); m.delete(chainId); return m; });
+                            }}
+                            className="px-1.5 py-0.5 text-xs text-[#ff4444] border border-[#ff4444]/30 hover:bg-[#ff4444]/10 transition-colors"
+                            title="Remove chain"
+                          >
+                            X
+                          </button>
+                          {/* Mempool link */}
+                          {chainData.cpfpData.lastTxid && (
+                            <a
+                              href={`https://mempool.space/tx/${chainData.cpfpData.lastTxid}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-1.5 py-0.5 text-xs text-orange-500 border border-orange-500/30 hover:bg-orange-500/10 transition-colors"
+                              title={chainId}
+                            >
+                              MP
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      {/* Status text */}
+                      {chainData.autoState.status && (
+                        <div className={`px-4 py-1 text-xs border-b border-[#151515] ${
+                          chainData.autoState.status.startsWith('ERROR') || chainData.autoState.status.startsWith('RBF ERROR')
+                            ? 'text-[#ff4444] bg-[#1a0a0a]'
+                            : chainData.autoState.status.startsWith('LIMIT')
+                              ? 'text-[#ff44ff] bg-[#1a0a1a]'
+                              : chainData.autoState.status.startsWith('MINTING') || chainData.autoState.status.startsWith('RBF:')
+                                ? 'text-[#ffcc00] bg-[#1a1500]'
+                                : chainData.autoState.status.startsWith('CONFIRMED')
+                                  ? 'text-[#00d4ff] bg-[#0a0a1a]'
+                                  : 'text-[#707070] bg-[#0d0d0d]'
+                        }`}>
+                          {chainData.autoState.status}
+                        </div>
+                      )}
+                      {/* Expandable config editor */}
+                      {isExpanded && (
+                        <div className="px-4 py-2 bg-[#080808] border-b border-[#252525]">
+                          <ChainConfigEditor
+                            config={chainData.config}
+                            onChange={(newConfig) => {
+                              setChainsMap(prev => {
+                                const newMap = new Map(prev);
+                                const c = prev.get(chainId);
+                                if (!c) return prev;
+                                newMap.set(chainId, { ...c, config: newConfig });
+                                return newMap;
+                              });
+                            }}
+                            compact
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="px-4 py-4 text-center text-[#505050] text-xs">
+              No chains. Click [+ CHAIN] to start.
+            </div>
+          )}
         </div>
       )}
 
       <div className="mt-2 sm:mt-3 text-xs text-[#404040] border-t border-[#1a1a1a] pt-2">
-        <div className="tracking-wider">TURBO DIESEL TERMINAL <span className="text-[#505050] italic">v12</span></div>
+        <div className="tracking-wider">TURBO DIESEL TERMINAL <span className="text-[#505050] italic">v13</span></div>
       </div>
 
-      {/* Connect Wallet Modal */}
-      <TerminalConnectModal
-        isOpen={showConnectModal}
-        onClose={() => setShowConnectModal(false)}
+
+      {/* Wallet Sidebar */}
+      <TerminalWalletSidebar
+        isVisible={walletSidebarVisible}
+        isClosing={walletSidebarClosing}
+        onClose={closeWalletSidebar}
+        isConnected={isConnected}
+        address={address}
+        wallet={wallet}
+        hasKeystore={hasStoredKeystore}
+        balances={balances}
         onUnlock={handleUnlock}
         onRestore={handleRestore}
         onCreate={handleCreate}
-        hasKeystore={hasStoredKeystore}
+        onDisconnect={() => { disconnect(); setChainsMap(new Map()); }}
+        unlockWallet={unlockWallet}
         isLoading={walletLoading}
         error={walletError}
+        availableUtxos={availableUtxos}
+        loadingUtxos={loadingUtxos}
+        currentFeeRate={mempoolStats?.minFee || 0}
+        onSplitUtxo={handleSplitUtxo}
+        onRefreshUtxos={fetchUtxos}
+        onGetSwapQuote={handleGetSwapQuote}
+        dieselBalance={dieselBalance}
+        frbtcBalance={frbtcBalance}
       />
-
-      {/* Deposit Modal */}
-      {showDepositModal && address && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0a0a0a] border border-orange-500/50 max-w-md w-full font-mono">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-[#252525] bg-[#0d0d0d]">
-              <span className="text-orange-500 font-bold text-sm tracking-wide">WALLET MANAGER</span>
-              <button
-                onClick={() => { setShowDepositModal(false); setShowMnemonic(false); setSeedPassword(''); setSeedPasswordError(null); }}
-                className="text-[#505050] hover:text-orange-500 text-sm"
-              >
-                [ESC]
-              </button>
-            </div>
-            <div className="p-4">
-              {/* Deposit Section */}
-              <div className="text-[#505050] text-xs mb-2 tracking-wide">DEPOSIT ADDRESS</div>
-              <div className="bg-[#050505] border border-[#252525] p-3 mb-3">
-                <div className="text-[#00d4ff] text-sm break-all select-all">
-                  {address}
-                </div>
-              </div>
-              <button
-                onClick={handleCopyAddress}
-                className={`w-full py-2 border text-sm font-bold transition-colors mb-4 ${
-                  depositCopied
-                    ? 'border-[#00ff88] text-[#00ff88] bg-[#00ff88]/5'
-                    : 'border-[#00d4ff]/50 text-[#00d4ff] hover:bg-[#00d4ff]/5'
-                }`}
-              >
-                {depositCopied ? '✓ COPIED' : 'COPY ADDRESS'}
-              </button>
-
-              {/* Backup Section */}
-              {wallet && (
-                <div className="border-t border-[#252525] pt-4">
-                  <div className="text-[#505050] text-xs mb-2 tracking-wide">BACKUP SEED</div>
-                  {!showMnemonic ? (
-                    <div>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="password"
-                          value={seedPassword}
-                          onChange={(e) => { setSeedPassword(e.target.value); setSeedPasswordError(null); }}
-                          placeholder="Password to reveal"
-                          className="flex-1 px-3 py-2 bg-[#050505] border border-[#252525] text-[#e0e0e0] text-sm outline-none focus:border-[#ffcc00]"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && seedPassword) {
-                              // Verify by trying to get mnemonic
-                              try {
-                                const mnemonic = wallet.exportMnemonic();
-                                if (mnemonic) {
-                                  setShowMnemonic(true);
-                                  setSeedPasswordError(null);
-                                }
-                              } catch {
-                                setSeedPasswordError('Invalid password');
-                              }
-                            }
-                          }}
-                        />
-                        <button
-                          onClick={async () => {
-                            if (!seedPassword) {
-                              setSeedPasswordError('Enter password');
-                              return;
-                            }
-                            setVerifyingSeedPassword(true);
-                            try {
-                              // Try to unlock with password to verify it's correct
-                              await unlockWallet(seedPassword);
-                              setShowMnemonic(true);
-                              setSeedPasswordError(null);
-                            } catch {
-                              setSeedPasswordError('Invalid password');
-                            } finally {
-                              setVerifyingSeedPassword(false);
-                            }
-                          }}
-                          disabled={verifyingSeedPassword || !seedPassword}
-                          className="px-4 py-2 border border-[#ffcc00]/50 text-[#ffcc00] text-sm hover:bg-[#ffcc00]/5 disabled:opacity-50"
-                        >
-                          {verifyingSeedPassword ? '...' : 'REVEAL'}
-                        </button>
-                      </div>
-                      {seedPasswordError && (
-                        <div className="text-[#ff4444] text-sm">{seedPasswordError}</div>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="bg-[#050505] border border-[#ff4444]/30 p-3 mb-3">
-                        <div className="text-[#ff6666] text-sm break-all select-all">
-                          {wallet.exportMnemonic()}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(wallet.exportMnemonic());
-                            setMnemonicCopied(true);
-                            setTimeout(() => setMnemonicCopied(false), 2000);
-                          }}
-                          className={`flex-1 py-2 border text-sm font-bold transition-colors ${
-                            mnemonicCopied
-                              ? 'border-[#00ff88] text-[#00ff88] bg-[#00ff88]/5'
-                              : 'border-[#ffcc00]/50 text-[#ffcc00] hover:bg-[#ffcc00]/5'
-                          }`}
-                        >
-                          {mnemonicCopied ? '✓ COPIED' : 'COPY SEED'}
-                        </button>
-                        <button
-                          onClick={() => { setShowMnemonic(false); setSeedPassword(''); }}
-                          className="flex-1 py-2 border border-[#252525] text-[#707070] text-sm hover:bg-[#151515]"
-                        >
-                          HIDE
-                        </button>
-                      </div>
-                      <div className="mt-2 text-[#ff4444]/80 text-xs flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 bg-[#ff4444]"></span>
-                        Never share seed phrase. Anyone with it can steal your funds.
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => { setShowDepositModal(false); setShowMnemonic(false); setSeedPassword(''); setSeedPasswordError(null); }}
-                  className="flex-1 py-2 border border-[#252525] text-[#707070] text-sm hover:bg-[#151515]"
-                >
-                  CLOSE
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -117,6 +117,8 @@ async function getProvider(): Promise<WebProvider> {
       providerInstance = provider;
       return provider;
     } catch (error) {
+      // Reset so next call retries instead of returning cached rejected promise
+      providerInitPromise = null;
       console.error('[useWalletBalances] Failed to create WebProvider:', error);
       throw error;
     }
@@ -189,9 +191,14 @@ async function fetchRunesBalances(address: string): Promise<RuneBalance[]> {
  * Fetch alkanes balances via alkanes_protorunesbyaddress RPC
  * (balances.lua doesn't reliably return alkanes, so we fetch them separately like subfrost-app does)
  */
+let lastAlkaneBalances: Array<{ runeId: string; balance: string }> = [];
+
 async function fetchAlkanesBalances(address: string): Promise<Array<{ runeId: string; balance: string }>> {
   try {
     const rpcUrl = process.env.NEXT_PUBLIC_ALKANES_RPC_URL || 'https://mainnet.subfrost.io/v4/buildalkanes';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
     const res = await fetch(rpcUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -201,12 +208,14 @@ async function fetchAlkanesBalances(address: string): Promise<Array<{ runeId: st
         method: 'alkanes_protorunesbyaddress',
         params: [{ address, protocolTag: '1' }],
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
-    if (!res.ok) return [];
+    if (!res.ok) return lastAlkaneBalances;
 
     const data = await res.json();
-    if (data.error || !data.result?.outpoints) return [];
+    if (data.error || !data.result?.outpoints) return lastAlkaneBalances;
 
     // Aggregate balances by alkane ID from all outpoints
     const balanceMap = new Map<string, bigint>();
@@ -219,10 +228,12 @@ async function fetchAlkanesBalances(address: string): Promise<Array<{ runeId: st
       }
     }
 
-    return Array.from(balanceMap, ([runeId, balance]) => ({ runeId, balance: balance.toString() }));
+    const result = Array.from(balanceMap, ([runeId, balance]) => ({ runeId, balance: balance.toString() }));
+    if (result.length > 0) lastAlkaneBalances = result;
+    return result;
   } catch (error) {
     console.warn('[useWalletBalances] fetchAlkanesBalances failed:', error);
-    return [];
+    return lastAlkaneBalances;
   }
 }
 
@@ -262,12 +273,6 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
 
     // Extract and normalize the enriched data (handles Map responses from WASM)
     const enrichedData = extractEnrichedData(rawEnrichedData);
-    console.log('[useWalletBalances] rawEnrichedData:', rawEnrichedData);
-    console.log('[useWalletBalances] Extracted enriched data:', enrichedData ? {
-      spendableCount: enrichedData.spendable.length,
-      assetsCount: enrichedData.assets.length,
-      pendingCount: enrichedData.pending.length,
-    } : null);
 
     if (enrichedData) {
       const allUtxos = [...enrichedData.spendable, ...enrichedData.assets, ...enrichedData.pending];
@@ -281,8 +286,6 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
       btcBalanceAvailable = allUtxos.length > 0 || !hasTokens;
     }
 
-    console.log('[useWalletBalances] BTC balance:', btcBalance, 'sats, alkanes found:', alkaneBalances.length, alkaneBalances);
-
     // Fallback: if no enriched data, try esplora for BTC balance
     if (!btcBalanceAvailable) {
       try {
@@ -292,7 +295,6 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
           const utxos = rawUtxos.map(mapToObject);
           btcBalance = utxos.reduce((sum: number, utxo: any) => sum + (utxo.value || 0), 0);
           btcBalanceAvailable = utxos.length > 0 || !alkaneBalances.length;
-          console.log('[useWalletBalances] Esplora fallback BTC balance:', btcBalance, 'from', utxos.length, 'UTXOs');
         }
       } catch (err) {
         console.warn('[useWalletBalances] esplora fallback failed:', err);
@@ -316,8 +318,6 @@ async function fetchWalletBalances(address: string): Promise<WalletBalancesRespo
         };
       })
     );
-
-    console.log('[useWalletBalances] tokensWithMeta:', tokensWithMeta);
 
     // Sort tokens: DIESEL first, then by balance
     tokensWithMeta.sort((a, b) => {
@@ -391,11 +391,11 @@ export function formatBalance(balance: number, decimals = 8): string {
 /**
  * Format BTC balance
  */
-export function formatBtcBalance(satoshis: number): string {
+export function formatBtcBalance(satoshis: number, omitUnit = false): string {
   const btc = satoshis / 100000000;
-  if (btc === 0) return '0 BTC';
-  if (btc >= 1) return `${btc.toFixed(4)} BTC`;
-  if (btc >= 0.001) return `${btc.toFixed(6)} BTC`;
+  if (btc === 0) return omitUnit ? '0' : '0 BTC';
+  if (btc >= 1) return omitUnit ? btc.toFixed(4) : `${btc.toFixed(4)} BTC`;
+  if (btc >= 0.001) return omitUnit ? btc.toFixed(6) : `${btc.toFixed(6)} BTC`;
   return `${satoshis.toLocaleString()} sats`;
 }
 

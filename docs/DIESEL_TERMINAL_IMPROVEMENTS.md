@@ -1,6 +1,6 @@
 # DIESEL Terminal — Planned Improvements
 
-Prioritized backlog of improvements for `DieselTerminal.tsx` and `AutoMintPanel.tsx`.
+Prioritized backlog of improvements for `DieselTerminal.tsx`, `AutoMintPanel.tsx`, and `diesel-terminal/` modules.
 
 Status legend: `[ ]` todo, `[x]` done, `[-]` won't do
 
@@ -52,9 +52,9 @@ Status legend: `[ ]` todo, `[x]` done, `[-]` won't do
 ## Medium Priority
 
 ### 5. Shared `TX_VSIZE` Constant
-`[ ]` Extract `TX_VSIZE = 141` to a shared module.
+`[x]` Extract `TX_VSIZE = 141` to a shared module.
 
-**Problem**: The constant is duplicated in `DieselTerminal.tsx` (line 14) and `AutoMintPanel.tsx` (line 30).
+**Done**: Extracted to `components/diesel-terminal/constants.ts` along with all other shared constants (`MAX_CHAIN_LENGTH`, `FRESH_FEE_TIMEOUT_MS`, `DEFAULT_CHAIN_CONFIG`, factory functions).
 
 ### 6. Memoize PENDING CHAINS Calculations
 `[ ]` Wrap emission/ROI calculations in `useMemo`.
@@ -72,13 +72,15 @@ Status legend: `[ ]` todo, `[x]` done, `[-]` won't do
 `[ ]` Add a button to RBF all chains to a target rate in one action.
 
 ### 9. Pass `feeCap` to AutoMintPanel
-`[ ]` So the auto-mint panel knows about the fee cap and can display it in status.
+`[-]` No longer relevant — AutoMintPanel is now pure UI with per-chain configs. Fee range is part of `ChainConfig.maxRate`.
 
 ### 10. DieselTerminal Unit Tests
-`[ ]` The main component (2500 LOC) has zero tests. Key testable units:
-- `executeMint()` (extract as pure function)
-- `detectExistingChain()` chain parsing logic
-- Fee calculation / RBF math
-- Confirmation check logic (already has cross-check fix, needs regression tests)
+`[ ]` The main component (~2300 LOC) has limited tests. Current coverage:
+- `[x]` `AutoMintPanel.test.tsx` — 16 tests for pure UI component
+- `[x]` `useMultiChainAutoMint` — tested via AutoMintPanel integration
+- `[ ]` `executeMint()` — extract as pure function and test
+- `[ ]` `detectExistingChain()` — chain parsing logic
+- `[ ]` Fee calculation / RBF math
+- `[ ]` Confirmation check logic (cross-check, auto-restart, RBF-lost-race)
 
 Note: Full component tests are hard due to heavy external dependencies (wallet signing, RPC, mempool.space). Focus on extracting and testing pure logic functions.

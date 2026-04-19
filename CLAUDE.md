@@ -190,7 +190,7 @@ psbt.signInput(i, tweakedChild);
 
 Constants:
 - `TX_VSIZE = 141` — fixed size for DIESEL mint transaction
-- `MAX_CHAIN_LENGTH = 20` — max TX in chain (leaving 5 slots for CPFP)
+- `MAX_CHAIN_LENGTH = 25` — max unconfirmed TX chain (Bitcoin mempool limit)
 
 OP_RETURN for DIESEL mint:
 ```
@@ -204,47 +204,39 @@ Uses `btc_getblocktemplate` RPC to count DIESEL mints in the projected next bloc
 - `app/api/competition/route.ts` — API endpoint (direct RPC to `btc_getblocktemplate`)
 - `GET /api/competition` → `{ next_block_txs, diesel_mints }`
 
-### RBF Race Condition — Chain Confirmation Check
+### RBF Eviction — Chain Recovery via Chain-Walking
 
-**Problem**: When sending an RBF transaction, a block may be mined BEFORE the RBF reaches the mempool:
-1. Original transactions get confirmed in the block
-2. RBF txid never existed in mempool
-3. System waits for confirmation of non-existent RBF txid
+**Problem**: When RBF TX is evicted from mempool (block mined, mempool policy, etc.), the system must find the last valid TX in the original chain and either restart or restore.
 
-**Solution** (implemented in `DieselTerminal.tsx`):
+**Solution** (implemented in `checkAllChains` in `DieselTerminal.tsx`):
 
-```typescript
-// 1. Check lastTxid (could be RBF replacement)
-const lastTxData = await fetchTx(chainData.cpfpData.lastTxid);
+For each chain in `chainsMap`:
+1. Check `cpfpData.lastTxid` (could be RBF replacement) via `esplora_tx`
+2. If confirmed → normal completion (auto-restart on change output if enabled)
+3. If **not found** (evicted) → **walk the entire chain backwards** to find last valid TX:
+   - Build original txid list: `[TX1, TX2, ..., TXn]` (restore `preRbfLastTxid` if RBF was done)
+   - Walk from last to first, calling `esplora_tx` for each
+   - Stop at first TX that exists (confirmed or in mempool)
+4. Based on what's found:
+   - **All TXs gone** → delete chain
+   - **Last valid TX confirmed** → restart on its change output (adjust SPENT for RBF overpay)
+   - **Last valid TX in mempool** → **RESTORE chain** (trim txids, reset RBF state, continue)
+5. Separate cross-check: if RBF TX is found but `preRbfLastTxid` exists → check if original confirmed (RBF-lost-race while RBF still floating)
 
-// 2. If lastTxid confirmed → chain is done
-if (lastTxData.result?.status?.confirmed) {
-  removeChain();
-  return;
-}
+**Chain restore** (`restoredChains`):
+- `mintResult.txids` trimmed to valid TXs only
+- `cpfpData` updated to last valid TX
+- `rbfData` recalculated, `preRbfTotalFees`/`preRbfLastTxid` reset to null
+- `autoState.rbfTriggered`/`triggered` reset, status = "RECOVERED — N TXs valid"
+- Chain continues auto-minting/RBF from restored state
 
-// 3. If lastTxid not found (RBF didn't make it to mempool)
-const lastTxNotFound = lastTxData.error || !lastTxData.result;
+**Key fields in `RbfData`**:
+- `preRbfTotalFees: number | null` — total chain fees before first RBF (for SPENT correction)
+- `preRbfLastTxid: string | null` — last txid before first RBF (for correct restart UTXO + chain restore)
 
-if (lastTxNotFound && chainData.mintResult.txids.length > 0) {
-  // Check the FIRST TX of the original chain
-  const firstTxData = await fetchTx(chainData.mintResult.txids[0]);
+**Important**: After RBF, `mintResult.txids = [TX1, TX2, ..., TX_RBF]` — the last element is the RBF txid, NOT the original. The original is preserved in `rbfData.preRbfLastTxid`.
 
-  // If first TX confirmed → original chain was mined (RBF lost the race)
-  // If first TX also not found → chain was evicted from mempool
-  if (firstTxData.result?.status?.confirmed || !firstTxData.result) {
-    removeChain();
-    return;
-  }
-}
-
-// 4. If lastTxid not found — remove chain
-if (lastTxNotFound) {
-  removeChain();
-}
-```
-
-**Key point**: We store `mintResult.txids[]` — array of original chain txids. When checking confirmation, first check `lastTxid`, and if not found — check the first TX of the original chain.
+**Same logic in `checkChainAndRestart`**: Called on broadcast failure ("missingorspent"). Walks chain backwards, confirmed → restart, mempool → return false (wait), all gone → delete.
 
 ## Governance — Voting Power Verification
 
@@ -300,26 +292,55 @@ NEXT_PUBLIC_ALKANES_RPC_URL  # Alkanes RPC endpoint (default: https://mainnet.su
 - Removed unused formatters (`fmt`, `fmtInt`, `fmtPct`)
 - Terminal now shows only: STATUS bar, AUTO-MINT panel, PENDING chains list
 
-### Auto-Mint Improvements (2025)
+### Multi-Chain DIESEL Minting Architecture
 
-#### Session Spending Limit
-- Added `LIMIT` field in AUTO-MINT panel (sats)
-- Tracks total spent during session (`SPENT X / Y`)
-- Blocks new mints/RBF when limit reached
+The terminal supports **parallel multi-chain minting** — multiple independent TX chains running simultaneously, each with its own config.
+
+#### Key Files
+- `components/diesel-terminal/types.ts` — `ChainData`, `ChainConfig`, `ChainAutoState`, `RbfData`, `CpfpData`, `ActionQueueItem`
+- `components/diesel-terminal/constants.ts` — `TX_VSIZE`, `MAX_CHAIN_LENGTH`, `DEFAULT_CHAIN_CONFIG`, factory functions
+- `components/diesel-terminal/useMultiChainAutoMint.ts` — per-chain state machine: evaluates mint/RBF conditions, enqueues actions
+- `components/diesel-terminal/useActionQueue.ts` — FIFO queue for sequential wallet signing (one PSBT at a time)
+- `components/diesel-terminal/UtxoSelectorModal.tsx` — UTXO picker + per-chain config for launching new chains
+- `components/diesel-terminal/ChainConfigEditor.tsx` — inline config editor (reused in modal and expandable row)
+
+#### Architecture
+- `chainsMap: Map<string, ChainData>` — single source of truth, keyed by `txid:vout` of source UTXO
+- `useMultiChainAutoMint` — iterates all chains, evaluates mint/RBF conditions per-chain, enqueues to action queue
+- `useActionQueue` — FIFO queue, processes one action at a time (wallet signs one PSBT at a time)
+- `handleMintForChain(utxoKey, ...)` / `handleRbfForChain(utxoKey, ...)` / `handleCpfpForChain(utxoKey, ...)` — parametrized by chain key
+- `AutoMintPanel` — pure UI: global START/STOP toggle, default config editor (template for new chains), session limit
+
+#### Per-Chain Config (`ChainConfig`)
+- `mintCount` (1-25), `minRate`/`maxRate` (fee range), `autoRbf`, `rbfBuffer` (%), `autoRestart`
+
+#### Per-Chain Auto-State (`ChainAutoState`)
+- `enabled`, `triggered`, `rbfTriggered` — prevent duplicate actions
+- `waitingForFreshFees` / `feeAtConfirmation` / `waitStartTime` — stale fee detection (30s timeout)
+- `errorCount` — consecutive errors, stops retrying at 3
+- `status` — human-readable status string
+
+#### Session Spending
+- `sessionSpent` in DieselTerminal uses **actual costs** from handleMint/handleRbf/handleCpfp (not estimates)
+- `preRbfTotalFees` in RbfData — when original chain confirms (RBF invalid), subtracts overpay
+- `LIMIT` field in AUTO-MINT panel, shared across all chains
 - `[RST]` button to reset session counter
-- Fee calculation: `feePerTx = ceil(TX_VSIZE × feeRate)`, then `total = count × feePerTx`
+
+#### Source UTXO Binding
+- `sourceUtxo?: UtxoInput` in `ChainData` — stores UTXO value at chain creation time
+- Prevents "Insufficient funds: 0 sats" when wallet cache times out
+- `handleMintForChain` checks: `sourceUtxo` first → `availableUtxos` → throw + refetchBalances
+
+#### Auto-Restart
+- On chain confirmation with `config.autoRestart && autoMintGlobalEnabled`:
+  - Normal: new chain on `lastTxid:0` with `sourceUtxo` from `cpfpData.lastOutputValue`
+  - RBF-lost-race: new chain on `preRbfLastTxid:0`, no `sourceUtxo` (fetched from wallet)
+  - Both cases: `waitingForFreshFees: true` with 30s timeout
 
 #### Confirmed UTXO Filter
 - Initial mint only uses confirmed UTXOs (`status.confirmed === true`)
-- Prevents starting chains with unconfirmed outputs
 - RBF/CPFP still uses unconfirmed (by design — extends existing chain)
-
-#### Stale Fee Detection
-- After chain confirmation, waits for fresh fee data before new mint
-- Tracks `feeAtConfirmation` and compares with current rate
-- Prevents minting at stale (previous block's) fee rate
-- Status: `CONFIRMED — waiting for fresh fees...`
 
 #### PENDING Chains Display
 - COST column shows total sats spent (with thousands separator)
-- Header tooltip: "Total fees paid in sats. Price per DIESEL = cost / emission"
+- Per-chain status row, expandable config editor, pause/resume/delete actions

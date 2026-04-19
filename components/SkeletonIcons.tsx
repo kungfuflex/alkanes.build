@@ -22,9 +22,9 @@ export function BtcIcon() {
 
 export function BtcSkeletonIcon() {
   return (
-    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full opacity-20">
-      <circle cx="32" cy="32" r="32" fill="white" fillOpacity={0.3} />
-      <path fill="white" d={BTC_B_PATH} />
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      <circle cx="32" cy="32" r="32" fill="white" fillOpacity={0.06} />
+      <path fill="white" fillOpacity={0.3} d={BTC_B_PATH} />
     </svg>
   );
 }

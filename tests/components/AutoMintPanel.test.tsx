@@ -1,39 +1,26 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, act, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { AutoMintPanel } from "@/components/AutoMintPanel";
 
-// Default props for a connected wallet with fee in range
 function makeProps(overrides: Record<string, any> = {}) {
   return {
     currentFeeRate: 0.5,
-    currentEffectiveRate: 0,
-    hasActiveChain: false,
-    chainLength: 0,
-    chainsCount: 0,
-    totalChainsTx: 0,
     isConnected: true,
-    isMinting: false,
-    isRbfing: false,
-    blockReward: 3.125,
-    dieselPrice: 3000,
-    competition: 100,
+    globalEnabled: false,
+    onGlobalEnabledChange: vi.fn(),
     sessionSpent: 0,
+    sessionLimit: 0,
+    onSessionLimitChange: vi.fn(),
     onResetSpent: vi.fn(),
-    onMint: vi.fn().mockResolvedValue(undefined),
-    onRbf: vi.fn().mockResolvedValue(undefined),
-    onCpfp: vi.fn().mockResolvedValue(undefined),
+    onLaunch: vi.fn(),
+    chainsCount: 0,
     ...overrides,
   };
 }
 
 describe("AutoMintPanel", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   it("renders nothing when not connected", () => {
@@ -47,329 +34,115 @@ describe("AutoMintPanel", () => {
     expect(screen.getByText("START")).toBeInTheDocument();
   });
 
-  it("toggles enabled state on START/STOP click", () => {
-    render(<AutoMintPanel {...makeProps()} />);
-    const btn = screen.getByText("START");
-    fireEvent.click(btn);
+  it("calls onGlobalEnabledChange on START/STOP click", () => {
+    const onGlobalEnabledChange = vi.fn();
+    render(<AutoMintPanel {...makeProps({ onGlobalEnabledChange })} />);
+    fireEvent.click(screen.getByText("START"));
+    expect(onGlobalEnabledChange).toHaveBeenCalledWith(true);
+  });
+
+  it("shows STOP when globalEnabled is true", () => {
+    render(<AutoMintPanel {...makeProps({ globalEnabled: true })} />);
     expect(screen.getByText("STOP")).toBeInTheDocument();
+  });
+
+  it("calls onGlobalEnabledChange(false) on STOP click", () => {
+    const onGlobalEnabledChange = vi.fn();
+    render(<AutoMintPanel {...makeProps({ globalEnabled: true, onGlobalEnabledChange })} />);
     fireEvent.click(screen.getByText("STOP"));
-    expect(screen.getByText("START")).toBeInTheDocument();
+    expect(onGlobalEnabledChange).toHaveBeenCalledWith(false);
   });
 
-  describe("auto-mint trigger", () => {
-    it("does not trigger while minting", async () => {
-      const onMint = vi.fn().mockResolvedValue(undefined);
-      render(<AutoMintPanel {...makeProps({ onMint, isMinting: true })} />);
-      fireEvent.click(screen.getByText("START"));
-      await act(async () => { vi.advanceTimersByTime(100); });
-      expect(onMint).not.toHaveBeenCalled();
+  describe("fee rate indicator", () => {
+    it("shows fee rate value when fee is in range", () => {
+      render(<AutoMintPanel {...makeProps({ currentFeeRate: 0.5 })} />);
+      expect(screen.getByText("0.50")).toBeInTheDocument();
     });
 
-    it("does not trigger while RBFing", async () => {
-      const onMint = vi.fn().mockResolvedValue(undefined);
-      render(<AutoMintPanel {...makeProps({ onMint, isRbfing: true })} />);
-      fireEvent.click(screen.getByText("START"));
-      await act(async () => { vi.advanceTimersByTime(100); });
-      expect(onMint).not.toHaveBeenCalled();
-    });
-
-    it("does not trigger when has active chain", async () => {
-      const onMint = vi.fn().mockResolvedValue(undefined);
-      render(
-        <AutoMintPanel
-          {...makeProps({
-            onMint,
-            hasActiveChain: true,
-            chainLength: 10,
-            chainsCount: 1,
-            totalChainsTx: 10,
-            currentEffectiveRate: 0.5,
-          })}
-        />
-      );
-      fireEvent.click(screen.getByText("START"));
-      await act(async () => { vi.advanceTimersByTime(100); });
-      expect(onMint).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("chain confirmed → new cycle (waitingForFreshFees)", () => {
-    it("detects chain confirmation (hasActiveChain: true → false)", async () => {
-      const props = makeProps({
-        hasActiveChain: true,
-        chainLength: 10,
-        chainsCount: 1,
-        totalChainsTx: 10,
-        currentFeeRate: 0.5,
-        currentEffectiveRate: 0.5,
-      });
-      const { rerender } = render(<AutoMintPanel {...props} />);
-      fireEvent.click(screen.getByText("START"));
-
-      // Chain confirmed - hasActiveChain transitions to false
-      await act(async () => {
-        rerender(
-          <AutoMintPanel
-            {...makeProps({
-              hasActiveChain: false,
-              chainLength: 0,
-              chainsCount: 0,
-              totalChainsTx: 0,
-              currentFeeRate: 0.5,
-              currentEffectiveRate: 0,
-            })}
-          />
-        );
-      });
-
-      expect(screen.getByText(/CONFIRMED/)).toBeInTheDocument();
-    });
-
-    it("unblocks after fresh fee data arrives (fee rate changes)", async () => {
-      const props = makeProps({
-        hasActiveChain: true,
-        chainLength: 10,
-        chainsCount: 1,
-        totalChainsTx: 10,
-        currentFeeRate: 0.5,
-        currentEffectiveRate: 0.5,
-      });
-      const { rerender } = render(<AutoMintPanel {...props} />);
-      fireEvent.click(screen.getByText("START"));
-
-      // Chain confirmed
-      await act(async () => {
-        rerender(
-          <AutoMintPanel
-            {...makeProps({
-              hasActiveChain: false,
-              chainLength: 0,
-              chainsCount: 0,
-              totalChainsTx: 0,
-              currentFeeRate: 0.5,
-              currentEffectiveRate: 0,
-            })}
-          />
-        );
-      });
-      expect(screen.getByText(/CONFIRMED/)).toBeInTheDocument();
-
-      // Fresh fee data arrives (rate changes)
-      await act(async () => {
-        rerender(
-          <AutoMintPanel
-            {...makeProps({
-              hasActiveChain: false,
-              chainLength: 0,
-              chainsCount: 0,
-              totalChainsTx: 0,
-              currentFeeRate: 0.52,
-              currentEffectiveRate: 0,
-            })}
-          />
-        );
-      });
-
-      expect(screen.queryByText(/CONFIRMED/)).not.toBeInTheDocument();
-    });
-
-    it("unblocks after timeout even if fee rate stays the same (BUG FIX)", async () => {
-      const props = makeProps({
-        hasActiveChain: true,
-        chainLength: 10,
-        chainsCount: 1,
-        totalChainsTx: 10,
-        currentFeeRate: 0.5,
-        currentEffectiveRate: 0.5,
-      });
-      const { rerender } = render(<AutoMintPanel {...props} />);
-      fireEvent.click(screen.getByText("START"));
-
-      // Chain confirmed
-      await act(async () => {
-        rerender(
-          <AutoMintPanel
-            {...makeProps({
-              hasActiveChain: false,
-              chainLength: 0,
-              chainsCount: 0,
-              totalChainsTx: 0,
-              currentFeeRate: 0.5,
-              currentEffectiveRate: 0,
-            })}
-          />
-        );
-      });
-      expect(screen.getByText(/CONFIRMED/)).toBeInTheDocument();
-
-      // Fee rate stays EXACTLY the same — this was the bug (waited forever)
-      // Advance past the 30s timeout
-      await act(async () => {
-        vi.advanceTimersByTime(30_000);
-      });
-
-      // Re-render with same fee to trigger effect
-      await act(async () => {
-        rerender(
-          <AutoMintPanel
-            {...makeProps({
-              hasActiveChain: false,
-              chainLength: 0,
-              chainsCount: 0,
-              totalChainsTx: 0,
-              currentFeeRate: 0.5,
-              currentEffectiveRate: 0,
-            })}
-          />
-        );
-      });
-
-      // CONFIRMED should be cleared by the timeout
-      expect(screen.queryByText(/CONFIRMED/)).not.toBeInTheDocument();
-    });
-
-    it("does NOT unblock before timeout if fee stays the same", async () => {
-      const props = makeProps({
-        hasActiveChain: true,
-        chainLength: 10,
-        chainsCount: 1,
-        totalChainsTx: 10,
-        currentFeeRate: 0.5,
-        currentEffectiveRate: 0.5,
-      });
-      const { rerender } = render(<AutoMintPanel {...props} />);
-      fireEvent.click(screen.getByText("START"));
-
-      // Chain confirmed
-      await act(async () => {
-        rerender(
-          <AutoMintPanel
-            {...makeProps({
-              hasActiveChain: false,
-              chainLength: 0,
-              chainsCount: 0,
-              totalChainsTx: 0,
-              currentFeeRate: 0.5,
-              currentEffectiveRate: 0,
-            })}
-          />
-        );
-      });
-
-      // Only advance 15 seconds (before the 30s timeout)
-      await act(async () => {
-        vi.advanceTimersByTime(15_000);
-      });
-
-      // Re-render
-      await act(async () => {
-        rerender(
-          <AutoMintPanel
-            {...makeProps({
-              hasActiveChain: false,
-              chainLength: 0,
-              chainsCount: 0,
-              totalChainsTx: 0,
-              currentFeeRate: 0.5,
-              currentEffectiveRate: 0,
-            })}
-          />
-        );
-      });
-
-      // Should still show CONFIRMED (not yet timed out)
-      expect(screen.getByText(/CONFIRMED/)).toBeInTheDocument();
-    });
-  });
-
-  describe("RBF failure handling", () => {
-    it("shows RBF ERROR and does not infinite-loop retry", async () => {
-      const onRbf = vi.fn().mockRejectedValue(new Error("Missing data for RBF"));
-      const props = makeProps({
-        onRbf,
-        hasActiveChain: true,
-        chainLength: 10,
-        chainsCount: 1,
-        totalChainsTx: 10,
-        currentFeeRate: 1.0,
-        currentEffectiveRate: 0.5,
-      });
-      const { rerender } = render(<AutoMintPanel {...props} />);
-
-      // Enable auto-mint — auto-RBF triggers because effective 0.5 < target 1.0*1.1
-      await act(async () => {
-        fireEvent.click(screen.getByText("START"));
-      });
-
-      // Flush microtasks for promise rejection
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-
-      // Should have been called exactly once (no infinite loop)
-      expect(onRbf).toHaveBeenCalledTimes(1);
-
-      // Error status should be shown
-      expect(screen.queryByText(/RBF ERROR/)).toBeInTheDocument();
-
-      // Same fee — should NOT retry (rbfTriggered stays true)
-      await act(async () => {
-        rerender(
-          <AutoMintPanel
-            {...makeProps({
-              onRbf,
-              hasActiveChain: true,
-              chainLength: 10,
-              chainsCount: 1,
-              totalChainsTx: 10,
-              currentFeeRate: 1.0,
-              currentEffectiveRate: 0.5,
-            })}
-          />
-        );
-        await vi.advanceTimersByTimeAsync(0);
-      });
-
-      // Still exactly 1 call (no retry with same conditions)
-      expect(onRbf).toHaveBeenCalledTimes(1);
+    it("shows fee rate value when fee is out of range", () => {
+      render(<AutoMintPanel {...makeProps({ currentFeeRate: 5.0 })} />);
+      expect(screen.getByText("5.00")).toBeInTheDocument();
     });
   });
 
   describe("session spending limit", () => {
-    it("blocks mint when estimated cost exceeds session limit", async () => {
-      const onMint = vi.fn().mockResolvedValue(undefined);
-      render(
-        <AutoMintPanel {...makeProps({ onMint, currentFeeRate: 1.0 })} />
-      );
+    it("calls onSessionLimitChange when limit is set", () => {
+      const onSessionLimitChange = vi.fn();
+      render(<AutoMintPanel {...makeProps({ onSessionLimitChange })} />);
 
-      // Set session limit to 10 sats (way too low for 20 mints)
       const limitInput = screen.getAllByRole("spinbutton").find(
         (el) => (el as HTMLInputElement).placeholder === "∞"
       );
       expect(limitInput).toBeDefined();
-      fireEvent.change(limitInput!, { target: { value: "10" } });
+      fireEvent.change(limitInput!, { target: { value: "10000" } });
 
-      // Enable auto-mint
-      fireEvent.click(screen.getByText("START"));
-      await act(async () => { vi.advanceTimersByTime(100); });
+      expect(onSessionLimitChange).toHaveBeenCalledWith(10000);
+    });
 
-      // 20 mints * ceil(141 * 1.0) = 2820 sats > 10 sats limit
-      expect(onMint).not.toHaveBeenCalled();
+    it("shows SPENT counter when sessionSpent > 0", () => {
+      render(<AutoMintPanel {...makeProps({ sessionSpent: 5000 })} />);
+      expect(screen.getByText("SPENT")).toBeInTheDocument();
+      expect(screen.getByText("5,000")).toBeInTheDocument();
+    });
 
-      // Status should show LIMIT
-      expect(screen.getByText(/LIMIT/)).toBeInTheDocument();
+    it("shows SPENT / LIMIT when session limit is set", () => {
+      render(<AutoMintPanel {...makeProps({ sessionSpent: 3000, sessionLimit: 10000 })} />);
+      expect(screen.getByText("3,000")).toBeInTheDocument();
+      expect(screen.getByText("10,000")).toBeInTheDocument();
+    });
+
+    it("calls onResetSpent when [RST] is clicked", () => {
+      const onResetSpent = vi.fn();
+      render(<AutoMintPanel {...makeProps({ sessionSpent: 5000, onResetSpent })} />);
+
+      fireEvent.click(screen.getByText("[RST]"));
+      expect(onResetSpent).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("chain full", () => {
-    it("does not trigger mint when chain length equals max", async () => {
-      const onMint = vi.fn().mockResolvedValue(undefined);
-      render(
-        <AutoMintPanel {...makeProps({ onMint, chainLength: 25 })} />
+  describe("+ CHAIN inline panel", () => {
+    it("shows + CHAIN button in header", () => {
+      render(<AutoMintPanel {...makeProps()} />);
+      expect(screen.getByText("+ CHAIN")).toBeInTheDocument();
+    });
+
+    it("expands config editor on + CHAIN click (no UTXO selector)", () => {
+      render(<AutoMintPanel {...makeProps()} />);
+      expect(screen.queryByText("CHAIN CONFIG")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByText("+ CHAIN"));
+      expect(screen.getByText("CHAIN CONFIG")).toBeInTheDocument();
+      expect(screen.getByText(/UTXO will be selected automatically/)).toBeInTheDocument();
+    });
+
+    it("collapses on close click", () => {
+      render(<AutoMintPanel {...makeProps()} />);
+      fireEvent.click(screen.getByText("+ CHAIN"));
+      expect(screen.getByText("CHAIN CONFIG")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText("✕"));
+      expect(screen.queryByText("CHAIN CONFIG")).not.toBeInTheDocument();
+    });
+
+    it("calls onLaunch with config on + CHAIN add", () => {
+      const onLaunch = vi.fn();
+      render(<AutoMintPanel {...makeProps({ onLaunch })} />);
+      fireEvent.click(screen.getByText("+ CHAIN"));
+
+      // Click bottom + CHAIN button
+      const addButtons = screen.getAllByText("+ CHAIN");
+      const addBtn = addButtons[addButtons.length - 1];
+      fireEvent.click(addBtn);
+
+      expect(onLaunch).toHaveBeenCalledTimes(1);
+      expect(onLaunch).toHaveBeenCalledWith(
+        expect.objectContaining({ mintCount: 20, autoRbf: true })
       );
-      fireEvent.click(screen.getByText("START"));
-      await act(async () => { vi.advanceTimersByTime(100); });
-      expect(onMint).not.toHaveBeenCalled();
+    });
+
+    it("shows chains count when > 0", () => {
+      render(<AutoMintPanel {...makeProps({ chainsCount: 3 })} />);
+      expect(screen.getByText("3 chains")).toBeInTheDocument();
     });
   });
 });

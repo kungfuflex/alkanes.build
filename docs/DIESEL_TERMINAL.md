@@ -1,10 +1,11 @@
-# DIESEL Terminal v12
+# DIESEL Terminal v13
 
-A Bloomberg-style terminal for calculating optimal DIESEL token minting strategy with minting, RBF, and wallet management features.
+A Bloomberg-style terminal for parallel multi-chain DIESEL token minting with auto-mint, RBF, and wallet management features.
 
 ## Location
 
-- **Component**: `components/DieselTerminal.tsx`
+- **Component**: `components/DieselTerminal.tsx` — main terminal (~2300 lines)
+- **Sub-components**: `components/diesel-terminal/` — types, constants, hooks, modals
 - **Page**: `app/[locale]/terminal/page.tsx`
 - **URL**: `/terminal`
 
@@ -27,69 +28,7 @@ A Bloomberg-style terminal for calculating optimal DIESEL token minting strategy
 - **Yellow** (10-30 min): Delayed block
 - **Red** (> 30 min): Very long block
 
-### 2. Strategy Parameters
-
-| Parameter | Description |
-|-----------|-------------|
-| Block Reward (R) | Block reward in DIESEL |
-| DSL Price | DIESEL price in satoshis (auto-sync with pool) |
-| TX Cost | Cost of one mint in satoshis |
-| Competition (M) | Number of competing mints (auto-scan) |
-
-#### Effective Competition
-
-When there's an active chain, effective M is calculated considering whether we're competing for the next block:
-
-```typescript
-// Subtract our chain only if we're competing for the next block
-const weAreCompeting = currentEffectiveRate >= mempoolMinFee;
-const chainToSubtract = weAreCompeting ? ourChainLength : 0;
-const effective_M = scanned_M - chainToSubtract;
-```
-
-**Logic:**
-- If our rate >= mempool minimum → we're competing → subtract our TXs
-- If our rate < minimum → we're NOT competing for next block → don't subtract
-
-**Example 1 (competing):**
-- Scanner: 100 mints, our chain: 10 TX
-- Our rate: 0.20 sat/vB, minimum: 0.15 sat/vB
-- `0.20 >= 0.15` → competing
-- Effective M = 100 - 10 = 90
-- UI: `eff: 90`, footer: `M=100-10=90`
-
-**Example 2 (not competing):**
-- Scanner: 100 mints, our chain: 10 TX
-- Our rate: 0.10 sat/vB, minimum: 0.15 sat/vB
-- `0.10 < 0.15` → NOT competing
-- Effective M = 100 (don't subtract, indicator not shown)
-
-### 3. Calculation Formulas
-
-```
-N* = R × p / (2 × f)     # Threshold - breakeven point
-n* = √(N* × M) - M       # Optimal number of mints
-ROI = (√(N*/M) - 2) × 100%  # Return on Investment
-Breakeven M = N* / 4      # Maximum competition for profit
-```
-
-### 4. EXECUTION Panel (Bloomberg-style)
-
-Compact grid with metrics:
-
-| Metric | Description |
-|--------|-------------|
-| n* | Optimal number of mints (editable) |
-| ROI | Return on Investment (%) |
-| EXP | Expected DIESEL to receive |
-| COST | Total cost in sats |
-| NET | Net profit/loss in sats |
-| POOL | Pool allocation (R - 0.05 fee) |
-| EMIT | Total emission to miners |
-| PCTL | Your percentile of pool |
-| $/DSL | Cost per DIESEL in sats |
-
-### 5. Mempool Integration
+### 2. Mempool Integration
 
 #### Automatic Fee (AUTO-FEE)
 
@@ -139,54 +78,65 @@ const data = await res.json();
 - Searches each `tx.data` for DIESEL prefix `6a5d1214011400` via `string.includes`
 - Returns `{ next_block_txs, diesel_mints }`
 
-### 6. DIESEL Minting
+### 3. DIESEL Minting
 
-#### UTXO Selection
+#### Multi-Chain Architecture
 
-When multiple UTXOs are available, you can manually select which one to use for minting:
+The terminal supports **parallel multi-chain minting** — multiple independent TX chains running simultaneously, each with its own config. All chains are stored in `chainsMap: Map<string, ChainData>` keyed by source UTXO (`txid:vout`).
 
-```
-▶ UTXO (auto)           — automatic selection (default)
-▼ UTXO (0.00045000 BTC) — specific UTXO selected
+**Key files:**
+- `components/diesel-terminal/types.ts` — `ChainData`, `ChainConfig`, `ChainAutoState`, `RbfData`
+- `components/diesel-terminal/constants.ts` — `TX_VSIZE`, `MAX_CHAIN_LENGTH`, `DEFAULT_CHAIN_CONFIG`
+- `components/diesel-terminal/useMultiChainAutoMint.ts` — per-chain auto-mint/RBF state machine
+- `components/diesel-terminal/useActionQueue.ts` — FIFO queue for sequential wallet signing
+- `components/diesel-terminal/UtxoSelectorModal.tsx` — UTXO picker + per-chain config
+- `components/diesel-terminal/ChainConfigEditor.tsx` — inline config editor
 
-  a1b2c3d4...e5f6:0     45,000 sats
-  f7e8d9c0...b1a2:1     12,500 sats  ← select
-  ...
-```
+#### UTXO Selector Modal
 
-**When to use:**
-- One UTXO is already in a chain
-- Want to start a parallel chain from a different UTXO
-- Control over which funds are spent
-- Switching between multiple active chains
-
-**API:** `esplora_address::utxo` via Subfrost RPC
-
-**Important:** Selected UTXO persists between mints. This allows auto-mint to use the same UTXO for new cycles. Use `[clear]` to reset to auto-selection.
-
-#### Multiple Chains
-
-The terminal supports tracking multiple active chains simultaneously:
+New chains are launched via `[+ CHAIN]` button which opens `UtxoSelectorModal`:
 
 ```
-▼ UTXO (0.00045000 BTC) [2 chains]
-
-  a1b2c3d4...:0   5tx    45,000 sats  ← active chain
-  f7e8d9c0...:1   3tx    12,500 sats  ← another chain
-  g2h3i4j5...:2          8,000 sats   ← no chain
+┌─────────────────────────────────────────────┐
+│ NEW CHAIN                            [ESC]  │
+├─────────────────────────────────────────────┤
+│ SELECT UTXO                      [REFRESH]  │
+│ ● abc1..23:0          50,000       OK       │
+│ ○ def4..56:1         120,000       OK       │
+│   789g..hi:0          80,000       USED     │
+│   jkl0..12:2           2,000       SMALL    │
+├─────────────────────────────────────────────┤
+│ CHAIN CONFIG                                │
+│ MINTS: [20]  FEE: [0.15]—[2.3] sat/vB      │
+│ RBF: [ON] +[10]%   RESTART: [ON]           │
+├─────────────────────────────────────────────┤
+│              [LAUNCH]                       │
+└─────────────────────────────────────────────┘
 ```
 
-- UTXOs with active chains are highlighted in purple
-- Shows number of TXs in chain
-- Selecting a UTXO loads its chain data (ACTIVE CHAIN, FEE BUMP)
-- Each chain is tracked independently
+- **Conflict detection**: UTXOs already in `chainsMap` are disabled (USED)
+- **Dust filter**: `value < 330 + ceil(TX_VSIZE × maxRate × mintCount)` → disabled (SMALL)
+- **Config**: inherits from `defaultConfig`, editable per-chain before launch
+
+#### Action Queue
+
+Wallet signs one PSBT at a time → all actions from all chains go into a FIFO queue:
+
+```
+Chain A: needs RBF  ──┐
+                      ├──→ [Queue: A:rbf, B:mint] ──→ Executor (one at a time)
+Chain B: needs mint ──┘
+```
+
+- `isProcessingAction` — global flag, blocks new actions while executing
+- Deduplication: no duplicate `utxoKey+type` in queue
 
 #### Chained Transactions (CPFP pattern)
 
 - Automatic creation of transaction chains
 - Each TX spends output 0 of the previous TX
-- Bitcoin limit: 25 unconfirmed ancestors
-- We use 20 for minting + 5 reserved for CPFP bump
+- Bitcoin mempool limit: 25 unconfirmed ancestors
+- Configurable per-chain via `mintCount` (1-25)
 
 #### Transaction Structure
 
@@ -249,11 +199,13 @@ The DETECT CHAIN button finds ALL active chains for an address:
 - Saves each chain to `chainsMap` by source UTXO key
 
 ```typescript
-// Chain storage structure
 type ChainData = {
   mintResult: { txids: string[]; totalFee: number };
-  rbfData: RbfData;    // Data for RBF
-  cpfpData: CpfpData;  // Data for CPFP
+  rbfData: RbfData;        // Data for RBF (includes preRbfTotalFees, preRbfLastTxid)
+  cpfpData: CpfpData;      // Data for CPFP
+  config: ChainConfig;     // Per-chain settings (mintCount, feeRange, autoRbf, etc.)
+  autoState: ChainAutoState; // Per-chain state machine (enabled, triggered, errorCount, etc.)
+  sourceUtxo?: UtxoInput;  // Original UTXO value — stored to avoid wallet cache dependency
 };
 
 // Key = txid:vout of source UTXO
@@ -261,45 +213,59 @@ const chainsMap = new Map<string, ChainData>();
 ```
 
 **Behavior:**
-- On startup: automatically detects chains
-- When selecting UTXO: loads its chain data from `chainsMap`
-- If no chain: clears ACTIVE CHAIN panel
-- Multiple chains: each is tracked independently
+- On startup: automatically detects chains via mempool scan
+- New chains: launched via `[+ CHAIN]` → UtxoSelectorModal
+- Each chain tracked independently with its own config and auto-state
+- `sourceUtxo` prevents "Insufficient funds: 0 sats" when wallet cache times out
 
-#### Auto-Cleanup on Confirmation
+#### Auto-Cleanup & Auto-Restart on Confirmation
 
-The panel automatically disappears when the chain is mined:
+The `checkAllChains` useEffect monitors all chains for confirmation:
 
-- Every 30 seconds (and on each new block), checks the status of the last TX via `esplora_tx`
-- If `status.confirmed === true`, all chain data is cleared
-- Balances are refreshed automatically
+- Runs every 30 seconds + on each new block + retries at 2s, 5s, 10s
+- For each chain: checks `cpfpData.lastTxid` via `esplora_tx`
+- If confirmed → removes chain from `chainsMap` + optionally auto-restarts
+
+**Auto-Restart:**
+
+When `config.autoRestart && autoMintGlobalEnabled`:
+- **Normal confirmation**: new chain on `lastTxid:0` with `sourceUtxo` from `cpfpData.lastOutputValue`
+- **RBF-lost-race**: new chain on `rbfData.preRbfLastTxid:0`, no `sourceUtxo` (fetched from wallet)
+- Both cases start with `waitingForFreshFees: true` (30s timeout)
 
 **RBF Race Condition Handling:**
 
-After an RBF, `lastTxid` points to the replacement TX. If a block confirms the ORIGINAL chain before the RBF propagates, the RBF TX becomes invalid. However, `esplora_tx` may still return the RBF TX as unconfirmed (cached data). The confirmation check handles this with a cross-check:
+After an RBF, `cpfpData.lastTxid` points to the replacement TX and `mintResult.txids[last]` is also the RBF txid (replaced by `handleRbfForChain`). If a block confirms the ORIGINAL chain before the RBF propagates, three detection layers handle it:
 
-1. Check `lastTxid` — if confirmed → clear chain (normal case)
-2. If `lastTxid` is unconfirmed AND differs from `firstTxid` (i.e., RBF happened):
-   - Cross-check `mintResult.txids[0]` (first TX of the original chain)
-   - If first TX is confirmed → original chain was mined, RBF is dead → clear chain
-   - If first TX not found → chain was evicted from mempool → clear chain
-3. If `lastTxid` not found at all → clear chain
+**Layer 1 — lastTxid check** (always runs):
+- `esplora_tx(cpfpData.lastTxid)` — if confirmed → normal completion
 
-```typescript
-// Cross-check: detect when RBF TX is invalid because original chain was confirmed
-if (mintResult?.txids && mintResult.txids.length > 0) {
-  const firstTxid = mintResult.txids[0];
-  if (lastTxNotFound || firstTxid !== cpfpData.lastTxid) {
-    // Check if first TX of original chain is confirmed
-    const firstTxData = await checkTx(firstTxid);
-    if (firstTxData.result?.status?.confirmed) {
-      clearChainData(); // Original chain mined, RBF lost the race
-    }
-  }
-}
-```
+**Layer 2 — lastTxid evicted** (walk backwards):
+- If `esplora_tx(lastTxid)` returns not found → walk chain backwards (restoring `preRbfLastTxid` as last element)
+- Find last valid TX → if confirmed → restart on its output
+- If still in mempool → RESTORE chain (trim to valid TXs)
 
-### 7. Fee Bumping (RBF / CPFP)
+**Layer 3 — preRbfLastTxid cross-check** (RBF was done, lastTxid still cached as unconfirmed):
+- If `preRbfLastTxid !== null && preRbfLastTxid !== lastTxid`:
+  - `esplora_tx(preRbfLastTxid)` → if confirmed → RBF-lost-race → restart on `preRbfLastTxid:0`
+
+**Layer 4 — firstTxid cross-check** (esplora lagging on later TXs):
+- If `txids[0] !== lastTxid` (chain has >1 TX):
+  - `esplora_tx(txids[0])` → if confirmed → entire chain is in a block
+  - Restart on `preRbfLastTxid:0` (if RBF) or `lastTxid:0` (no RBF)
+- This catches the case where esplora caches both the RBF TX (unconfirmed) and the original last TX (unconfirmed) but the first TX already shows as confirmed
+
+**Same firstTxid cross-check in `checkChainAndRestart`** (called on "missingorspent" broadcast error):
+- Walk backwards finds last valid TX as unconfirmed → additionally checks `txids[0]`
+- If `txids[0]` confirmed → treat entire chain as confirmed → restart
+
+**Critical**: After RBF, `mintResult.txids = [TX1, TX2, ..., TX_RBF]` — the original last txid is **lost** from the array. It's preserved in `rbfData.preRbfLastTxid` for correct auto-restart UTXO.
+
+**Key fields in `RbfData`:**
+- `preRbfTotalFees: number | null` — total fees before first RBF (for SPENT correction on RBF-lost-race)
+- `preRbfLastTxid: string | null` — original last txid before first RBF (for correct restart UTXO)
+
+### 4. Fee Bumping (RBF / CPFP)
 
 Two methods for accelerating transactions in a unified interface:
 
@@ -389,142 +355,117 @@ If the chain's effective rate is below the current mempool rate:
   [BUMP → Z.ZZ]
 ```
 
-### 8. Auto-Mint
+### 5. Auto-Mint (Multi-Chain)
 
-Automated minting with fee rate control.
+Automated multi-chain minting with per-chain fee rate control.
 
-**Component:** `components/AutoMintPanel.tsx`
+**UI Component:** `components/AutoMintPanel.tsx` — pure UI panel (global toggle, default config, session limit)
+**Logic Hook:** `components/diesel-terminal/useMultiChainAutoMint.ts` — per-chain state machine
 
-#### Parameters
+#### Architecture
+
+AutoMintPanel is a **pure UI** component — it has no useEffect triggers. It edits:
+- **Global START/STOP** toggle (`autoMintGlobalEnabled`)
+- **Default config** — template for new chains (FEE RANGE, MINTS, RBF, RESTART)
+- **Session limit** — shared across all chains
+
+The actual auto-mint logic lives in `useMultiChainAutoMint` hook which iterates all chains in `chainsMap` and evaluates conditions per-chain.
+
+#### Per-Chain Config (`ChainConfig`)
 
 | Parameter | Description |
 |-----------|-------------|
-| FEE RANGE | Fee rate range for entry (min - max sat/vB) |
-| MINTS | Number of TXs to mint (1-25) |
-| LIMIT | Session spending limit in sats (empty = no limit) |
-| AUTO-RBF | Auto-bump when chain rate drops below mempool + buffer% |
-| ON/OFF | Enable/disable automation |
+| `mintCount` | TXs per chain (1-25) |
+| `minRate` / `maxRate` | Fee rate range for entry (sat/vB) |
+| `autoRbf` | Auto-bump when chain rate < mempool + buffer |
+| `rbfBuffer` | RBF buffer percentage (default 10%) |
+| `autoRestart` | Restart chain after confirmation |
+
+Each chain has its own config, set at launch time (inherited from `defaultConfig`, editable).
+
+#### Per-Chain Auto-State (`ChainAutoState`)
+
+| Field | Description |
+|-------|-------------|
+| `enabled` | Auto-mint enabled for this chain |
+| `triggered` | Mint action has been enqueued (prevents duplicates) |
+| `rbfTriggered` | RBF action has been enqueued |
+| `waitingForFreshFees` | Waiting for fresh fee data after confirmation |
+| `feeAtConfirmation` | Fee rate when chain was confirmed |
+| `waitStartTime` | When fresh-fee wait started (for 30s timeout) |
+| `errorCount` | Consecutive errors — stops retrying at 3 |
+| `status` | Human-readable status string |
 
 #### How It Works
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ AUTO-MINT                                    [ON/OFF]   │
-├─────────────────────────────────────────────────────────┤
-│ FEE RANGE  [0.15] - [1.0] sat/vB      NOW: 0.18        │
-│ MINTS      [10] / 25 max              AVAILABLE: 25     │
-│ AUTO-RBF   [ON]  bump when rate drops below mempool     │
-├─────────────────────────────────────────────────────────┤
-│ MINTING 10 @ 0.18 sat/vB...                             │
-└─────────────────────────────────────────────────────────┘
-```
+For each chain with `autoState.enabled` in `chainsMap`:
 
-**Algorithm:**
+**Mint condition** (no active chain, `txids.length === 0`):
+- `!triggered && !waitingForFreshFees`
+- Fee in range: `currentFeeRate >= minRate && currentFeeRate <= maxRate`
+- `errorCount < 3`
+- Session budget OK
+- No duplicate action in queue
+- → Enqueue `{ type: 'mint', utxoKey, params: { mintCount, feeRate } }`
 
-1. Monitors current fee rate from mempool
-2. When fee enters range [min, max]:
-   - If no active chain → starts minting the specified number of TXs
-   - If there's an active chain → shows status
-3. After minting, waits for chain confirmation
-4. When chain is confirmed → resets trigger → ready for new cycle
-
-**Auto-RBF (10% buffer):**
-
-When AUTO-RBF is enabled, the system proactively bumps the chain rate when it falls below mempool:
-
-```typescript
-const targetRate = currentFeeRate * 1.1;  // 10% buffer above mempool
-if (currentEffectiveRate < targetRate) {
-  // Trigger RBF to bump to targetRate
-}
-```
+**RBF condition** (active chain, `config.autoRbf`):
+- `!rbfTriggered && errorCount < 3`
+- Fee in range
+- `effectiveRate < currentFeeRate × (1 + rbfBuffer/100)`
+- → Enqueue `{ type: 'rbf', utxoKey, params: { targetRate } }`
 
 **Automatic Cycle:**
 ```
-[Fee in range] → MINT → [Wait for confirmation] → [Confirmed] → [Reset] → [Fee in range?] → MINT → ...
+[Fee in range] → MINT → [Wait for confirmation] → [Confirmed] → [Fresh fees wait (30s max)] → [Fee in range?] → MINT → ...
 ```
 
-**Session Spending Limit:**
+#### Session Spending
 
-Prevents overspending during automated minting sessions.
-
-```
-┌─────────────────────────────────────────────────────────┐
-│ LIMIT  [10000] sats          SPENT 540 / 10,000  [RST] │
-└─────────────────────────────────────────────────────────┘
-```
-
-- Set limit in sats (empty = unlimited)
-- Tracks total spent: mints + RBF bumps
-- Blocks operations when limit reached
+- `sessionSpent` in DieselTerminal uses **actual costs** from handleMint/handleRbf/handleCpfp
+- When RBF loses race (original confirms): overpay is subtracted via `preRbfTotalFees`
+- Shared across all chains — `LIMIT` in AUTO-MINT panel
 - `[RST]` resets session counter
 
-**Fee Calculation:**
-```typescript
-const feePerTx = Math.ceil(TX_VSIZE * feeRate);  // Per-TX fee (matches actual)
-const totalCost = mintCount * feePerTx;          // Total for batch
-```
+#### Stale Fee Detection
 
-**Stale Fee Detection:**
-
-After chain confirmation, waits for fresh mempool data before new mint.
+After chain confirmation, waits for fresh mempool data before new mint (per-chain).
 Two unlock conditions (whichever comes first):
-1. Fee rate changes by > 0.001 sat/vB (fresh data arrived)
-2. 30 second timeout (3 refresh cycles — prevents stuck state in quiet mempool)
+1. Fee rate changes by > EPSILON (0.001 sat/vB)
+2. 30 second timeout (FRESH_FEE_TIMEOUT_MS)
 
-```typescript
-// Store fee rate when chain confirms
-feeAtConfirmation.current = currentFeeRate;
-waitingForFreshFees.current = true;
-waitStartTime.current = Date.now();
+#### Error Handling
 
-// Unblock on fee change OR timeout (30s)
-const feeChanged = Math.abs(currentFeeRate - feeAtConfirmation.current) > 0.001;
-const timedOut = Date.now() - waitStartTime.current >= 30_000;
-if (feeChanged || timedOut) {
-  waitingForFreshFees.current = false;
-  // Now safe to start new mint
-}
-```
+- `errorCount` increments on each consecutive error
+- At `errorCount >= 3`: chain stops retrying, status shows `ERROR (stopped): ...`
+- Success resets `errorCount` to 0
+- `sourceUtxo` in ChainData prevents "Insufficient funds: 0 sats" when wallet cache times out
 
-**Confirmed UTXO Filter:**
-
-Initial mint only uses confirmed UTXOs to prevent starting chains with unconfirmed outputs:
-
-```typescript
-const confirmedUtxos = utxos.filter(u => u.status?.confirmed === true);
-if (confirmedUtxos.length === 0) {
-  throw new Error("No confirmed UTXOs available");
-}
-```
-
-Note: RBF/CPFP still uses unconfirmed outputs (by design — extends existing chain).
-
-**Statuses:**
+#### Statuses
 
 | Status | Description |
 |--------|-------------|
 | `WAIT: 0.10 < 0.15 sat/vB` | Fee below minimum |
-| `WAIT: 2.50 > 1.0 sat/vB` | Fee above maximum |
-| `MINTING 10 @ 0.18 sat/vB...` | Minting in progress |
-| `ACTIVE: 10/25 TXs @ 0.18 sat/vB` | Active chain exists |
+| `WAIT: 2.50 > 2.30 sat/vB` | Fee above maximum |
+| `MINTING 20 @ 0.18 sat/vB...` | Minting in progress |
 | `RBF: 0.14 → 0.17 sat/vB...` | Auto-RBF in progress |
-| `RBF OK: now @ 0.17 sat/vB` | RBF completed |
-| `CHAIN FULL: 25/25` | Chain is full |
-| `CONFIRMED — waiting for fresh fees...` | Chain confirmed, waiting for fresh data |
+| `RBF OK: 0.17 sat/vB` | RBF completed |
+| `CONFIRMED — waiting for fresh fees` | Chain confirmed, waiting for fresh data |
 | `LIMIT: need X sats, have Y` | Session limit reached |
+| `LIMIT: RBF needs X sats` | RBF exceeds session budget |
+| `ERROR (1/3): ...` | Error with retry remaining |
+| `ERROR (stopped): ...` | Error, max retries reached |
 
-**Usage Example:**
+#### Usage Example
 
-1. Set range: 0.15 - 0.5 sat/vB
-2. Set count: 15 mints
-3. Enable AUTO-RBF (recommended)
-4. Enable AUTO-MINT
-5. Wait for fee to enter the range
-6. Chain of 15 TXs is automatically created
-7. If mempool rate rises, auto-RBF keeps chain competitive
+1. Configure default settings in AUTO-MINT panel (fee range, mints, RBF, restart)
+2. Click `[+ CHAIN]` → select UTXO → adjust config if needed → LAUNCH
+3. Enable AUTO-MINT (global START)
+4. Chain mints automatically when fee enters range
+5. Auto-RBF keeps chain competitive if mempool rate rises
+6. On confirmation with RESTART enabled → new chain starts on change output
+7. Repeat with multiple chains on different UTXOs
 
-### 9. Wallet Menu
+### 6. Wallet Menu
 
 Dropdown menu with wallet functions:
 
@@ -534,7 +475,7 @@ Dropdown menu with wallet functions:
 | COPY ADDRESS | Copy address to clipboard |
 | LOCK | Lock wallet (disconnect) |
 
-### 10. Deposit Modal
+### 7. Deposit Modal
 
 Modal for balance replenishment and backup:
 
@@ -548,22 +489,6 @@ Modal for balance replenishment and backup:
 2. Enter wallet password
 3. After verification, 12/24-word mnemonic is displayed
 4. "COPY" button for copying
-
-### 11. Strategy Matrix
-
-Table with calculations for different M values:
-
-| M | n* | ROI | Net Profit |
-|---|-----|-----|------------|
-| 1 | ... | ... | ... |
-| 5 | ... | ... | ... |
-| 10 | ... | ... | ... |
-| 25 | ... | ... | ... |
-| 50 | ... | ... | ... |
-| 100 | ... | ... | ... |
-| 250 | ... | ... | ... |
-| 500 | ... | ... | ... |
-| 1000 | ... | ... | ... |
 
 ## Constants
 

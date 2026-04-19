@@ -46,12 +46,23 @@ const nextConfig: NextConfig = {
     // WASM alias - use local copy to avoid dynamic import issues
     // Also alias the full node_modules path for dynamic imports inside SDK
     const sdkWasmPath = path.join(__dirname, "node_modules/@alkanes/ts-sdk/wasm");
+    // Resolve real path for symlinked SDK (e.g. pnpm link to ../alkanes-rs/ts-sdk)
+    const fs = require('fs');
+    const realSdkPath = fs.existsSync(sdkWasmPath)
+      ? fs.realpathSync(path.join(__dirname, "node_modules/@alkanes/ts-sdk"))
+      : null;
     config.resolve.alias = {
       ...config.resolve.alias,
       "@alkanes/ts-sdk/wasm": path.join(__dirname, localWasmPath),
-      // This catches dynamic imports that resolve to the full path
       [sdkWasmPath]: path.join(__dirname, localWasmPath),
+      // Map resolved symlink paths to local WASM
+      ...(realSdkPath ? {
+        [path.join(realSdkPath, "wasm")]: path.join(__dirname, localWasmPath),
+        [path.join(realSdkPath, "wasm/alkanes_web_sys")]: path.join(__dirname, localWasmPath),
+        [path.join(realSdkPath, "wasm/alkanes_web_sys.js")]: path.join(__dirname, localWasmPath),
+      } : {}),
     };
+    config.resolve.symlinks = true;
 
     // WASM support
     config.experiments = {
@@ -94,23 +105,22 @@ const nextConfig: NextConfig = {
         "@alkanes/ts-sdk/wasm/node-loader.cjs": path.join(__dirname, "lib/empty-module.js"),
       };
 
-      // Replace dynamic imports of @alkanes/ts-sdk/wasm with local copy
-      // This catches the dynamic import() inside the SDK
+      // Replace dynamic imports of @alkanes/ts-sdk/wasm and ../wasm/alkanes_web_sys with local copy
       config.plugins.push(
         new webpack.NormalModuleReplacementPlugin(
-          /@alkanes\/ts-sdk\/wasm$/,
+          /@alkanes\/ts-sdk\/wasm$|\/wasm\/alkanes_web_sys$/,
           path.join(__dirname, localWasmPath)
         )
       );
 
       // ContextReplacementPlugin to handle dynamic imports in SDK
-      // This maps the dynamic import('@alkanes/ts-sdk/wasm') to our local copy
       config.plugins.push(
         new webpack.ContextReplacementPlugin(
-          /@alkanes\/ts-sdk/,
+          /@alkanes\/ts-sdk|alkanes-rs\/ts-sdk/,
           path.join(__dirname, "lib/oyl/alkanes"),
           {
             "@alkanes/ts-sdk/wasm": "./alkanes_web_sys.js",
+            "../wasm/alkanes_web_sys": "./alkanes_web_sys.js",
           }
         )
       );
