@@ -2,13 +2,14 @@
 
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
-import { LayoutDashboard, Vote, MessageSquare, BookOpen } from "lucide-react";
+import { LayoutDashboard, Vote, MessageSquare, BookOpen, Sparkles } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", icon: LayoutDashboard, labelKey: "navigation.dashboard" },
   { href: "/governance", icon: Vote, labelKey: "navigation.governance" },
   { href: "/forum", icon: MessageSquare, labelKey: "navigation.forum" },
   { href: "/docs", icon: BookOpen, labelKey: "navigation.docs" },
+  { href: "/aries", icon: Sparkles, labelKey: "navigation.aries" },
 ] as const;
 
 export function BottomNav() {

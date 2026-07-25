@@ -111,6 +111,12 @@ export function Header() {
               >
                 {t("navigation.docs")}
               </Link>
+              <Link
+                href="/aries"
+                className="text-[color:var(--sf-muted)] hover:text-[color:var(--sf-text)] transition-colors font-medium"
+              >
+                {t("navigation.aries")}
+              </Link>
               <a
                 href="https://github.com/kungfuflex/alkanes-rs/tree/develop"
                 target="_blank"
