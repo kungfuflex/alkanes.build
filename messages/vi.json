@@ -72,6 +72,60 @@
       "github": "Khám phá trên GitHub"
     }
   },
+  "aries": {
+    "hero": {
+      "wordmark": "Aries",
+      "lockup": "Alkanes + SUBFROST",
+      "markAlt": "Biểu tượng đầu cừu Aries",
+      "definition": "Aries is the AI-native front door for building on Alkanes and utilizing SUBFROST as a developer.",
+      "claimKey": "Nhận khóa của bạn",
+      "connectEditor": "Kết nối trình soạn thảo",
+      "badgeHosted": "HTTP MCP được lưu trữ",
+      "badgeZeroSetup": "không cần cài đặt",
+      "badgeReadOnly": "chỉ đọc",
+      "badgeFree": "miễn phí cho lập trình viên"
+    },
+    "loop": {
+      "title": "Một vòng lặp: kiến thức, dữ liệu chuỗi, khung mẫu",
+      "knowledgeTitle": "Kiến thức",
+      "knowledgeBody": "Tài liệu, mẫu thiết kế và những cạm bẫy đúc kết từ thực tế của Alkanes và SUBFROST, được đưa thẳng vào tác nhân lập trình của bạn — để nó thôi đoán mò và bắt đầu trả lời dựa trên kiến thức thực sự dùng được của hệ sinh thái.",
+      "chainDataTitle": "Dữ liệu chuỗi",
+      "chainDataBody": "Đọc trực tiếp trạng thái Alkanes thật: token, pool, siêu dữ liệu hợp đồng, mô phỏng. Tác nhân của bạn kiểm chứng những gì thực sự có trên chuỗi thay vì bịa ra.",
+      "scaffoldsTitle": "Khung mẫu",
+      "scaffoldsBody": "Những điểm khởi đầu chạy được cho hợp đồng và tích hợp, sinh ra từ các mẫu đã được chứng minh là biên dịch thành công. Những gì lập trình viên học được lại quay về nuôi Aries, và vòng lặp cứ thế mạnh lên.",
+      "readOnlyTitle": "Chỉ đọc theo thiết kế, miễn phí cho mọi lập trình viên",
+      "readOnlyBody": "Aries không bao giờ ký, không bao giờ phát giao dịch, và không bao giờ chạm vào ví hay khóa. Nó chỉ xuất ra tài liệu, các lượt đọc chuỗi trực tiếp và khung mẫu để bạn tự chạy — và nó miễn phí cho mọi lập trình viên xây dựng trên Alkanes."
+    },
+    "connect": {
+      "title": "Kết nối",
+      "lead": "Aries nói giao thức MCP. Trỏ bất kỳ client tương thích MCP nào tới điểm cuối được lưu trữ:",
+      "endpointLabel": "Điểm cuối được lưu trữ",
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "cursorFile": "(.cursor/mcp.json)",
+      "keyNote": "Khóa của bạn nằm trong header Authorization. Nhận một khóa chỉ với một chạm từ bot Aries Keymaster."
+    },
+    "access": {
+      "eyebrow": "Nhận quyền truy cập",
+      "title": "Một chạm, một khóa",
+      "body": "Aries miễn phí cho mọi lập trình viên. Nhắn cho bot Aries Keymaster và nó cấp khóa cho bạn ngay lập tức — không biểu mẫu, không chờ đợi.",
+      "claim": "Nhận khóa trên Telegram",
+      "group": "Tham gia nhóm nhà phát triển",
+      "groupNote": "Nhóm nhà phát triển là nơi các câu hỏi được giải đáp và sự cố được ghi nhận."
+    },
+    "more": {
+      "title": "Tìm hiểu sâu hơn",
+      "hostedTitle": "Aries bản lưu trữ",
+      "hostedBody": "Trang dịch vụ đầy đủ: kho tri thức học liên tục là gì, vòng lặp sự cố hoạt động ra sao, và cách chạy Aries cục bộ thay thế.",
+      "hostedCta": "Truy cập aries.bragi.build",
+      "repoTitle": "Kho mã nguồn mở",
+      "repoBody": "Aries là mã nguồn mở. Sao chép về, đọc kho tri thức, và chạy phiên bản của riêng bạn qua stdio với khóa của bạn.",
+      "repoCta": "Xem kho mã"
+    },
+    "orbitals": {
+      "line": "Aries Orbitals — tấm pass được giành lấy, không bao giờ được bán. Bạn không thể mua lấy thành tích."
+    }
+  },
   "governance": {
     "title": "Quản trị DIESEL",
     "subtitle": "Bỏ phiếu cho đề xuất để định hình tương lai của Alkanes",

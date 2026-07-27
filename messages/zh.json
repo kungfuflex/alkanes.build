@@ -72,6 +72,60 @@
       "github": "在 GitHub 上探索"
     }
   },
+  "aries": {
+    "hero": {
+      "wordmark": "Aries",
+      "lockup": "Alkanes + SUBFROST",
+      "markAlt": "Aries 公羊头标识",
+      "definition": "Aries is the AI-native front door for building on Alkanes and utilizing SUBFROST as a developer.",
+      "claimKey": "领取你的密钥",
+      "connectEditor": "连接你的编辑器",
+      "badgeHosted": "托管 HTTP MCP",
+      "badgeZeroSetup": "零配置",
+      "badgeReadOnly": "只读",
+      "badgeFree": "对开发者免费"
+    },
+    "loop": {
+      "title": "一个闭环：知识、链上数据、脚手架",
+      "knowledgeTitle": "知识",
+      "knowledgeBody": "Alkanes 与 SUBFROST 的文档、模式和来之不易的陷阱经验，直接送进你的编码智能体——让它不再靠猜，而是基于生态中真正可用的知识来回答。",
+      "chainDataTitle": "链上数据",
+      "chainDataBody": "对真实 Alkanes 状态的实时读取：代币、流动性池、合约元数据、模拟调用。你的智能体核对链上实际情况，而不是凭空编造。",
+      "scaffoldsTitle": "脚手架",
+      "scaffoldsBody": "合约与集成的可用起点，源自已被验证能够构建成功的模式。开发者学到的经验会回流到 Aries，闭环由此不断增强。",
+      "readOnlyTitle": "只读设计，对每位开发者免费",
+      "readOnlyBody": "Aries 从不签名、从不广播，也从不接触钱包或密钥。它只输出文档、实时链上读取和脚手架，供你在本地运行——并且对每一位在 Alkanes 上构建的开发者免费。"
+    },
+    "connect": {
+      "title": "接入",
+      "lead": "Aries 使用 MCP 协议。将任何兼容 MCP 的客户端指向托管端点：",
+      "endpointLabel": "托管端点",
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "cursorFile": "(.cursor/mcp.json)",
+      "keyNote": "密钥放在 Authorization 请求头中。在 Aries Keymaster 机器人处一键领取。"
+    },
+    "access": {
+      "eyebrow": "获取访问权限",
+      "title": "一键领取密钥",
+      "body": "Aries 对每位开发者免费。给 Aries Keymaster 机器人发条消息，它会立即签发你的密钥——无需表单，无需等待。",
+      "claim": "在 Telegram 领取密钥",
+      "group": "加入构建者群组",
+      "groupNote": "构建者群组是提问得到解答、问题被记录归档的地方。"
+    },
+    "more": {
+      "title": "了解更多",
+      "hostedTitle": "托管版 Aries",
+      "hostedBody": "完整的托管服务页面：学习语料库是什么、事件闭环如何运作，以及如何改为在本地运行 Aries。",
+      "hostedCta": "访问 aries.bragi.build",
+      "repoTitle": "开源仓库",
+      "repoBody": "Aries 是开源的。克隆代码、阅读语料库，用你自己的密钥通过 stdio 运行自己的实例。",
+      "repoCta": "查看仓库"
+    },
+    "orbitals": {
+      "line": "Aries Orbitals —— 通行证靠赢得，从不出售。记录无法购买。"
+    }
+  },
   "governance": {
     "title": "DIESEL 治理",
     "subtitle": "参与提案投票，共同塑造 Alkanes 的未来",
