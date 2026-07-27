@@ -90,7 +90,9 @@ describe("AriesPage", () => {
       screen.getByText(/never signs, never broadcasts, and never touches wallets/)
     ).toBeDefined();
     expect(
-      screen.getByText(/Aries Orbitals — the pass is earned, never sold/)
+      screen.getByText(
+        "Aries Orbitals — you can buy the art; you can't buy the record."
+      )
     ).toBeDefined();
   });
 
