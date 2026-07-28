@@ -324,7 +324,7 @@
         "espo": "Espo 메서드"
       },
       "api": {
-        "title": "Subfrost API",
+        "title": "SUBFROST API",
         "overview": "개요",
         "rest": "REST 엔드포인트",
         "jsonrpc": "JSON-RPC",

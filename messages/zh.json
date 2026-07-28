@@ -324,7 +324,7 @@
         "espo": "Espo 方法"
       },
       "api": {
-        "title": "Subfrost API",
+        "title": "SUBFROST API",
         "overview": "概述",
         "rest": "REST 接口",
         "jsonrpc": "JSON-RPC",

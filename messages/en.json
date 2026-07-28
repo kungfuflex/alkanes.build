@@ -357,7 +357,7 @@
         "espo": "Espo Methods"
       },
       "api": {
-        "title": "Subfrost API",
+        "title": "SUBFROST API",
         "overview": "Overview",
         "rest": "REST Endpoints",
         "jsonrpc": "JSON-RPC",
