@@ -72,6 +72,61 @@
       "github": "Explore on GitHub"
     }
   },
+  "aries": {
+    "hero": {
+      "wordmark": "Aries",
+      "lockup": "Alkanes + SUBFROST",
+      "markAlt": "Aries ram-head mark",
+      "definition": "Aries is the AI-native front door for building on Alkanes and utilizing SUBFROST as a developer.",
+      "joinGroup": "Join the builders group",
+      "connectEditor": "Connect your editor",
+      "badgeHosted": "hosted HTTP MCP",
+      "badgeZeroSetup": "zero setup",
+      "badgeReadOnly": "read-only",
+      "badgeFree": "free for developers"
+    },
+    "loop": {
+      "title": "One loop: knowledge, chain data, scaffolds",
+      "lead": "Aries is a free hosted MCP server. Point your coding agent at it and it gains three things:",
+      "knowledgeTitle": "Knowledge",
+      "knowledgeBody": "Alkanes and SUBFROST documentation, patterns, and hard-won gotchas, served directly inside your coding agent — so it stops guessing and starts answering from the ecosystem's working knowledge.",
+      "chainDataTitle": "Chain data",
+      "chainDataBody": "Live reads against real Alkanes state: tokens, pools, contract metadata, simulations. Your agent checks what is actually on-chain instead of hallucinating it.",
+      "scaffoldsTitle": "Scaffolds",
+      "scaffoldsBody": "Working starting points for contracts and integrations, generated from patterns that are known to build.",
+      "flywheelTitle": "The corpus that learns",
+      "flywheelBody": "Every builder who hits a wall and writes down the fix makes Aries sharper for the next one. Corrections land in a shared incident corpus, and the next query reads them back. Aries gets smarter with every builder who uses it.",
+      "readOnlyTitle": "Read-only by design, free for every developer",
+      "readOnlyBody": "Aries never signs, never broadcasts, and never touches wallets or keys. It emits docs, live chain reads, and scaffolds for you to run locally — and it is free for every developer building on Alkanes."
+    },
+    "access": {
+      "eyebrow": "Get access",
+      "title": "Join the group, then claim your key",
+      "body": "Beta keys are issued to members of the builders group. Join first, and the Aries Keymaster bot hands you a key in a direct message.",
+      "step1": "Join the builders group on Telegram.",
+      "step2": "Open a direct message with the Aries Keymaster bot, @AriesKeyBot, and press Start.",
+      "step3": "Your key arrives in that same chat. Your Telegram account needs a username set.",
+      "joinCta": "Join the builders group",
+      "botCta": "Open @AriesKeyBot",
+      "note": "The builders group is where questions get answered and incidents get filed."
+    },
+    "connect": {
+      "title": "Connect",
+      "lead": "Aries speaks MCP. Point any MCP-compatible client at the hosted endpoint:",
+      "endpointLabel": "Hosted endpoint",
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "cursorFile": "(.cursor/mcp.json)",
+      "keyNote": "Your key goes in the Authorization header. If you do not have one yet, join the builders group and claim it from the Aries Keymaster bot."
+    },
+    "repo": {
+      "line": "Aries is open source — clone it and run your own instance over stdio.",
+      "cta": "View the repo"
+    },
+    "orbitals": {
+      "line": "Aries Orbitals — you can buy the art; you can't buy the record."
+    }
+  },
   "governance": {
     "title": "DIESEL Governance",
     "subtitle": "Vote on proposals to shape the future of Alkanes",
@@ -303,7 +358,7 @@
         "espo": "Espo Methods"
       },
       "api": {
-        "title": "Subfrost API",
+        "title": "SUBFROST API",
         "overview": "Overview",
         "rest": "REST Endpoints",
         "jsonrpc": "JSON-RPC",

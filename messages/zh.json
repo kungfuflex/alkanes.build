@@ -72,6 +72,61 @@
       "github": "在 GitHub 上探索"
     }
   },
+  "aries": {
+    "hero": {
+      "wordmark": "Aries",
+      "lockup": "Alkanes + SUBFROST",
+      "markAlt": "Aries 公羊头标识",
+      "definition": "Aries is the AI-native front door for building on Alkanes and utilizing SUBFROST as a developer.",
+      "joinGroup": "加入构建者群组",
+      "connectEditor": "连接你的编辑器",
+      "badgeHosted": "托管 HTTP MCP",
+      "badgeZeroSetup": "零配置",
+      "badgeReadOnly": "只读",
+      "badgeFree": "对开发者免费"
+    },
+    "loop": {
+      "title": "一个闭环：知识、链上数据、脚手架",
+      "lead": "Aries 是一个免费的托管 MCP 服务。把你的编码智能体指向它，它就会获得三样东西：",
+      "knowledgeTitle": "知识",
+      "knowledgeBody": "Alkanes 与 SUBFROST 的文档、模式和来之不易的陷阱经验，直接送进你的编码智能体——让它不再靠猜，而是基于生态中真正可用的知识来回答。",
+      "chainDataTitle": "链上数据",
+      "chainDataBody": "对真实 Alkanes 状态的实时读取：代币、流动性池、合约元数据、模拟调用。你的智能体核对链上实际情况，而不是凭空编造。",
+      "scaffoldsTitle": "脚手架",
+      "scaffoldsBody": "合约与集成的可用起点，源自已被验证能够构建成功的模式。",
+      "flywheelTitle": "会学习的语料库",
+      "flywheelBody": "每一位撞上难题并把解法记录下来的构建者，都会让 Aries 对下一个人更敏锐。修正会进入共享的事件语料库，下一次查询就能读到。每多一位构建者使用，Aries 就更聪明一分。",
+      "readOnlyTitle": "只读设计，对每位开发者免费",
+      "readOnlyBody": "Aries 从不签名、从不广播，也从不接触钱包或密钥。它只输出文档、实时链上读取和脚手架，供你在本地运行——并且对每一位在 Alkanes 上构建的开发者免费。"
+    },
+    "access": {
+      "eyebrow": "获取访问权限",
+      "title": "先加入群组，再领取密钥",
+      "body": "测试版密钥只发放给构建者群组的成员。先加入群组，Aries Keymaster 机器人就会在私聊中把密钥交给你。",
+      "step1": "在 Telegram 上加入构建者群组。",
+      "step2": "打开与 Aries Keymaster 机器人 @AriesKeyBot 的私聊，并按下 Start。",
+      "step3": "密钥会送达同一个对话。你的 Telegram 账号需要设置用户名。",
+      "joinCta": "加入构建者群组",
+      "botCta": "打开 @AriesKeyBot",
+      "note": "构建者群组是提问得到解答、问题被记录归档的地方。"
+    },
+    "connect": {
+      "title": "接入",
+      "lead": "Aries 使用 MCP 协议。将任何兼容 MCP 的客户端指向托管端点：",
+      "endpointLabel": "托管端点",
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "cursorFile": "(.cursor/mcp.json)",
+      "keyNote": "密钥放在 Authorization 请求头中。如果你还没有密钥，请先加入构建者群组，再从 Aries Keymaster 机器人处领取。"
+    },
+    "repo": {
+      "line": "Aries 是开源的——克隆代码，用 stdio 运行你自己的实例。",
+      "cta": "查看仓库"
+    },
+    "orbitals": {
+      "line": "Aries Orbitals —— 艺术品可以买到，记录买不到。"
+    }
+  },
   "governance": {
     "title": "DIESEL 治理",
     "subtitle": "参与提案投票，共同塑造 Alkanes 的未来",
@@ -270,7 +325,7 @@
         "espo": "Espo 方法"
       },
       "api": {
-        "title": "Subfrost API",
+        "title": "SUBFROST API",
         "overview": "概述",
         "rest": "REST 接口",
         "jsonrpc": "JSON-RPC",

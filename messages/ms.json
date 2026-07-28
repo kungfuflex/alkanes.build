@@ -72,6 +72,61 @@
       "github": "Terokai di GitHub"
     }
   },
+  "aries": {
+    "hero": {
+      "wordmark": "Aries",
+      "lockup": "Alkanes + SUBFROST",
+      "markAlt": "Tanda kepala biri-biri Aries",
+      "definition": "Aries is the AI-native front door for building on Alkanes and utilizing SUBFROST as a developer.",
+      "joinGroup": "Sertai kumpulan pembangun",
+      "connectEditor": "Sambungkan editor anda",
+      "badgeHosted": "HTTP MCP terhos",
+      "badgeZeroSetup": "tanpa persediaan",
+      "badgeReadOnly": "baca sahaja",
+      "badgeFree": "percuma untuk pembangun"
+    },
+    "loop": {
+      "title": "Satu gelung: pengetahuan, data rantaian, perancah",
+      "lead": "Aries ialah pelayan MCP terhos yang percuma. Halakan ejen pengekodan anda kepadanya dan ia memperoleh tiga perkara:",
+      "knowledgeTitle": "Pengetahuan",
+      "knowledgeBody": "Dokumentasi, corak dan perangkap yang dipelajari dengan susah payah bagi Alkanes dan SUBFROST, dihidangkan terus di dalam ejen pengekodan anda — supaya ia berhenti meneka dan mula menjawab daripada pengetahuan sebenar ekosistem.",
+      "chainDataTitle": "Data rantaian",
+      "chainDataBody": "Bacaan langsung terhadap keadaan Alkanes sebenar: token, kolam, metadata kontrak, simulasi. Ejen anda menyemak apa yang benar-benar ada di rantaian dan bukannya mereka-reka.",
+      "scaffoldsTitle": "Perancah",
+      "scaffoldsBody": "Titik permulaan yang berfungsi untuk kontrak dan integrasi, dijana daripada corak yang terbukti boleh dibina.",
+      "flywheelTitle": "Korpus yang belajar",
+      "flywheelBody": "Setiap pembangun yang terkandas lalu menulis penyelesaiannya menjadikan Aries lebih tajam untuk orang seterusnya. Pembetulan masuk ke dalam korpus insiden yang dikongsi, dan pertanyaan berikutnya membacanya semula. Aries menjadi lebih pintar dengan setiap pembangun yang menggunakannya.",
+      "readOnlyTitle": "Baca sahaja secara reka bentuk, percuma untuk setiap pembangun",
+      "readOnlyBody": "Aries tidak pernah menandatangani, tidak pernah menyiarkan, dan tidak pernah menyentuh dompet atau kunci. Ia mengeluarkan dokumen, bacaan rantaian langsung dan perancah untuk anda jalankan sendiri — dan ia percuma untuk setiap pembangun yang membina di atas Alkanes."
+    },
+    "access": {
+      "eyebrow": "Dapatkan akses",
+      "title": "Sertai kumpulan dahulu, kemudian tuntut kunci anda",
+      "body": "Kunci beta dikeluarkan kepada ahli kumpulan pembangun. Sertai dahulu, dan bot Aries Keymaster akan menghulurkan kunci anda dalam mesej terus.",
+      "step1": "Sertai kumpulan pembangun di Telegram.",
+      "step2": "Buka mesej terus dengan bot Aries Keymaster, @AriesKeyBot, dan tekan Start.",
+      "step3": "Kunci anda tiba dalam perbualan yang sama. Akaun Telegram anda perlu mempunyai nama pengguna.",
+      "joinCta": "Sertai kumpulan pembangun",
+      "botCta": "Buka @AriesKeyBot",
+      "note": "Kumpulan pembangun ialah tempat soalan dijawab dan insiden difailkan."
+    },
+    "connect": {
+      "title": "Sambung",
+      "lead": "Aries bertutur MCP. Halakan mana-mana klien serasi MCP ke titik akhir terhos:",
+      "endpointLabel": "Titik akhir terhos",
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "cursorFile": "(.cursor/mcp.json)",
+      "keyNote": "Kunci anda diletakkan dalam pengepala Authorization. Jika anda belum memilikinya, sertai kumpulan pembangun dan tuntutnya daripada bot Aries Keymaster."
+    },
+    "repo": {
+      "line": "Aries ialah sumber terbuka — klonkannya dan jalankan tika anda sendiri melalui stdio.",
+      "cta": "Lihat repositori"
+    },
+    "orbitals": {
+      "line": "Aries Orbitals — anda boleh membeli karya seninya; anda tidak boleh membeli rekodnya."
+    }
+  },
   "governance": {
     "title": "Tadbir Urus DIESEL",
     "subtitle": "Undi cadangan untuk membentuk masa depan Alkanes",
@@ -270,7 +325,7 @@
         "espo": "Kaedah Espo"
       },
       "api": {
-        "title": "API Subfrost",
+        "title": "API SUBFROST",
         "overview": "Gambaran Keseluruhan",
         "rest": "Titik Akhir REST",
         "jsonrpc": "JSON-RPC",
