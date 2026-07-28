@@ -6,19 +6,18 @@ import {
   BookOpen,
   Database,
   Blocks,
+  RefreshCw,
   ShieldCheck,
   Send,
   Terminal,
   SquareMousePointer,
   KeyRound,
-  Globe,
-  Github,
 } from "lucide-react";
 
+// The MCP endpoint is a product identifier shown inside code, never a link.
 const MCP_ENDPOINT = "https://aries.bragi.build/mcp";
-const KEY_BOT_URL = "https://t.me/AriesKeyBot?start=claim";
 const TELEGRAM_GROUP_URL = "https://t.me/+DLc96-DPNJRlZTgx";
-const HOSTED_SITE_URL = "https://aries.bragi.build";
+const KEY_BOT_URL = "https://t.me/AriesKeyBot?start=claim";
 const REPO_URL = "https://github.com/Aries-Labs-HQ/alkanes-aries";
 
 // Warm horn -> cool horn, sampled from the ram mark. Drives the hero lockup and
@@ -85,15 +84,16 @@ export default function AriesPage() {
           <p className="mt-6 text-xl md:text-2xl text-[color:var(--sf-text)] max-w-3xl mx-auto leading-relaxed">
             {t("hero.definition")}
           </p>
+          {/* The group is the front door: keys are claimed after joining it. */}
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
             <a
-              href={KEY_BOT_URL}
+              href={TELEGRAM_GROUP_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary inline-flex items-center gap-2"
             >
-              <KeyRound className="w-4 h-4" />
-              {t("hero.claimKey")}
+              <Send className="w-4 h-4" />
+              {t("hero.joinGroup")}
             </a>
             <a href="#connect" className="btn-secondary inline-flex items-center gap-2">
               <Terminal className="w-4 h-4" />
@@ -113,11 +113,12 @@ export default function AriesPage() {
         </div>
       </section>
 
-      {/* What Aries is */}
+      {/* How it works — the whole explanation lives on this page, not behind a link. */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-[color:var(--sf-text)] mb-6">
+        <h2 className="text-2xl font-bold text-[color:var(--sf-text)] mb-2">
           {t("loop.title")}
         </h2>
+        <p className="text-[color:var(--sf-muted)] mb-6">{t("loop.lead")}</p>
         <div className="grid md:grid-cols-3 gap-6">
           <div className="glass-card p-6">
             <BookOpen className="w-6 h-6 text-[color:var(--sf-primary)] mb-4" />
@@ -148,6 +149,17 @@ export default function AriesPage() {
           </div>
         </div>
         <div className="glass-card p-6 mt-6 flex items-start gap-4">
+          <RefreshCw className="w-6 h-6 text-[color:var(--sf-primary)] shrink-0 mt-1" />
+          <div>
+            <h3 className="text-lg font-semibold text-[color:var(--sf-text)] mb-2">
+              {t("loop.flywheelTitle")}
+            </h3>
+            <p className="text-[color:var(--sf-muted)] leading-relaxed">
+              {t("loop.flywheelBody")}
+            </p>
+          </div>
+        </div>
+        <div className="glass-card p-6 mt-6 flex items-start gap-4">
           <ShieldCheck className="w-6 h-6 text-[color:var(--sf-primary)] shrink-0 mt-1" />
           <div>
             <h3 className="text-lg font-semibold text-[color:var(--sf-text)] mb-2">
@@ -157,6 +169,49 @@ export default function AriesPage() {
               {t("loop.readOnlyBody")}
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Get access — group first, then the key. The ordered list is the flow. */}
+      <section className="mb-16">
+        <div className="glass-card p-8 text-center">
+          <p className="font-mono text-xs uppercase tracking-wider text-[color:var(--sf-primary)] mb-3">
+            {t("access.eyebrow")}
+          </p>
+          <h2 className="text-2xl font-bold text-[color:var(--sf-text)] mb-3">
+            {t("access.title")}
+          </h2>
+          <p className="text-[color:var(--sf-muted)] max-w-2xl mx-auto mb-6">
+            {t("access.body")}
+          </p>
+          <ol className="list-decimal list-outside text-left max-w-xl mx-auto pl-6 mb-8 space-y-3 text-[color:var(--sf-muted)] marker:font-mono marker:font-semibold marker:text-[color:var(--sf-primary)]">
+            <li className="leading-relaxed">{t("access.step1")}</li>
+            <li className="leading-relaxed">{t("access.step2")}</li>
+            <li className="leading-relaxed">{t("access.step3")}</li>
+          </ol>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <a
+              href={TELEGRAM_GROUP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary inline-flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              {t("access.joinCta")}
+            </a>
+            <a
+              href={KEY_BOT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary inline-flex items-center gap-2"
+            >
+              <KeyRound className="w-4 h-4" />
+              {t("access.botCta")}
+            </a>
+          </div>
+          <p className="text-[color:var(--sf-muted)] text-sm mt-6">
+            {t("access.note")}
+          </p>
         </div>
       </section>
 
@@ -210,92 +265,20 @@ export default function AriesPage() {
         </p>
       </section>
 
-      {/* Get access — one tap to a key */}
-      <section className="mb-16">
-        <div className="glass-card p-8 text-center">
-          <p className="font-mono text-xs uppercase tracking-wider text-[color:var(--sf-primary)] mb-3">
-            {t("access.eyebrow")}
-          </p>
-          <h2 className="text-2xl font-bold text-[color:var(--sf-text)] mb-3">
-            {t("access.title")}
-          </h2>
-          <p className="text-[color:var(--sf-muted)] max-w-2xl mx-auto mb-6">
-            {t("access.body")}
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <a
-              href={KEY_BOT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary inline-flex items-center gap-2"
-            >
-              <KeyRound className="w-4 h-4" />
-              {t("access.claim")}
-            </a>
-            <a
-              href={TELEGRAM_GROUP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary inline-flex items-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              {t("access.group")}
-            </a>
-          </div>
-          <p className="text-[color:var(--sf-muted)] text-sm mt-6">
-            {t("access.groupNote")}
-          </p>
-        </div>
-      </section>
-
-      {/* Go deeper */}
-      <section className="mb-16">
-        <h2 className="text-2xl font-bold text-[color:var(--sf-text)] mb-6">
-          {t("more.title")}
-        </h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="glass-card p-6">
-            <Globe className="w-6 h-6 text-[color:var(--sf-primary)] mb-4" />
-            <h3 className="text-lg font-semibold text-[color:var(--sf-text)] mb-2">
-              {t("more.hostedTitle")}
-            </h3>
-            <p className="text-[color:var(--sf-muted)] leading-relaxed mb-4">
-              {t("more.hostedBody")}
-            </p>
-            <a
-              href={HOSTED_SITE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary inline-flex items-center gap-2"
-            >
-              {t("more.hostedCta")}
-            </a>
-          </div>
-          <div className="glass-card p-6">
-            <Github className="w-6 h-6 text-[color:var(--sf-primary)] mb-4" />
-            <h3 className="text-lg font-semibold text-[color:var(--sf-text)] mb-2">
-              {t("more.repoTitle")}
-            </h3>
-            <p className="text-[color:var(--sf-muted)] leading-relaxed mb-4">
-              {t("more.repoBody")}
-            </p>
-            <a
-              href={REPO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary inline-flex items-center gap-2"
-            >
-              {t("more.repoCta")}
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Orbitals tease */}
-      <section>
-        <p className="text-center text-[color:var(--sf-muted)]">
-          {t("orbitals.line")}
+      {/* Close — source, then the Orbitals tease. */}
+      <section className="text-center space-y-3">
+        <p className="text-[color:var(--sf-muted)] text-sm">
+          <span>{t("repo.line")}</span>{" "}
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[color:var(--sf-primary)] underline underline-offset-4"
+          >
+            {t("repo.cta")}
+          </a>
         </p>
+        <p className="text-[color:var(--sf-muted)]">{t("orbitals.line")}</p>
       </section>
     </main>
   );

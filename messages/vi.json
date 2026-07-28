@@ -78,7 +78,7 @@
       "lockup": "Alkanes + SUBFROST",
       "markAlt": "Biểu tượng đầu cừu Aries",
       "definition": "Aries is the AI-native front door for building on Alkanes and utilizing SUBFROST as a developer.",
-      "claimKey": "Nhận khóa của bạn",
+      "joinGroup": "Tham gia nhóm nhà phát triển",
       "connectEditor": "Kết nối trình soạn thảo",
       "badgeHosted": "HTTP MCP được lưu trữ",
       "badgeZeroSetup": "không cần cài đặt",
@@ -87,14 +87,28 @@
     },
     "loop": {
       "title": "Một vòng lặp: kiến thức, dữ liệu chuỗi, khung mẫu",
+      "lead": "Aries là một máy chủ MCP được lưu trữ miễn phí. Trỏ tác nhân lập trình của bạn vào đó và nó có thêm ba thứ:",
       "knowledgeTitle": "Kiến thức",
       "knowledgeBody": "Tài liệu, mẫu thiết kế và những cạm bẫy đúc kết từ thực tế của Alkanes và SUBFROST, được đưa thẳng vào tác nhân lập trình của bạn — để nó thôi đoán mò và bắt đầu trả lời dựa trên kiến thức thực sự dùng được của hệ sinh thái.",
       "chainDataTitle": "Dữ liệu chuỗi",
       "chainDataBody": "Đọc trực tiếp trạng thái Alkanes thật: token, pool, siêu dữ liệu hợp đồng, mô phỏng. Tác nhân của bạn kiểm chứng những gì thực sự có trên chuỗi thay vì bịa ra.",
       "scaffoldsTitle": "Khung mẫu",
-      "scaffoldsBody": "Những điểm khởi đầu chạy được cho hợp đồng và tích hợp, sinh ra từ các mẫu đã được chứng minh là biên dịch thành công. Những gì lập trình viên học được lại quay về nuôi Aries, và vòng lặp cứ thế mạnh lên.",
+      "scaffoldsBody": "Những điểm khởi đầu chạy được cho hợp đồng và tích hợp, sinh ra từ các mẫu đã được chứng minh là biên dịch thành công.",
+      "flywheelTitle": "Kho tri thức biết học",
+      "flywheelBody": "Mỗi lập trình viên gặp bế tắc rồi ghi lại cách khắc phục đều làm Aries sắc bén hơn cho người tiếp theo. Các đính chính đi vào kho sự cố dùng chung, và truy vấn kế tiếp đọc lại được. Cứ thêm một lập trình viên sử dụng, Aries lại thông minh hơn.",
       "readOnlyTitle": "Chỉ đọc theo thiết kế, miễn phí cho mọi lập trình viên",
       "readOnlyBody": "Aries không bao giờ ký, không bao giờ phát giao dịch, và không bao giờ chạm vào ví hay khóa. Nó chỉ xuất ra tài liệu, các lượt đọc chuỗi trực tiếp và khung mẫu để bạn tự chạy — và nó miễn phí cho mọi lập trình viên xây dựng trên Alkanes."
+    },
+    "access": {
+      "eyebrow": "Nhận quyền truy cập",
+      "title": "Tham gia nhóm trước, rồi nhận khóa của bạn",
+      "body": "Khóa bản beta chỉ cấp cho thành viên của nhóm nhà phát triển. Hãy tham gia trước, rồi bot Aries Keymaster sẽ trao khóa cho bạn trong tin nhắn riêng.",
+      "step1": "Tham gia nhóm nhà phát triển trên Telegram.",
+      "step2": "Mở tin nhắn riêng với bot Aries Keymaster, @AriesKeyBot, và bấm Start.",
+      "step3": "Khóa của bạn sẽ đến ngay trong cuộc trò chuyện đó. Tài khoản Telegram của bạn cần có tên người dùng.",
+      "joinCta": "Tham gia nhóm nhà phát triển",
+      "botCta": "Mở @AriesKeyBot",
+      "note": "Nhóm nhà phát triển là nơi các câu hỏi được giải đáp và sự cố được ghi nhận."
     },
     "connect": {
       "title": "Kết nối",
@@ -103,24 +117,11 @@
       "claudeCode": "Claude Code",
       "cursor": "Cursor",
       "cursorFile": "(.cursor/mcp.json)",
-      "keyNote": "Khóa của bạn nằm trong header Authorization. Nhận một khóa chỉ với một chạm từ bot Aries Keymaster."
+      "keyNote": "Khóa của bạn nằm trong header Authorization. Nếu bạn chưa có, hãy tham gia nhóm nhà phát triển và nhận khóa từ bot Aries Keymaster."
     },
-    "access": {
-      "eyebrow": "Nhận quyền truy cập",
-      "title": "Một chạm, một khóa",
-      "body": "Aries miễn phí cho mọi lập trình viên. Nhắn cho bot Aries Keymaster và nó cấp khóa cho bạn ngay lập tức — không biểu mẫu, không chờ đợi.",
-      "claim": "Nhận khóa trên Telegram",
-      "group": "Tham gia nhóm nhà phát triển",
-      "groupNote": "Nhóm nhà phát triển là nơi các câu hỏi được giải đáp và sự cố được ghi nhận."
-    },
-    "more": {
-      "title": "Tìm hiểu sâu hơn",
-      "hostedTitle": "Aries bản lưu trữ",
-      "hostedBody": "Trang dịch vụ đầy đủ: kho tri thức học liên tục là gì, vòng lặp sự cố hoạt động ra sao, và cách chạy Aries cục bộ thay thế.",
-      "hostedCta": "Truy cập aries.bragi.build",
-      "repoTitle": "Kho mã nguồn mở",
-      "repoBody": "Aries là mã nguồn mở. Sao chép về, đọc kho tri thức, và chạy phiên bản của riêng bạn qua stdio với khóa của bạn.",
-      "repoCta": "Xem kho mã"
+    "repo": {
+      "line": "Aries là mã nguồn mở — sao chép về và chạy phiên bản của riêng bạn qua stdio.",
+      "cta": "Xem kho mã"
     },
     "orbitals": {
       "line": "Aries Orbitals — bạn có thể mua tác phẩm nghệ thuật; bạn không thể mua bản ghi."

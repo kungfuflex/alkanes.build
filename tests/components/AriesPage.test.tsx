@@ -9,15 +9,21 @@ import vi from "@/messages/vi.json";
 import ko from "@/messages/ko.json";
 
 const CATALOGUES = { en, zh, ms, vi, ko } as const;
+const LOCALES = Object.keys(CATALOGUES) as (keyof typeof CATALOGUES)[];
 
 // The one line that must never be paraphrased, re-cased, or translated.
 const DEFINITIONAL_LINE =
   "Aries is the AI-native front door for building on Alkanes and utilizing SUBFROST as a developer.";
 
-const KEY_BOT_URL = "https://t.me/AriesKeyBot?start=claim";
 const TELEGRAM_GROUP_URL = "https://t.me/+DLc96-DPNJRlZTgx";
-const HOSTED_SITE_URL = "https://aries.bragi.build";
+const KEY_BOT_URL = "https://t.me/AriesKeyBot?start=claim";
 const REPO_URL = "https://github.com/Aries-Labs-HQ/alkanes-aries";
+
+// This page is the self-contained explainer: it must never hand the reader off
+// to a hosted landing page. The MCP endpoint shares a hostname with one of them,
+// so it is allowed as code text only — never as a link target.
+const MCP_ENDPOINT = "https://aries.bragi.build/mcp";
+const LANDING_NEEDLES = ["aries.bragi.build", "bragi.build/aries"];
 
 function renderAt(locale: keyof typeof CATALOGUES) {
   const { container, unmount } = render(
@@ -34,6 +40,19 @@ function hrefs(container: HTMLElement) {
   );
 }
 
+function catalogueStrings(block: unknown): string[] {
+  const out: string[] = [];
+  const walk = (node: Record<string, unknown>) => {
+    for (const value of Object.values(node)) {
+      if (typeof value === "string") out.push(value);
+      else if (value && typeof value === "object")
+        walk(value as Record<string, unknown>);
+    }
+  };
+  walk(block as Record<string, unknown>);
+  return out;
+}
+
 describe("AriesPage", () => {
   it("renders the Aries definitional line", () => {
     renderAt("en");
@@ -44,7 +63,7 @@ describe("AriesPage", () => {
   it("shows the MCP endpoint and connect snippets with the auth header", () => {
     renderAt("en");
 
-    expect(screen.getByText("https://aries.bragi.build/mcp")).toBeDefined();
+    expect(screen.getByText(MCP_ENDPOINT)).toBeDefined();
     expect(
       screen.getByText(/claude mcp add --transport http aries/)
     ).toBeDefined();
@@ -54,33 +73,115 @@ describe("AriesPage", () => {
     expect(screen.getByText(/"mcpServers"/)).toBeDefined();
   });
 
-  it("makes the one-tap key claim the primary call to action", () => {
+  it("makes joining the builders group the primary call to action", () => {
     const { container } = renderAt("en");
 
     const links = hrefs(container);
-    expect(links.filter((h) => h === KEY_BOT_URL).length).toBeGreaterThan(0);
+    expect(links.filter((h) => h === TELEGRAM_GROUP_URL).length).toBeGreaterThan(
+      0
+    );
 
-    // The claim CTA is the first link on the page and carries btn-primary.
+    // The group CTA is the first link on the page and carries btn-primary.
     const first = container.querySelector("a") as HTMLAnchorElement;
-    expect(first.getAttribute("href")).toBe(KEY_BOT_URL);
+    expect(first.getAttribute("href")).toBe(TELEGRAM_GROUP_URL);
     expect(first.className).toContain("btn-primary");
   });
 
-  it("links out to the group, the hosted funnel and the repo", () => {
+  it("presents claiming a key as an ordered flow behind the group", () => {
     const { container } = renderAt("en");
 
-    const links = hrefs(container);
-    for (const url of [TELEGRAM_GROUP_URL, HOSTED_SITE_URL, REPO_URL]) {
-      expect(links).toContain(url);
-    }
+    // Three steps, in order, as a real ordered list.
+    const steps = Array.from(container.querySelectorAll("ol > li")).map((li) =>
+      (li.textContent ?? "").trim()
+    );
+    expect(steps).toEqual([
+      en.aries.access.step1,
+      en.aries.access.step2,
+      en.aries.access.step3,
+    ]);
 
-    // Every external link opens safely.
+    // Step 1 joins the group, step 2 opens the bot and presses Start, step 3
+    // says the key arrives in that same chat and needs a username.
+    expect(steps[0]).toMatch(/group/i);
+    expect(steps[1]).toMatch(/@AriesKeyBot/);
+    expect(steps[1]).toMatch(/Start/);
+    expect(steps[2]).toMatch(/username/i);
+
+    // Beta keys are stated plainly to be for group members.
+    expect(en.aries.access.body).toMatch(/Beta keys/);
+    expect(en.aries.access.body).toMatch(/members of the builders group/);
+
+    // The bot is still reachable — as step 2 of the flow, not as a way past it.
+    const links = hrefs(container);
+    expect(links).toContain(KEY_BOT_URL);
+    const botLink = Array.from(container.querySelectorAll("a")).find(
+      (a) => a.getAttribute("href") === KEY_BOT_URL
+    ) as HTMLAnchorElement;
+    expect(botLink.className).not.toContain("btn-primary");
+  });
+
+  it("never links to a hosted landing page, in any locale", () => {
+    for (const locale of LOCALES) {
+      const { container, unmount } = renderAt(locale);
+
+      for (const a of Array.from(container.querySelectorAll("a"))) {
+        const href = a.getAttribute("href") ?? "";
+        for (const needle of LANDING_NEEDLES) {
+          expect(href.includes(needle)).toBe(false);
+        }
+      }
+
+      // The endpoint may still appear as text — but only inside code.
+      let endpointSightings = 0;
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+      let node: Node | null;
+      while ((node = walker.nextNode())) {
+        const text = node.textContent ?? "";
+        if (!LANDING_NEEDLES.some((n) => text.includes(n))) continue;
+        endpointSightings++;
+        expect(node.parentElement?.closest("code, pre")).toBeTruthy();
+      }
+      expect(endpointSightings).toBeGreaterThan(0);
+
+      // No catalogue string smuggles a landing page into prose either.
+      for (const value of catalogueStrings(CATALOGUES[locale].aries)) {
+        for (const needle of LANDING_NEEDLES) {
+          expect(value.includes(needle)).toBe(false);
+        }
+      }
+
+      unmount();
+    }
+  });
+
+  it("links out only to the group, the bot and the repo", () => {
+    const { container } = renderAt("en");
+
     const external = Array.from(container.querySelectorAll("a")).filter((a) =>
       a.getAttribute("href")?.startsWith("http")
     );
+    const allowed = new Set([TELEGRAM_GROUP_URL, KEY_BOT_URL, REPO_URL]);
+
     for (const a of external) {
+      expect(allowed.has(a.getAttribute("href") as string)).toBe(true);
+      // Every external link opens safely.
       expect(a.getAttribute("rel")).toContain("noopener");
     }
+    for (const url of allowed) {
+      expect(hrefs(container)).toContain(url);
+    }
+  });
+
+  it("explains itself on the page: the loop and the corpus flywheel", () => {
+    renderAt("en");
+
+    expect(screen.getByText(en.aries.loop.lead)).toBeDefined();
+    expect(screen.getByText(en.aries.loop.knowledgeTitle)).toBeDefined();
+    expect(screen.getByText(en.aries.loop.chainDataTitle)).toBeDefined();
+    expect(screen.getByText(en.aries.loop.scaffoldsTitle)).toBeDefined();
+    // The flywheel: Aries gets smarter with every builder who uses it.
+    expect(screen.getByText(en.aries.loop.flywheelTitle)).toBeDefined();
+    expect(screen.getByText(/smarter with every builder/)).toBeDefined();
   });
 
   it("keeps the read-only banner and the Orbitals line", () => {
@@ -123,7 +224,7 @@ describe("AriesPage", () => {
   });
 
   it("obeys the copy laws in every locale", () => {
-    for (const locale of Object.keys(CATALOGUES) as (keyof typeof CATALOGUES)[]) {
+    for (const locale of LOCALES) {
       const { container, unmount } = renderAt(locale);
       const text = container.textContent ?? "";
 
@@ -133,9 +234,13 @@ describe("AriesPage", () => {
       expect(text).not.toMatch(/Subfrost|subfrost/);
       // No emojis anywhere on the page.
       expect(text).not.toMatch(/\p{Extended_Pictographic}/u);
+      // No exact dates.
+      expect(text).not.toMatch(/\b(19|20)\d{2}\b/);
       // Brand names survive translation.
       expect(text).toContain("Alkanes + SUBFROST");
       expect(text).toContain("Aries");
+      // "Aries Orbitals" is the only name for them.
+      expect(text).toContain("Aries Orbitals");
       // The read-only claim is present in every locale.
       expect(text).toContain(CATALOGUES[locale].aries.loop.readOnlyTitle);
 
@@ -148,23 +253,24 @@ describe("AriesPage", () => {
     // that locale's catalogue. Anything left in English is a hardcoded string.
     const { container } = renderAt("zh");
 
-    const catalogue = new Set<string>();
-    const walk = (node: Record<string, unknown>) => {
-      for (const value of Object.values(node)) {
-        if (typeof value === "string") catalogue.add(value.trim());
-        else if (value && typeof value === "object")
-          walk(value as Record<string, unknown>);
-      }
-    };
-    walk(zh.aries as unknown as Record<string, unknown>);
+    const catalogue = new Set(
+      catalogueStrings(zh.aries).map((s) => s.trim())
+    );
 
     const main = within(container).getByRole("main");
     const prose = Array.from(
-      main.querySelectorAll("h1, h2, h3, p, span, a")
+      main.querySelectorAll("h1, h2, h3, p, span, li, a")
     ).filter((el) => el.children.length === 0);
 
     for (const el of prose) {
       const text = (el.textContent ?? "").trim();
+      if (!text) continue;
+      expect(catalogue.has(text)).toBe(true);
+    }
+
+    // Link labels carry an icon child, so check them by text regardless.
+    for (const a of Array.from(main.querySelectorAll("a"))) {
+      const text = (a.textContent ?? "").trim();
       if (!text) continue;
       expect(catalogue.has(text)).toBe(true);
     }
