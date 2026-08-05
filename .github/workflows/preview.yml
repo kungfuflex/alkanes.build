@@ -1,3 +1,32 @@
+# SECURITY — read before editing the triggers or the `if:` guards below.
+#
+# This workflow checks out UNTRUSTED PR CODE (`github.event.pull_request.head.sha`)
+# and runs it in an environment that can reach GCP via Workload Identity and
+# Cloudflare via an API token. Anything that lets a fork reach these steps is a
+# credential-disclosure bug, not a CI inconvenience.
+#
+# On 2026-07-31, PR #9 (`ayesh444-hub`, a fork) targeted exactly this workflow.
+# It added an unauthenticated endpoint that serialized every env var matching
+# SECRET|KEY|TOKEN|DATABASE|GOOGLE|GCP|KUBE|FROST|SIGNER into a public JSON
+# response, while its description falsely claimed a preview-only guard. It was
+# stopped by GitHub withholding secrets from fork `pull_request` runs AND by the
+# repo requiring manual approval for fork workflows. Both of those are defaults
+# someone can turn off; the `if:` guards below are the explicit control.
+#
+# RULES:
+#  1. Every job here MUST keep the `head.repo.full_name == github.repository`
+#     guard. Same-repo branches only — that is how the regular contributors
+#     work anyway (verified: bitbragi and Misha-btc push branches to this repo,
+#     not forks), so this costs them nothing.
+#  2. NEVER add `pull_request_target` to a job that checks out PR head code.
+#     `pull_request_target` runs with full secrets in the BASE repo context; the
+#     combination is the classic RCE-with-credentials pattern. It is used here
+#     ONLY for `closed` cleanup, which checks out nothing.
+#  3. Keep secrets OUT of the workflow-level `env:` block. Anything there is
+#     exported into every step of every job, including steps running PR code.
+#     Reference secrets in the specific step that needs them.
+#  4. Keep "Require approval for all external contributors" enabled in
+#     Settings -> Actions. It is the backstop that held on 2026-07-31.
 name: Preview Deployment
 
 on:
@@ -6,8 +35,11 @@ on:
   pull_request_target:
     types: [closed]
 
+# NOTE: PROJECT_ID deliberately removed from this block — it was
+# `${{ secrets.GCP_PROJECT_ID }}`, which exported a secret into the environment
+# of every step, including those running untrusted PR code. It is now set at
+# job level on the trusted jobs only.
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
   REPOSITORY: alkanes-docker
   BASE_DOMAIN: alkanes.build
@@ -15,9 +47,14 @@ env:
 jobs:
   deploy-preview:
     name: Deploy Preview
-    if: github.event.action != 'closed'
+    # Same-repo PRs ONLY. A fork PR must never reach the GCP/Cloudflare steps.
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: preview
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
 
     permissions:
       contents: read
@@ -225,8 +262,20 @@ jobs:
 
   cleanup-preview:
     name: Cleanup Preview
-    if: github.event.action == 'closed'
+    # Runs under `pull_request_target`, so it HAS secrets and runs in the base
+    # repo context. That is only safe because it checks out NOTHING — it just
+    # tears down the Cloud Run service and DNS record by PR number. Do not add
+    # an actions/checkout step here, and do not add one that references
+    # `head.sha`: that is the pull_request_target RCE pattern.
+    #
+    # Same-repo guard mirrors deploy-preview, so a fork PR closing cannot
+    # trigger a credentialed job either.
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
 
     permissions:
       contents: read
