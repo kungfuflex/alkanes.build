@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/admin-auth";
 
 /**
  * GET /api/forum/categories
@@ -38,10 +39,15 @@ export async function GET() {
 
 /**
  * POST /api/forum/categories
- * Create a new category (admin only)
+ * Create a new category — operator credentials required.
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = requireAdmin(request);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const body = await request.json();
     const { name, slug, description, color, parentId, position, isReadOnly } = body;
 
@@ -52,8 +58,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // TODO: Check admin permissions
 
     // Check if slug is unique
     const existing = await prisma.category.findUnique({
@@ -102,11 +106,20 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Seed default categories for governance forum
+ * PUT /api/forum/categories
+ * Seed the default forum categories — operator credentials required.
+ *
+ * This route was reachable unauthenticated in every build, production
+ * included: it is an ordinary exported route handler with no environment
+ * guard, and the only thing standing between the internet and a database
+ * write was a `// TODO: Check admin permissions` comment.
  */
 export async function PUT(request: NextRequest) {
   try {
-    // TODO: Check admin permissions
+    const auth = requireAdmin(request);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
     const defaultCategories = [
       {

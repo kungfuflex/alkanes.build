@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { marked } from "marked";
+import { renderMarkdown } from "@/lib/markdown";
 import { serializeBigInt } from "@/lib/serialize";
 import { alkanesClient } from "@/lib/alkanes-client";
 import { verifyMessageSignature } from "@/lib/bip322";
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Parse proposal body to HTML
-        const cooked = await marked.parse(proposalBody);
+        const cooked = renderMarkdown(proposalBody);
 
         // Create discussion linked to proposal
         discussion = await tx.discussion.create({

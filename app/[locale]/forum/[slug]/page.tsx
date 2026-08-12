@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useWallet } from "@/context/WalletContext";
 import { formatAddress, cn } from "@/lib/utils";
+import { isSafeRenderedHtml } from "@/lib/safe-html";
 
 interface Post {
   id: string;
@@ -348,11 +349,22 @@ export default function DiscussionPage({
                 </div>
               )}
 
-              {/* Post content */}
-              <div
-                className="prose prose-invert max-w-none mb-4 text-[color:var(--sf-text)]"
-                dangerouslySetInnerHTML={{ __html: post.cooked }}
-              />
+              {/* Post content.
+
+                  The server re-renders this from the markdown source through
+                  lib/markdown.ts, so it should always be within the allowlist.
+                  Check anyway: if anything unexpected ever reaches here, show
+                  the markdown source as escaped text rather than inject it. */}
+              {isSafeRenderedHtml(post.cooked) ? (
+                <div
+                  className="prose prose-invert max-w-none mb-4 text-[color:var(--sf-text)]"
+                  dangerouslySetInnerHTML={{ __html: post.cooked }}
+                />
+              ) : (
+                <pre className="max-w-none mb-4 whitespace-pre-wrap break-words font-sans text-[color:var(--sf-text)]">
+                  {post.raw}
+                </pre>
+              )}
 
               {/* Reactions and actions */}
               <div className="flex items-center justify-between pt-4 border-t border-[color:var(--sf-outline)]">

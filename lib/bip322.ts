@@ -331,6 +331,75 @@ function encodeVarint(n: number): Buffer {
 }
 
 /**
+ * Expand a hex public key into the compressed forms it could represent.
+ * A 32-byte x-only key has two candidate parities.
+ */
+function publicKeyVariants(publicKey: string): Buffer[] {
+  let pkBuf: Buffer;
+  try {
+    pkBuf = Buffer.from(publicKey, 'hex');
+  } catch {
+    return [];
+  }
+  if (pkBuf.length === 33) return [pkBuf];
+  if (pkBuf.length === 32) {
+    return [
+      Buffer.concat([Buffer.from([0x02]), pkBuf]),
+      Buffer.concat([Buffer.from([0x03]), pkBuf]),
+    ];
+  }
+  return [];
+}
+
+/**
+ * Does this public key actually control the claimed address?
+ *
+ * P2WPKH — the key must hash to the address's witness program.
+ * P2TR    — the key must equal the address's output key, either directly (a
+ *           wallet that reports the tweaked key) or after the BIP-341 tweak (a
+ *           wallet that reports the internal key).
+ *
+ * Anything else is not a proof of anything and returns false.
+ */
+function publicKeyMatchesAddress(
+  pubkey: Buffer,
+  address: string,
+  network: bitcoin.Network
+): boolean {
+  try {
+    if (address.startsWith('bc1q') || address.startsWith('tb1q')) {
+      const { address: derived } = bitcoin.payments.p2wpkh({ pubkey, network });
+      return derived === address;
+    }
+
+    if (address.startsWith('bc1p') || address.startsWith('tb1p')) {
+      const decoded = bitcoin.address.fromBech32(address);
+      if (decoded.version !== 1 || decoded.data.length !== 32) return false;
+      const outputKey = Buffer.from(decoded.data);
+
+      const xOnly = pubkey.length === 33 ? pubkey.subarray(1) : pubkey;
+      if (xOnly.length !== 32) return false;
+
+      // Wallet reported the output (tweaked) key.
+      if (Buffer.from(xOnly).equals(outputKey)) return true;
+
+      // Wallet reported the internal key: apply the BIP-341 key-path tweak.
+      const tweaked = ecc.xOnlyPointAddTweak(
+        xOnly,
+        taggedHash('TapTweak', Buffer.from(xOnly))
+      );
+      return (
+        !!tweaked && Buffer.from(tweaked.xOnlyPubkey).equals(outputKey)
+      );
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Verify signature with fallback for wallet-specific formats
  *
  * Supports:
@@ -342,7 +411,9 @@ function encodeVarint(n: number): Buffer {
  * @param address - The Bitcoin address that signed
  * @param signature - Base64 encoded signature
  * @param networkType - Network type
- * @param publicKey - Optional hex-encoded public key
+ * @param publicKey - Optional hex-encoded public key. It is used ONLY if it
+ *                    derives `address`; a key that does not is ignored, so
+ *                    passing an untrusted, request-supplied key is safe.
  */
 export async function verifyMessageSignature(
   message: string,
@@ -380,20 +451,33 @@ export async function verifyMessageSignature(
     { name: 'double-sha256', hash: sha256(sha256(msgBuf)) },
   ];
 
-  // Build public key variants for ECDSA (needs 33-byte compressed pubkey)
-  const ecdsaPubkeys: Buffer[] = [];
-  if (publicKey) {
-    const pkBuf = Buffer.from(publicKey, 'hex');
-    if (pkBuf.length === 33) {
-      ecdsaPubkeys.push(pkBuf);
-    } else if (pkBuf.length === 32) {
-      // x-only pubkey — try both possible prefixes
-      ecdsaPubkeys.push(Buffer.concat([Buffer.from([0x02]), pkBuf]));
-      ecdsaPubkeys.push(Buffer.concat([Buffer.from([0x03]), pkBuf]));
-    }
+  // Any caller-supplied public key must DERIVE the claimed address before it
+  // is allowed to verify anything. Without that binding an attacker submits
+  // their own keypair alongside somebody else's address, signs the message
+  // with their own key, and the loops below happily return true — a complete
+  // authentication bypass for every route that forwards a request-body public
+  // key into this function.
+  const network =
+    networkType === 'mainnet'
+      ? bitcoin.networks.bitcoin
+      : bitcoin.networks.testnet;
+
+  const boundPubkeys = publicKey
+    ? publicKeyVariants(publicKey).filter((pk) =>
+        publicKeyMatchesAddress(pk, address, network)
+      )
+    : [];
+
+  if (publicKey && boundPubkeys.length === 0) {
+    console.warn(
+      '[BIP322] supplied public key does not derive the claimed address — ignoring it'
+    );
   }
 
-  // Build x-only pubkeys for Schnorr verification
+  // ECDSA needs a 33-byte compressed pubkey, and only an address-bound one.
+  const ecdsaPubkeys: Buffer[] = boundPubkeys;
+
+  // Schnorr: the address itself is the primary source of the key.
   const schnorrPubkeys: Buffer[] = [];
   if (address.startsWith('bc1p') || address.startsWith('tb1p')) {
     try {
@@ -403,16 +487,10 @@ export async function verifyMessageSignature(
       }
     } catch {}
   }
-  if (publicKey) {
-    const pkBuf = Buffer.from(publicKey, 'hex');
-    if (pkBuf.length === 32) {
-      const isDuplicate = schnorrPubkeys.some(k => k.equals(pkBuf));
-      if (!isDuplicate) schnorrPubkeys.push(pkBuf);
-    } else if (pkBuf.length === 33) {
-      // Strip prefix to get x-only
-      const xOnly = pkBuf.slice(1);
-      const isDuplicate = schnorrPubkeys.some(k => k.equals(xOnly));
-      if (!isDuplicate) schnorrPubkeys.push(xOnly);
+  for (const pk of boundPubkeys) {
+    const xOnly = pk.length === 33 ? pk.subarray(1) : pk;
+    if (xOnly.length === 32 && !schnorrPubkeys.some((k) => k.equals(xOnly))) {
+      schnorrPubkeys.push(Buffer.from(xOnly));
     }
   }
 

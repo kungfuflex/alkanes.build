@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { marked } from "marked";
+import { renderMarkdown } from "@/lib/markdown";
 
 function generateSlug(title: string): string {
   return title
@@ -169,8 +169,8 @@ export async function POST(request: NextRequest) {
     // TODO: Verify BIP-322 signature
     // TODO: Check minimum DIESEL balance requirements
 
-    // Parse markdown to HTML
-    const cooked = await marked.parse(content);
+    // Render markdown to HTML that is safe to inject (lib/markdown.ts).
+    const cooked = renderMarkdown(content);
 
     // Create discussion with first post in a transaction
     const discussion = await prisma.$transaction(async (tx) => {

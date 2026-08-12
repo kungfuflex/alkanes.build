@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { marked } from "marked";
+import { renderMarkdown } from "@/lib/markdown";
 
 /**
  * POST /api/forum/posts
@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
     // TODO: Verify BIP-322 signature
     // TODO: Check minimum DIESEL balance requirements
 
-    // Parse markdown to HTML
-    const cooked = await marked.parse(content);
+    // Render markdown to HTML that is safe to inject (lib/markdown.ts).
+    const cooked = renderMarkdown(content);
 
     // Extract mentions from content (@bc1...)
     const mentionRegex = /@(bc1[a-zA-HJ-NP-Z0-9]{25,39}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})/g;

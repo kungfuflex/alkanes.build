@@ -1,478 +1,344 @@
+/**
+ * POST /api/profile/verify
+ *
+ * Before this mission the submitted signature underwent no cryptographic
+ * operation of any kind: it was length-checked, stored, and `verified: true`
+ * was written for whatever address the caller named. The previous version of
+ * this suite encoded that behaviour — it asserted that 64 bytes of the letter
+ * "a" produced a verified profile. Those assertions are gone, because they
+ * asserted the vulnerability.
+ *
+ * Real keys and real signatures throughout: the negatives fail because the
+ * cryptography rejects them, and the positive controls pass because a genuine
+ * BIP-322 signature genuinely verifies.
+ */
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock the prisma module before imports - use hoisted pattern
-vi.mock("@/lib/prisma", () => {
-  return {
-    prisma: {
-      userProfile: {
-        upsert: vi.fn(),
-      },
-    },
-    default: {
-      userProfile: {
-        upsert: vi.fn(),
-      },
-    },
-  };
-});
-
-// Mock bitcoin-address-validation
-vi.mock("bitcoin-address-validation", () => ({
-  validate: (address: string) => {
-    // Accept common Bitcoin address formats
-    if (address.startsWith("bc1p") || address.startsWith("bc1q")) return true;
-    if (address.startsWith("tb1p") || address.startsWith("tb1q")) return true;
-    if (address.startsWith("1") || address.startsWith("3")) return true;
-    return false;
-  },
+vi.mock("@/lib/prisma", () => ({
+  prisma: { userProfile: { upsert: vi.fn() } },
+  default: { userProfile: { upsert: vi.fn() } },
 }));
 
-// Import after mocking
 import { POST } from "@/app/api/profile/verify/route";
 import { prisma } from "@/lib/prisma";
+import { buildSigningMessage, SIGNING_ACTIONS } from "@/lib/signing-message";
+import {
+  p2trWallet,
+  p2wpkhWallet,
+  testNonce,
+  unboundKeypair,
+} from "../../helpers/bip322-signer";
 
-// Cast to mock for typing
 const mockUpsert = prisma.userProfile.upsert as ReturnType<typeof vi.fn>;
 
-// Helper to create a valid signature (64+ bytes base64)
-const createValidSignature = () => {
-  // Create a 64-byte buffer and convert to base64
-  const buffer = Buffer.alloc(64, "a");
-  return buffer.toString("base64");
-};
+const taproot = p2trWallet("e5".repeat(32));
+const segwit = p2wpkhWallet("f6".repeat(32));
+const victim = p2trWallet("17".repeat(32));
 
-// Helper to create timestamps
-const createTimestamp = (offsetMs = 0) => {
-  return (Date.now() + offsetMs).toString();
-};
+function verifyMessage(address: string, issuedAt: number, nonce: string) {
+  return buildSigningMessage({
+    action: SIGNING_ACTIONS.PROFILE_VERIFY,
+    address,
+    resource: `address:${address}`,
+    issuedAt,
+    nonce,
+  });
+}
+
+function signedRequest(
+  wallet: { address: string; sign(m: string): string },
+  overrides: Record<string, unknown> = {}
+) {
+  const issuedAt = Date.now();
+  const nonce = testNonce("9");
+  const body = {
+    address: wallet.address,
+    signature: wallet.sign(verifyMessage(wallet.address, issuedAt, nonce)),
+    issuedAt,
+    nonce,
+    ...overrides,
+  };
+  return new NextRequest("http://localhost/api/profile/verify", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+function rawRequest(body: unknown) {
+  return new NextRequest("http://localhost/api/profile/verify", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+function profileFor(address: string) {
+  return {
+    id: "test-id",
+    address,
+    displayName: null,
+    bio: null,
+    avatarUrl: null,
+    verified: true,
+    postsCount: 0,
+    discussionsCount: 0,
+    likesReceived: 0,
+    trustLevel: 0,
+    createdAt: new Date(),
+    lastSeenAt: new Date(),
+  };
+}
 
 describe("POST /api/profile/verify", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns 400 when address is missing", async () => {
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        message: "test",
-        signature: createValidSignature(),
-        timestamp: createTimestamp(),
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
+  describe("negative — nothing is written without a real signature", () => {
+    it("rejects the exact pre-fix payload (padding bytes as a signature)", async () => {
+      const issuedAt = Date.now();
+      const response = await POST(
+        rawRequest({
+          address: victim.address,
+          signature: Buffer.alloc(64, "a").toString("base64"),
+          issuedAt,
+          nonce: testNonce("1"),
+        })
+      );
+      const data = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe(
-      "Missing required fields: address, message, signature, timestamp"
-    );
+      expect(response.status).toBe(401);
+      expect(data.error).toBe("Invalid signature");
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects a 71-byte DER-shaped blob, which the old route accepted", async () => {
+      const response = await POST(
+        rawRequest({
+          address: victim.address,
+          signature: Buffer.alloc(71, "c").toString("base64"),
+          issuedAt: Date.now(),
+          nonce: testNonce("2"),
+        })
+      );
+
+      expect(response.status).toBe(401);
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects one address's genuine signature presented for another address", async () => {
+      const issuedAt = Date.now();
+      const nonce = testNonce("3");
+      // A real signature — just not by the address being claimed.
+      const signature = taproot.sign(
+        verifyMessage(victim.address, issuedAt, nonce)
+      );
+
+      const response = await POST(
+        rawRequest({ address: victim.address, signature, issuedAt, nonce })
+      );
+
+      expect(response.status).toBe(401);
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects an attacker's own keypair submitted under a victim's address", async () => {
+      const attacker = unboundKeypair("28".repeat(32));
+      const issuedAt = Date.now();
+      const nonce = testNonce("4");
+
+      const response = await POST(
+        rawRequest({
+          address: victim.address,
+          signature: attacker.signRawSha256(
+            verifyMessage(victim.address, issuedAt, nonce)
+          ),
+          publicKey: attacker.publicKey, // ignored: never forwarded to the verifier
+          issuedAt,
+          nonce,
+        })
+      );
+
+      expect(response.status).toBe(401);
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects a signature for a different action replayed as profile verification", async () => {
+      const issuedAt = Date.now();
+      const nonce = testNonce("5");
+      const otherAction = buildSigningMessage({
+        action: SIGNING_ACTIONS.BUILDER_REGISTER,
+        address: taproot.address,
+        resource: `address:${taproot.address}`,
+        issuedAt,
+        nonce,
+      });
+
+      const response = await POST(
+        rawRequest({
+          address: taproot.address,
+          signature: taproot.sign(otherAction),
+          issuedAt,
+          nonce,
+        })
+      );
+
+      expect(response.status).toBe(401);
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects an expired signature", async () => {
+      const issuedAt = Date.now() - 6 * 60 * 1000;
+      const nonce = testNonce("6");
+
+      const response = await POST(
+        rawRequest({
+          address: taproot.address,
+          signature: taproot.sign(
+            verifyMessage(taproot.address, issuedAt, nonce)
+          ),
+          issuedAt,
+          nonce,
+        })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain("expired");
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects a signature dated in the future", async () => {
+      const issuedAt = Date.now() + 10 * 60 * 1000;
+      const nonce = testNonce("7");
+
+      const response = await POST(
+        rawRequest({
+          address: taproot.address,
+          signature: taproot.sign(
+            verifyMessage(taproot.address, issuedAt, nonce)
+          ),
+          issuedAt,
+          nonce,
+        })
+      );
+
+      expect(response.status).toBe(400);
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects a missing signature, address, nonce or timestamp", async () => {
+      const complete = {
+        address: taproot.address,
+        signature: "x",
+        issuedAt: Date.now(),
+        nonce: testNonce("8"),
+      };
+      for (const field of ["address", "signature", "issuedAt", "nonce"]) {
+        const body: Record<string, unknown> = { ...complete };
+        delete body[field];
+        const response = await POST(rawRequest(body));
+        expect(response.status).toBe(400);
+      }
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects a malformed nonce", async () => {
+      const response = await POST(
+        rawRequest({
+          address: taproot.address,
+          signature: "x",
+          issuedAt: Date.now(),
+          nonce: "not-a-nonce",
+        })
+      );
+
+      expect(response.status).toBe(400);
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects an invalid Bitcoin address", async () => {
+      const response = await POST(
+        rawRequest({
+          address: "not-an-address",
+          signature: "x",
+          issuedAt: Date.now(),
+          nonce: testNonce("a"),
+        })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe("Invalid Bitcoin address");
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("reports a failed write as a failure, not as success", async () => {
+      mockUpsert.mockRejectedValueOnce(new Error("Connection failed"));
+
+      const response = await POST(signedRequest(taproot));
+      const data = await response.json();
+
+      // The old route answered 200 with verified:true after the write failed.
+      expect(response.status).toBe(503);
+      expect(data.error).toContain("Database unavailable");
+    });
   });
 
-  it("returns 400 when message is missing", async () => {
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest",
-        signature: createValidSignature(),
-        timestamp: createTimestamp(),
-      }),
+  describe("positive controls — genuine signatures still verify", () => {
+    it("verifies a real Taproot signature and marks the profile verified", async () => {
+      mockUpsert.mockResolvedValueOnce(profileFor(taproot.address));
+
+      const response = await POST(signedRequest(taproot));
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.profile.verified).toBe(true);
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { address: taproot.address },
+          update: expect.objectContaining({ verified: true }),
+          create: expect.objectContaining({ verified: true }),
+        })
+      );
     });
-    const response = await POST(request);
-    const data = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe(
-      "Missing required fields: address, message, signature, timestamp"
-    );
-  });
+    it("verifies a real native-SegWit signature", async () => {
+      mockUpsert.mockResolvedValueOnce(profileFor(segwit.address));
 
-  it("returns 400 when signature is missing", async () => {
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest",
-        message: "test",
-        timestamp: createTimestamp(),
-      }),
+      const response = await POST(signedRequest(segwit));
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.profile.verified).toBe(true);
     });
-    const response = await POST(request);
-    const data = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe(
-      "Missing required fields: address, message, signature, timestamp"
-    );
-  });
+    it("stores the signature it actually verified", async () => {
+      mockUpsert.mockResolvedValueOnce(profileFor(taproot.address));
 
-  it("returns 400 when timestamp is missing", async () => {
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest",
-        message: "test",
-        signature: createValidSignature(),
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
+      const issuedAt = Date.now();
+      const nonce = testNonce("b");
+      const signature = taproot.sign(
+        verifyMessage(taproot.address, issuedAt, nonce)
+      );
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe(
-      "Missing required fields: address, message, signature, timestamp"
-    );
-  });
-
-  it("returns 400 for invalid Bitcoin address", async () => {
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "invalid_address",
-        message: "Verify ownership of invalid_address for alkanes.build forum",
-        signature: createValidSignature(),
-        timestamp: createTimestamp(),
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid Bitcoin address");
-  });
-
-  it("returns 400 when message has expired (> 5 minutes)", async () => {
-    const expiredTimestamp = (Date.now() - 6 * 60 * 1000).toString(); // 6 minutes ago
-
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest123",
-        message: "Verify ownership of bc1ptest123 for alkanes.build forum",
-        signature: createValidSignature(),
-        timestamp: expiredTimestamp,
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toBe(
-      "Verification message has expired. Please try again."
-    );
-  });
-
-  it("returns 400 when message format is invalid", async () => {
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest123",
-        message: "Some random message",
-        signature: createValidSignature(),
-        timestamp: createTimestamp(),
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid verification message format");
-  });
-
-  it("returns 400 when signature is too short", async () => {
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest123",
-        message: "Verify ownership of bc1ptest123 for alkanes.build forum",
-        signature: "short",
-        timestamp: createTimestamp(),
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid signature format");
-  });
-
-  it("returns 400 when signature format is invalid (< 64 bytes)", async () => {
-    // Create a signature that's less than 64 bytes when decoded
-    const shortSig = Buffer.alloc(32, "a").toString("base64");
-
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest123",
-        message: "Verify ownership of bc1ptest123 for alkanes.build forum",
-        signature: shortSig,
-        timestamp: createTimestamp(),
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Invalid signature");
-  });
-
-  it("successfully verifies a valid taproot signature", async () => {
-    const mockProfile = {
-      id: "test-id",
-      address: "bc1ptest123",
-      displayName: null,
-      bio: null,
-      avatarUrl: null,
-      verified: true,
-      postsCount: 0,
-      discussionsCount: 0,
-      likesReceived: 0,
-      trustLevel: 0,
-      createdAt: new Date(),
-      lastSeenAt: new Date(),
-    };
-
-    mockUpsert.mockResolvedValueOnce(mockProfile);
-
-    const timestamp = createTimestamp();
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest123",
-        message: `Verify ownership of bc1ptest123 for alkanes.build forum\nTimestamp: ${timestamp}`,
-        signature: createValidSignature(),
-        timestamp,
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.profile.verified).toBe(true);
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { address: "bc1ptest123" },
-        update: expect.objectContaining({
-          verified: true,
-        }),
-      })
-    );
-  });
-
-  it("successfully verifies a valid native segwit signature", async () => {
-    const mockProfile = {
-      id: "test-id",
-      address: "bc1qtest123",
-      displayName: null,
-      bio: null,
-      avatarUrl: null,
-      verified: true,
-      postsCount: 0,
-      discussionsCount: 0,
-      likesReceived: 0,
-      trustLevel: 0,
-      createdAt: new Date(),
-      lastSeenAt: new Date(),
-    };
-
-    mockUpsert.mockResolvedValueOnce(mockProfile);
-
-    const timestamp = createTimestamp();
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1qtest123",
-        message: `Verify ownership of bc1qtest123 for alkanes.build forum\nTimestamp: ${timestamp}`,
-        signature: createValidSignature(),
-        timestamp,
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.profile.verified).toBe(true);
-  });
-
-  it("returns success with _dbUnavailable when database fails", async () => {
-    mockUpsert.mockRejectedValueOnce(new Error("Connection failed"));
-
-    const timestamp = createTimestamp();
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest123",
-        message: `Verify ownership of bc1ptest123 for alkanes.build forum\nTimestamp: ${timestamp}`,
-        signature: createValidSignature(),
-        timestamp,
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    // Should still return success since signature was valid
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.profile._dbUnavailable).toBe(true);
-    expect(data.profile.verified).toBe(true);
-  });
-
-  it("accepts 64-byte Schnorr signatures for taproot", async () => {
-    const mockProfile = {
-      id: "test-id",
-      address: "bc1ptest",
-      displayName: null,
-      bio: null,
-      avatarUrl: null,
-      verified: true,
-      postsCount: 0,
-      discussionsCount: 0,
-      likesReceived: 0,
-      trustLevel: 0,
-      createdAt: new Date(),
-      lastSeenAt: new Date(),
-    };
-
-    mockUpsert.mockResolvedValueOnce(mockProfile);
-
-    // 64-byte Schnorr signature
-    const schnorrSig = Buffer.alloc(64, "b").toString("base64");
-    const timestamp = createTimestamp();
-
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest",
-        message: `Verify ownership of bc1ptest for alkanes.build forum\nTimestamp: ${timestamp}`,
-        signature: schnorrSig,
-        timestamp,
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-  });
-
-  it("accepts DER-encoded ECDSA signatures (70-72 bytes)", async () => {
-    const mockProfile = {
-      id: "test-id",
-      address: "bc1qtest",
-      displayName: null,
-      bio: null,
-      avatarUrl: null,
-      verified: true,
-      postsCount: 0,
-      discussionsCount: 0,
-      likesReceived: 0,
-      trustLevel: 0,
-      createdAt: new Date(),
-      lastSeenAt: new Date(),
-    };
-
-    mockUpsert.mockResolvedValueOnce(mockProfile);
-
-    // 71-byte DER-encoded signature
-    const derSig = Buffer.alloc(71, "c").toString("base64");
-    const timestamp = createTimestamp();
-
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1qtest",
-        message: `Verify ownership of bc1qtest for alkanes.build forum\nTimestamp: ${timestamp}`,
-        signature: derSig,
-        timestamp,
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-  });
-
-  it("accepts testnet taproot addresses", async () => {
-    const mockProfile = {
-      id: "test-id",
-      address: "tb1ptest",
-      displayName: null,
-      bio: null,
-      avatarUrl: null,
-      verified: true,
-      postsCount: 0,
-      discussionsCount: 0,
-      likesReceived: 0,
-      trustLevel: 0,
-      createdAt: new Date(),
-      lastSeenAt: new Date(),
-    };
-
-    mockUpsert.mockResolvedValueOnce(mockProfile);
-
-    const timestamp = createTimestamp();
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "tb1ptest",
-        message: `Verify ownership of tb1ptest for alkanes.build forum\nTimestamp: ${timestamp}`,
-        signature: createValidSignature(),
-        timestamp,
-      }),
-    });
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-  });
-
-  it("stores signature in database on successful verification", async () => {
-    const mockProfile = {
-      id: "test-id",
-      address: "bc1ptest",
-      displayName: null,
-      bio: null,
-      avatarUrl: null,
-      verified: true,
-      postsCount: 0,
-      discussionsCount: 0,
-      likesReceived: 0,
-      trustLevel: 0,
-      createdAt: new Date(),
-      lastSeenAt: new Date(),
-    };
-
-    mockUpsert.mockResolvedValueOnce(mockProfile);
-
-    const signature = createValidSignature();
-    const timestamp = createTimestamp();
-
-    const request = new NextRequest("http://localhost/api/profile/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        address: "bc1ptest",
-        message: `Verify ownership of bc1ptest for alkanes.build forum\nTimestamp: ${timestamp}`,
-        signature,
-        timestamp,
-      }),
-    });
-    await POST(request);
-
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
+      await POST(
+        rawRequest({
+          address: taproot.address,
           signature,
-          verified: true,
-        }),
-        update: expect.objectContaining({
-          signature,
-          verified: true,
-        }),
-      })
-    );
+          issuedAt,
+          nonce,
+        })
+      );
+
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ signature }),
+          update: expect.objectContaining({ signature }),
+        })
+      );
+    });
   });
 });
