@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from "@/context/WalletContext";
+import { revealSeedPhrase } from "@/lib/seed-reveal";
 import { useWalletBalances, formatBtcBalance } from "@/hooks/useWalletBalances";
 import * as bitcoin from "bitcoinjs-lib";
 import * as ecc from "@bitcoinerlab/secp256k1";
@@ -629,6 +630,38 @@ const DieselTerminal = () => {
   const [seedPassword, setSeedPassword] = useState('');
   const [seedPasswordError, setSeedPasswordError] = useState<string | null>(null);
   const [verifyingSeedPassword, setVerifyingSeedPassword] = useState(false);
+
+  /**
+   * Reveal the recovery phrase, but only against a verified password.
+   *
+   * `wallet.exportMnemonic()` reads the signer that is already unlocked in
+   * memory, so it succeeds whenever a wallet is connected and proves nothing
+   * about what the user typed. The password has to be checked by attempting an
+   * actual unlock, which is the only operation here that can fail on a wrong
+   * one. Both the button and the Enter key go through this.
+   */
+  const handleRevealSeed = useCallback(async () => {
+    if (!wallet) return;
+    setVerifyingSeedPassword(true);
+    try {
+      const result = await revealSeedPhrase(
+        seedPassword,
+        unlockWallet,
+        () => wallet.exportMnemonic()
+      );
+      if (result.ok) {
+        setShowMnemonic(true);
+        setSeedPasswordError(null);
+      } else {
+        setShowMnemonic(false);
+        setSeedPasswordError(
+          result.error === 'empty' ? 'Enter password' : 'Invalid password'
+        );
+      }
+    } finally {
+      setVerifyingSeedPassword(false);
+    }
+  }, [seedPassword, unlockWallet, wallet]);
 
   // Handle Esc key to close modals
   useEffect(() => {
@@ -2365,38 +2398,11 @@ const DieselTerminal = () => {
                           placeholder="Password to reveal"
                           className="flex-1 px-3 py-2 bg-[#050505] border border-[#252525] text-[#e0e0e0] text-sm outline-none focus:border-[#ffcc00]"
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' && seedPassword) {
-                              // Verify by trying to get mnemonic
-                              try {
-                                const mnemonic = wallet.exportMnemonic();
-                                if (mnemonic) {
-                                  setShowMnemonic(true);
-                                  setSeedPasswordError(null);
-                                }
-                              } catch {
-                                setSeedPasswordError('Invalid password');
-                              }
-                            }
+                            if (e.key === 'Enter') void handleRevealSeed();
                           }}
                         />
                         <button
-                          onClick={async () => {
-                            if (!seedPassword) {
-                              setSeedPasswordError('Enter password');
-                              return;
-                            }
-                            setVerifyingSeedPassword(true);
-                            try {
-                              // Try to unlock with password to verify it's correct
-                              await unlockWallet(seedPassword);
-                              setShowMnemonic(true);
-                              setSeedPasswordError(null);
-                            } catch {
-                              setSeedPasswordError('Invalid password');
-                            } finally {
-                              setVerifyingSeedPassword(false);
-                            }
-                          }}
+                          onClick={() => void handleRevealSeed()}
                           disabled={verifyingSeedPassword || !seedPassword}
                           className="px-4 py-2 border border-[#ffcc00]/50 text-[#ffcc00] text-sm hover:bg-[#ffcc00]/5 disabled:opacity-50"
                         >
