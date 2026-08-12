@@ -22,7 +22,13 @@
  *    silently reopen the sink.
  */
 
-import { Marked, type Renderer, type RendererObject, type Tokens } from "marked";
+import {
+  Marked,
+  type Renderer,
+  type RendererObject,
+  type TokenizerObject,
+  type Tokens,
+} from "marked";
 import { escapeHtml, isSafeRenderedHtml, isSafeUrl } from "@/lib/safe-html";
 
 /** Return the URL if it is safe to emit, otherwise null. */
@@ -91,8 +97,32 @@ const safeRenderer: RendererObject = {
   },
 };
 
+/**
+ * Raw HTML never becomes a token.
+ *
+ * Escaping in the renderer is not enough on its own. marked's inline `tag`
+ * tokenizer sets `lexer.state.inRawBlock` when it sees an opening `<code>`,
+ * `<pre>`, `<kbd>` or `<script>`, and while that flag is set the inline TEXT
+ * tokenizer stops escaping and returns the raw source slice. That text is
+ * emitted by the default `text` renderer, which never passed through the
+ * escaping override — so a post beginning `foo <code> ` could smuggle live
+ * markup through as ordinary text.
+ *
+ * Refusing to tokenise raw HTML at all removes the flag's only writer. Every
+ * `<` in the source now falls through to the text tokenizer with escaping
+ * still on, which is the behaviour the renderer override was reaching for.
+ */
+const safeTokenizer: TokenizerObject = {
+  html() {
+    return false;
+  },
+  tag() {
+    return false;
+  },
+};
+
 const safeMarked = new Marked({ gfm: true, breaks: true });
-safeMarked.use({ renderer: safeRenderer });
+safeMarked.use({ renderer: safeRenderer, tokenizer: safeTokenizer });
 
 /** Escaped plain text, used when the safe path cannot be trusted. */
 function asPlainText(markdown: string): string {

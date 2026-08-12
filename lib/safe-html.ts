@@ -116,9 +116,55 @@ export function isSafeUrl(value: string): boolean {
   return ALLOWED_URL_SCHEMES.has(`${schemeMatch[1].toLowerCase()}:`);
 }
 
-const TAG_RE = /<[^>]*>?/g;
 const TAG_NAME_RE = /^<\s*\/?\s*([a-zA-Z][a-zA-Z0-9-]*)/;
 const ATTR_RE = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*(?:=\s*("[^"]*"|'[^']*'|[^\s"'>]+))?/g;
+
+type ScannedTag = { name: string; attrRegion: string; end: number };
+
+/**
+ * Find where a tag that starts at `start` actually ends.
+ *
+ * A `>` inside a quoted attribute value does NOT close the tag — the HTML
+ * tokenizer stays in attribute-value state until the quote is closed. A scan
+ * that stops at the first `>` therefore inspects only a prefix of the tag and
+ * never sees the attributes after the smuggled `>`, which is exactly how
+ * `<img/src="alt>x" onerror=alert(1)>` slips an event handler past a checker
+ * that looks like it is doing the right thing.
+ *
+ * Quotes are honoured wherever they appear rather than only after `=`. That is
+ * deliberately broader than the tokenizer: it can only ever extend the region
+ * this function reports, so more of the tag gets validated, never less. An
+ * unbalanced quote yields no end at all and the caller rejects the input.
+ */
+function scanTag(html: string, start: number): ScannedTag | null {
+  const nameMatch = TAG_NAME_RE.exec(html.slice(start));
+  if (!nameMatch) return null;
+
+  const attrStart = start + nameMatch[0].length;
+  let quote: string | null = null;
+
+  for (let i = attrStart; i < html.length; i++) {
+    const c = html[i];
+    if (quote !== null) {
+      if (c === quote) quote = null;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      quote = c;
+      continue;
+    }
+    if (c === ">") {
+      return {
+        name: nameMatch[1].toLowerCase(),
+        attrRegion: html.slice(attrStart, i).replace(/\/\s*$/, ""),
+        end: i,
+      };
+    }
+  }
+
+  // Ran off the end: unterminated tag, or an unbalanced quote.
+  return null;
+}
 
 function unquote(raw: string | undefined): string {
   if (!raw) return "";
@@ -159,34 +205,36 @@ export function isSafeRenderedHtml(html: unknown): boolean {
   if (typeof html !== "string") return false;
   if (html.includes("<!") || html.includes("<?")) return false;
 
-  const tags = html.match(TAG_RE);
-  if (!tags) return true;
+  let cursor = 0;
+  while (cursor < html.length) {
+    const lt = html.indexOf("<", cursor);
+    if (lt === -1) break;
 
-  for (const tag of tags) {
-    // An unterminated `<...` at end of input: reject rather than guess.
-    if (!tag.endsWith(">")) return false;
-
-    const nameMatch = TAG_NAME_RE.exec(tag);
-    if (!nameMatch) {
-      // `<` followed by something that is not a tag name is literal text
-      // (`a < b`). Safe, but only if it carries no `=` that a browser might
-      // still parse as an attribute.
-      if (/[<>]/.test(tag.slice(1, -1))) return false;
-      continue;
+    // `</` not followed immediately by a letter is a bogus comment: the browser
+    // swallows everything up to the next `>`, ignoring quotes, which is a
+    // different shape from the one scanned below. Same reasoning as `<!`/`<?` —
+    // refuse what this checker does not model.
+    if (html.startsWith("</", lt) && !/^<\/[a-zA-Z]/.test(html.slice(lt))) {
+      return false;
     }
 
-    const name = nameMatch[1].toLowerCase();
-    if (!ALLOWED_TAGS.has(name)) return false;
+    const tag = scanTag(html, lt);
+    if (tag === null) {
+      // A bare `<` (as in `a < b`) is literal text: step over it and carry on.
+      if (html.startsWith("</", lt)) return false;
+      if (!/^<\s*[a-zA-Z]/.test(html.slice(lt))) {
+        cursor = lt + 1;
+        continue;
+      }
+      // It looked like a tag but never terminated, or a quote was left open.
+      return false;
+    }
 
-    // Attribute region: everything after the tag name, minus the closing `>`
-    // and any self-closing slash.
-    const attrRegion = tag
-      .slice(nameMatch[0].length, -1)
-      .replace(/\/\s*$/, "");
+    if (!ALLOWED_TAGS.has(tag.name)) return false;
 
     ATTR_RE.lastIndex = 0;
     let attr: RegExpExecArray | null;
-    while ((attr = ATTR_RE.exec(attrRegion)) !== null) {
+    while ((attr = ATTR_RE.exec(tag.attrRegion)) !== null) {
       const attrName = attr[1].toLowerCase();
       if (!ALLOWED_ATTRIBUTES.has(attrName)) return false;
 
@@ -194,6 +242,8 @@ export function isSafeRenderedHtml(html: unknown): boolean {
         if (!isSafeUrl(decodeEntities(unquote(attr[2])))) return false;
       }
     }
+
+    cursor = tag.end + 1;
   }
 
   return true;
