@@ -313,6 +313,7 @@
         "espo": "Espo 명령어",
         "brc20prog": "BRC20-Prog 명령어",
         "dataapi": "DataAPI 명령어",
+        "btcusd": "BTC/USD 명령어",
         "deploy": "배포 명령어",
         "execute": "실행 명령어"
       },

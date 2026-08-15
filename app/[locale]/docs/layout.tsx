@@ -40,6 +40,7 @@ export default function DocsLayout({
         { titleKey: "cli.espo", href: "/docs/cli/espo" },
         { titleKey: "cli.brc20prog", href: "/docs/cli/brc20-prog" },
         { titleKey: "cli.dataapi", href: "/docs/cli/dataapi" },
+        { titleKey: "cli.btcusd", href: "/docs/cli/btcusd" },
       ],
     },
     {
