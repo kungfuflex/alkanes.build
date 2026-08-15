@@ -11,15 +11,15 @@ import { useLocale } from "next-intl";
  * height stamped there; everything else is a property of the deployment.
  *
  * English only, on purpose. This is a money path, and an unreviewed translation
- * of a warning is worse than no translation. `/docs/cli/espo` sets the same
- * precedent.
+ * of a warning is worse than no translation. `/docs/cli/espo` sets the precedent
+ * for shipping partial locales and letting the rest fall back.
  */
 
 const content = {
   en: {
     title: "BTC/USD Commands",
     intro:
-      "The btcusd namespace trades BTC against USD on SUBFROST: the frUSD/frBTC CryptoSwap pool on alkanes, plus the two EVM bridge arms (USDC/USDT in, USDC/ETH out). Use it to read market data, quote a swap, prepare a bridge deposit or a burn, and watch mempool and rollup activity on both chains.",
+      "The btcusd namespace trades BTC against USD on SUBFROST: the frUSD/frBTC CryptoSwap pool on alkanes, plus the two EVM bridge arms (USDC/USDT in, USDC/ETH out). Use it to read market data, quote a swap, prepare a bridge deposit or a burn, and read what is pending in the mempool.",
 
     mainnetWarnTitle: "There is no testnet for this",
     mainnetWarn:
@@ -56,7 +56,7 @@ const content = {
     ],
     keyWarnTitle: "With no key you fall back, loudly",
     keyWarn:
-      "Without a key the CLI uses the shared /v4/jsonrpc endpoint and prints a warning on every call. That endpoint is rate limited and shared with everyone. The CLI throttles to the cap rather than failing, because a half-executed trade sequence is the worst available outcome, but an unattended agent that never surfaces the fallback looks like it is running normally right up until it is throttled mid-trade. Get a key at api.subfrost.io.",
+      "Without a key the CLI uses the shared /v4/jsonrpc endpoint and prints a warning on every call. That endpoint is rate limited and shared with everyone: requests are throttled rather than failed, which is the right shape for this work, because a half-executed trade sequence is the worst available outcome. But an unattended agent that never surfaces the fallback looks like it is running normally right up until it is throttled mid-trade. Get a key at api.subfrost.io.",
 
     surfaceTitle: "Command surface",
     surfaceIntro:
@@ -67,10 +67,10 @@ const content = {
       { cmd: "candles", status: "raw", desc: "OHLC candles. Buckets 3600 and 86400 only. Prints the protobuf answer as hex today" },
       { cmd: "quote", status: "reads", desc: "Expected output, effective execution price, and the size as bps of the incoming leg" },
       { cmd: "signers", status: "raw", desc: "The frBTC/frUSD signing group. Prints the protobuf answer as hex today" },
-      { cmd: "watch", status: "reads", desc: "Poll mempool and confirmed activity for the pool, the signers, or your own addresses" },
-      { cmd: "mempool", status: "reads", desc: "info, template, entry, watch. Backed by /v4/{apikey}/mempool" },
-      { cmd: "simulate", status: "reads", desc: "Dry-run against current state, optionally including the pending set" },
-      { cmd: "simulate-block", status: "reads", desc: "Simulate a whole block: where fees land, and what ordering does to your quote" },
+      { cmd: "mempool", status: "reads", desc: "info, template and entry, backed by /v4/{apikey}/mempool. The watch subcommand refuses: the websocket stream needs its reconnect state machine" },
+      { cmd: "watch", status: "not wired", desc: "Address polling needs the monitor plumbing. Poll mempool template meanwhile" },
+      { cmd: "simulate", status: "not wired", desc: "Same missing monitor plumbing as watch" },
+      { cmd: "simulate-block", status: "not wired", desc: "The simulateblock view exists; assembling the candidate block to feed it does not" },
       { cmd: "deposit", status: "prepares", desc: "Prints the approve + depositAndBridge calls for USDC/USDT in. Local signing is not built" },
       { cmd: "burn", status: "prepares", desc: "Builds the burnData payload for frUSD out to USDC/ETH. Broadcast is not built" },
       { cmd: "swap", status: "not wired", desc: "Needs Bitcoin transaction construction (UTXO selection, protostone assembly, signing)" },
@@ -86,14 +86,21 @@ const content = {
 
     poolTitle: "The pool",
     poolIntro:
-      "These are properties of the deployment. They do not move between blocks, so they are safe to hardcode.",
+      "Identities and decimals. These are safe to hardcode.",
     poolFacts: [
       { k: "Address callers use", v: "4:1778, an Upgradeable PROXY, and also the frBTCUSD LP token" },
       { k: "Implementation", v: "4:1786, the CryptoSwap (Curve V2) math" },
       { k: "token0", v: "frUSD 4:1776 (itself a proxy), 8 decimals" },
       { k: "token1", v: "frBTC 32:0, 8 decimals" },
       { k: "LP token", v: "4:1778, 18 decimals" },
-      { k: "Curve", v: "A = 400000, gamma = 1.45e14, precision 1e10 on both legs" },
+    ],
+    poolParamsTitle: "Curve parameters, as deployed",
+    poolParamsIntro:
+      "These are not invariants. A and gamma can ramp, fees are init parameters an admin can re-commit, and the whole thing sits behind an upgradeable proxy. Read them rather than hardcoding them, and re-read whenever pool reports the curve as ramping.",
+    poolParams: [
+      { k: "A", v: "400000" },
+      { k: "gamma", v: "1.45e14" },
+      { k: "Precision", v: "1e10 on both legs" },
       { k: "Fees", v: "0.2% mid, 0.8% out, depending on how unbalanced the trade leaves the pool" },
     ],
 
@@ -117,7 +124,7 @@ const content = {
       { op: "108", name: "calc_token_amount" },
     ],
 
-    trapsTitle: "Three ways to read this pool wrong",
+    trapsTitle: "How this pool gets read wrong",
     traps: [
       {
         title: "Opcode 102 is get_A, not get_decimals",
@@ -137,7 +144,12 @@ const content = {
       {
         title: "indexheight is a tautology, not a liveness signal",
         body:
-          "/index_height is rewritten every block with that block's height, so a view read at height H always returns H, including for a block that does not exist. Use metashrew_height to tell fresh from stalled. Note also that the height stamped on a pool read is the last block that CHANGED the pool, so it legitimately trails the chain tip when nobody has traded.",
+          "/index_height is rewritten every block with that block's height, so a view read at height H always returns H, including for a block that does not exist. Use metashrew_height to tell fresh from stalled. Note also that the height stamped on a pool read is the last block that CHANGED the pool, so it legitimately trails the chain tip when nobody has traded. The discriminator: call metashrew_height on the /btcusd endpoint itself. If that is at the tip while the pool stamp trails, the index is fine and nothing has traded.",
+      },
+      {
+        title: "getbytecode takes a wrapper, and answers empty rather than erroring",
+        body:
+          "It expects a BytecodeRequest that WRAPS an AlkaneId. Passing a bare AlkaneId returns an empty result, not an error, which reads as \"this contract has no code\" rather than as a malformed request.",
       },
     ],
 
@@ -158,7 +170,7 @@ const content = {
 
     ladderTitle: "What size actually costs",
     ladderIntro:
-      "The marginal price is not the price you get. This pool is shallow, so the gap is material and it is asymmetric: buying BTC out of the pool is expensive, selling BTC into it currently clears near or above market. Quote before you trade, at the size you intend to trade.",
+      "The marginal price is not the price you get. This pool is shallow, so the gap is material, and it is asymmetric only at small size. Buying BTC out of the pool is expensive from the first dollar. Selling into it clears a hair above market while the size is small, because the pool's own price sits above market, but impact swallows that premium fast: 0.03 BTC already clears about 8.5% below market. Quote at the size you intend to trade, not at a smaller one.",
     ladderBuyTitle: "Buying frBTC with frUSD",
     ladderBuyCols: ["Size in", "bps of incoming leg", "frBTC out (base)", "Effective USD/BTC"],
     ladderBuy: [
@@ -177,7 +189,7 @@ const content = {
 
     capTitle: "The 1000bps cap is a bridge rule, not a swap rule",
     capBody:
-      "MAX_POOL_SHARE_BPS = 1000 governs BRIDGE conversions: when a deposit asks to convert more than 10% of the frUSD reserve into BTC, the coordinator refuses the swap and pays out plain frUSD instead. The deposit still succeeds and neither chain raises an error, so a caller who does not check gets a stablecoin where they asked for BTC. A DIRECT swap on the pool has no such cap: it executes at whatever the curve gives. That is why quote reports your size as bps of the incoming leg and calls it price impact rather than a limit. Set your own min_dy.",
+      "MAX_POOL_SHARE_BPS = 1000 governs BRIDGE conversions: when a deposit asks to convert more than 10% of the frUSD reserve into BTC, the coordinator refuses the swap and pays out plain frUSD instead. The deposit still succeeds and neither chain raises an error, so a caller who does not check gets a stablecoin where they asked for BTC. The CLI clamps convert_bps down to the cap and tells you when it does, so a deposit prepared here does not hit that refusal blind, but anything building the calldata itself has to check. A DIRECT swap on the pool has no such cap: it executes at whatever the curve gives. That is why quote reports your size as bps of the incoming leg and calls it price impact rather than a limit. Set your own min_dy.",
 
     readsTitle: "Reading market data",
     quoteTitle: "quote, before anything else",
@@ -276,12 +288,14 @@ const content = {
     watchTitle: "Watching both chains",
     watchBody:
       "A bridge trade is not done when the Bitcoin side settles. Track the frBTC/frUSD signing group's taproot addresses to see rollups land, and check the Ethereum side too. Persist what you submitted (txids, intents, expected outcomes) so a resumed session reconciles rather than re-submits: duplicate submission on a bridge path is a real loss, not an inconvenience.",
+    watchToday:
+      "What the CLI gives you today is the mempool read surface plus signers. Address polling is not wired yet: watch, simulate and simulate-block all refuse, and so does mempool watch. Poll mempool template in the meantime.",
     watchWarn:
-      "protorunesbyaddress is slow and marginal, measured at about 10.5s against a 15s pool timeout on a busy address. It has already caused an outage. Budget for it, cache it, and do not tighten --interval-secs without measuring.",
+      "protorunesbyaddress, which address watching will use once it is wired, is slow and marginal: measured at about 10.5s against a 15s pool timeout on a busy address, and it has already caused an outage. Budget for it, cache it, and do not guess a poll interval. This is why the command refuses rather than shipping a default that takes the indexer down.",
     mempoolNote:
-      "The mempool routes are live. The CLI's own help text still says they are not deployed, which was true when it was written and is not true now: /v4/{apikey}/mempool answered 200 with a full mempool snapshot at the reading above. Verify before building on it rather than trusting either statement.",
+      "The mempool routes are live. The CLI's own help text still says they are not deployed, which was true when it was written and is not true now: /v4/{apikey}/mempool answered 200 with a full snapshot, while the same request against a nonexistent path on the same key answered 404, so the route is real and not a fall-through. Verify before building on it rather than trusting either statement.",
     simulateNote:
-      "simulate-block is the MEV lens. It drives every transaction through the same per-tx path the indexer uses, with one shared sandbox carrying writes across transaction boundaries, so it reproduces the intra-block atomicity that decides who wins a contended swap. Use it to ask whether your transaction still gets the quote you expect if it lands after the pending set, and what fee gets you ahead of the trade that would move the price against you.",
+      "simulate-block will be the MEV lens once its candidate-block assembly is built. The view itself already exists on the node: it drives every transaction through the same per-tx path the indexer uses, with one shared sandbox carrying writes across transaction boundaries, so it reproduces the intra-block atomicity that decides who wins a contended swap. The questions it will answer: does my transaction still get the quote I expect if it lands after the pending set, and what fee gets me ahead of the trade that would move the price against me.",
 
     checklistTitle: "Before you execute anything",
     checklist: [
@@ -301,6 +315,9 @@ const content = {
       "Listed so nobody builds a workflow on top of a command that refuses.",
     notBuilt: [
       "swap, add-liquidity and remove-liquidity: need Bitcoin transaction construction, and refuse rather than emit something that looks right.",
+      "watch and simulate: need the monitor plumbing. Both refuse.",
+      "simulate-block: the node-side view exists, assembling the candidate block to feed it does not. It refuses.",
+      "mempool watch: the websocket stream needs its reconnect state machine, because a changed instance invalidates every sequence number. It refuses. mempool info, template and entry all work.",
       "deposit local signing: the key flags refuse. The supported path is printing the two calls and signing in your own wallet, which is what the web app does.",
       "burn broadcast: the payload is built and printed, the cellpack packing around it is unverified.",
       "candles and signers: they answer, but print the raw protobuf hex instead of a decoded table.",
@@ -406,6 +423,21 @@ export default function BtcUsdPage() {
           <table className="w-full border-collapse text-sm">
             <tbody>
               {t.poolFacts.map((f) => (
+                <tr key={f.k} className="border-b border-[color:var(--sf-outline)]">
+                  <td className="py-2 px-3 font-medium whitespace-nowrap">{f.k}</td>
+                  <td className="py-2 px-3 text-[color:var(--sf-muted)]">{f.v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <h3 className="text-xl font-semibold mb-2 mt-6">{t.poolParamsTitle}</h3>
+        <p className="mb-4">{t.poolParamsIntro}</p>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <tbody>
+              {t.poolParams.map((f) => (
                 <tr key={f.k} className="border-b border-[color:var(--sf-outline)]">
                   <td className="py-2 px-3 font-medium whitespace-nowrap">{f.k}</td>
                   <td className="py-2 px-3 text-[color:var(--sf-muted)]">{f.v}</td>
@@ -550,8 +582,8 @@ pool 4:1778 at height 962472
   marginal             15604533105145  (64083.94 USD/BTC)
   depth cap              188121438907  (1881.21438907 frUSD - 1000bps of the reserve)
 
-# OHLC. Buckets 3600 and 86400 only; anything else answers ok:false
-# with the supported list rather than erroring.
+# OHLC. Buckets 3600 and 86400 only; the CLI refuses any other value
+# before it sends anything.
 alkanes-cli btcusd candles --bucket 86400 --limit 30`}</CodeBlock>
       </section>
 
@@ -670,20 +702,20 @@ burnData           0x0101...`}</CodeBlock>
       <section>
         <h2 className="text-2xl font-semibold mb-3">{t.watchTitle}</h2>
         <p className="mb-4">{t.watchBody}</p>
-        <CodeBlock>{`# the signing group plus the pool, by default
-alkanes-cli btcusd watch --interval-secs 30 --max-polls 20
-
-# what is pending, and the blocks a miner would build next
+        <p className="mb-4">{t.watchToday}</p>
+        <CodeBlock>{`# what is pending, and the blocks a miner would build next
 alkanes-cli btcusd mempool info
 alkanes-cli btcusd mempool template
 
-# does my transaction still get this quote if it lands after the pending set?
-alkanes-cli btcusd simulate --with-mempool
-alkanes-cli btcusd simulate-block --insert-tx <rawhex> --at-index 3`}</CodeBlock>
+# one transaction, including the block it is projected into
+alkanes-cli btcusd mempool entry <txid>
+
+# the signing group, to see rollups land
+alkanes-cli btcusd signers`}</CodeBlock>
         <div className="space-y-3">
           <Warn title="protorunesbyaddress is slow">{t.watchWarn}</Warn>
           <Warn title="The mempool routes are live now">{t.mempoolNote}</Warn>
-          <Warn title="simulate-block is the MEV lens">{t.simulateNote}</Warn>
+          <Warn title="simulate-block is not wired yet">{t.simulateNote}</Warn>
         </div>
       </section>
 
