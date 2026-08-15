@@ -346,6 +346,7 @@
         "espo": "Espo Commands",
         "brc20prog": "BRC20-Prog Commands",
         "dataapi": "DataAPI Commands",
+        "btcusd": "BTC/USD Commands",
         "deploy": "Deploy Commands",
         "execute": "Execute Commands"
       },

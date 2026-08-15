@@ -313,6 +313,7 @@
         "espo": "Espo 命令",
         "brc20prog": "BRC20-Prog 命令",
         "dataapi": "DataAPI 命令",
+        "btcusd": "BTC/USD 命令",
         "deploy": "部署命令",
         "execute": "执行命令"
       },

@@ -313,6 +313,7 @@
         "espo": "Lệnh Espo",
         "brc20prog": "Lệnh BRC20-Prog",
         "dataapi": "Lệnh DataAPI",
+        "btcusd": "Lệnh BTC/USD",
         "deploy": "Lệnh Deploy",
         "execute": "Lệnh Execute"
       },

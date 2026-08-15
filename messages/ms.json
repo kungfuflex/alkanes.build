@@ -313,6 +313,7 @@
         "espo": "Arahan Espo",
         "brc20prog": "Arahan BRC20-Prog",
         "dataapi": "Arahan DataAPI",
+        "btcusd": "Arahan BTC/USD",
         "deploy": "Arahan Deploy",
         "execute": "Arahan Execute"
       },
