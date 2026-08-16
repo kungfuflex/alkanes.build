@@ -8,6 +8,11 @@ import { Save, User, Camera, Loader2, Check, X } from "lucide-react";
 
 import { useWallet } from "@/context/WalletContext";
 import AddressAvatar from "@/components/AddressAvatar";
+import {
+  buildSigningMessage,
+  newNonce,
+  SIGNING_ACTIONS,
+} from "@/lib/signing-message";
 
 interface UserProfile {
   id: string;
@@ -173,9 +178,18 @@ export default function ProfilePage() {
     setSaveError(null);
 
     try {
-      // Create verification message
-      const timestamp = Date.now();
-      const message = `Verify ownership of ${address} for alkanes.build forum\nTimestamp: ${timestamp}`;
+      // Build the canonical, action-bound message. The server rebuilds this
+      // same string from the fields below and verifies against its own copy,
+      // so the message is deliberately not sent over the wire.
+      const issuedAt = Date.now();
+      const nonce = newNonce();
+      const message = buildSigningMessage({
+        action: SIGNING_ACTIONS.PROFILE_VERIFY,
+        address,
+        resource: `address:${address}`,
+        issuedAt,
+        nonce,
+      });
 
       // Sign the message
       const signature = await signMessage(message);
@@ -186,9 +200,9 @@ export default function ProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           address,
-          message,
           signature,
-          timestamp,
+          issuedAt,
+          nonce,
         }),
       });
 

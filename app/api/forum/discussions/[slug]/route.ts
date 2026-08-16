@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeBigInt } from "@/lib/serialize";
+import { safeCookedHtml } from "@/lib/markdown";
+import { hasAdminCredentials, presentsAdminCredentials } from "@/lib/admin-auth";
+import {
+  presentsSignedCredentials,
+  verifySignedAction,
+} from "@/lib/request-auth";
+import { SIGNING_ACTIONS, type ParamValue } from "@/lib/signing-message";
 
 /**
  * GET /api/forum/discussions/[slug]
@@ -126,6 +133,10 @@ export async function GET(
 
       return {
         ...post,
+        // Re-render from the markdown source rather than trusting the stored
+        // HTML. Rows written before markdown rendering was made safe can hold
+        // live markup, and this response feeds dangerouslySetInnerHTML.
+        cooked: safeCookedHtml(post.raw, post.cooked),
         reactionCounts,
         userReactions,
         reactions: undefined, // Remove raw reactions from response
@@ -160,9 +171,33 @@ export async function GET(
   }
 }
 
+/** Fields only an operator may change. */
+const MODERATOR_ONLY_FIELDS = ["isPinned", "isHidden"] as const;
+
+/** Fields the discussion's own author may change, as well as an operator. */
+const AUTHOR_FIELDS = ["title", "isLocked"] as const;
+
+const MAX_TITLE_LENGTH = 200;
+
 /**
  * PATCH /api/forum/discussions/[slug]
- * Update a discussion (lock, pin, edit title)
+ * Update a discussion (lock, pin, hide, edit title).
+ *
+ * Before: no authentication of any kind. The handler read `author` and
+ * `authorSig` from the body, checked neither, and applied whatever moderation
+ * flags the caller asked for — so anybody could lock, pin, hide or retitle any
+ * thread on the site.
+ *
+ * Now, two ways to authorise, and nothing else:
+ *
+ *   - OPERATOR — `Authorization: Bearer <FORUM_ADMIN_TOKEN>`. May change any
+ *     field, including `isPinned` and `isHidden`.
+ *   - THREAD AUTHOR — a BIP-322 signature over the canonical
+ *     `thread:moderate` message, bound to this discussion's id and to the
+ *     exact set of changes requested. May change `title` and `isLocked` only.
+ *
+ * Because the signed message carries the change set, a signature obtained for
+ * one edit cannot be replayed to make a different one.
  */
 export async function PATCH(
   request: NextRequest,
@@ -171,7 +206,19 @@ export async function PATCH(
   try {
     const { slug } = await params;
     const body = await request.json();
-    const { author, authorSig, title, isLocked, isPinned, isHidden } = body;
+    const title = body?.title;
+
+    // Refuse before the lookup, so an unauthenticated caller cannot tell a
+    // thread that exists from one that does not.
+    if (
+      !presentsAdminCredentials(request) &&
+      !presentsSignedCredentials(body ?? {})
+    ) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
 
     // Get discussion
     const discussion = await prisma.discussion.findFirst({
@@ -185,14 +232,94 @@ export async function PATCH(
       );
     }
 
-    // TODO: Verify author signature
-    // TODO: Check if author is original author or moderator
+    // ---- what is being asked for -------------------------------------------
+    const changes: Record<string, ParamValue> = {};
+    if (title !== undefined) {
+      if (typeof title !== "string" || title.trim() === "") {
+        return NextResponse.json(
+          { error: "title must be a non-empty string" },
+          { status: 400 }
+        );
+      }
+      if (title.length > MAX_TITLE_LENGTH) {
+        return NextResponse.json(
+          { error: `title must be ${MAX_TITLE_LENGTH} characters or less` },
+          { status: 400 }
+        );
+      }
+      changes.title = title;
+    }
+    for (const field of ["isLocked", "isPinned", "isHidden"] as const) {
+      const value = body?.[field];
+      if (value === undefined) continue;
+      if (typeof value !== "boolean") {
+        return NextResponse.json(
+          { error: `${field} must be a boolean` },
+          { status: 400 }
+        );
+      }
+      changes[field] = value;
+    }
 
-    const updateData: any = {};
-    if (title !== undefined) updateData.title = title;
-    if (isLocked !== undefined) updateData.isLocked = isLocked;
-    if (isPinned !== undefined) updateData.isPinned = isPinned;
-    if (isHidden !== undefined) updateData.isHidden = isHidden;
+    if (Object.keys(changes).length === 0) {
+      return NextResponse.json(
+        { error: "No supported fields to update" },
+        { status: 400 }
+      );
+    }
+
+    // ---- authorise ---------------------------------------------------------
+    const isOperator = hasAdminCredentials(request);
+
+    if (!isOperator) {
+      if (presentsAdminCredentials(request)) {
+        return NextResponse.json(
+          { error: "Invalid administrative credentials" },
+          { status: 403 }
+        );
+      }
+
+      const wantsModeratorField = MODERATOR_ONLY_FIELDS.some(
+        (field) => changes[field] !== undefined
+      );
+      if (wantsModeratorField) {
+        return NextResponse.json(
+          {
+            error: `${MODERATOR_ONLY_FIELDS.join(" and ")} may only be changed by a moderator`,
+          },
+          { status: 403 }
+        );
+      }
+
+      const auth = await verifySignedAction({
+        action: SIGNING_ACTIONS.THREAD_MODERATE,
+        address: body?.address,
+        signature: body?.signature,
+        issuedAt: body?.issuedAt,
+        nonce: body?.nonce,
+        resource: `discussion:${discussion.id}`,
+        params: changes,
+      });
+
+      if (!auth.ok) {
+        return NextResponse.json(
+          { error: auth.error },
+          { status: auth.status }
+        );
+      }
+
+      if (body.address !== discussion.author) {
+        return NextResponse.json(
+          { error: "Only the thread author or a moderator can do that" },
+          { status: 403 }
+        );
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    for (const field of [...AUTHOR_FIELDS, ...MODERATOR_ONLY_FIELDS]) {
+      if (changes[field] !== undefined) updateData[field] = changes[field];
+    }
 
     const updated = await prisma.discussion.update({
       where: { id: discussion.id },

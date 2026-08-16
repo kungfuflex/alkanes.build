@@ -20,6 +20,13 @@ vi.mock("@/lib/prisma", () => {
 import { GET, POST, PUT } from "@/app/api/forum/categories/route";
 import { prisma } from "@/lib/prisma";
 
+const ADMIN_TOKEN = "w5-test-operator-token-0123456789abcdef";
+const ADMIN_HEADERS = { authorization: `Bearer ${ADMIN_TOKEN}` };
+
+beforeEach(() => {
+  process.env.FORUM_ADMIN_TOKEN = ADMIN_TOKEN;
+});
+
 // Type assertions for mocks
 const mockCategory = prisma.category as any;
 
@@ -129,6 +136,7 @@ describe("POST /api/forum/categories", () => {
 
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "POST",
+      headers: ADMIN_HEADERS,
       body: JSON.stringify({
         name: "New Category",
         slug: "new-category",
@@ -146,6 +154,7 @@ describe("POST /api/forum/categories", () => {
   it("returns 400 for missing required fields", async () => {
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "POST",
+      headers: ADMIN_HEADERS,
       body: JSON.stringify({
         name: "Test",
         // Missing slug
@@ -164,6 +173,7 @@ describe("POST /api/forum/categories", () => {
 
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "POST",
+      headers: ADMIN_HEADERS,
       body: JSON.stringify({
         name: "Test",
         slug: "existing-slug",
@@ -184,6 +194,7 @@ describe("POST /api/forum/categories", () => {
 
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "POST",
+      headers: ADMIN_HEADERS,
       body: JSON.stringify({
         name: "Test",
         slug: "test",
@@ -209,6 +220,7 @@ describe("POST /api/forum/categories", () => {
 
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "POST",
+      headers: ADMIN_HEADERS,
       body: JSON.stringify({
         name: "Test",
         slug: "test",
@@ -228,6 +240,7 @@ describe("POST /api/forum/categories", () => {
 
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "POST",
+      headers: ADMIN_HEADERS,
       body: JSON.stringify({
         name: "Test",
         slug: "test",
@@ -258,6 +271,7 @@ describe("PUT /api/forum/categories (seed)", () => {
 
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "PUT",
+      headers: ADMIN_HEADERS,
     });
 
     const response = await PUT(request);
@@ -284,6 +298,7 @@ describe("PUT /api/forum/categories (seed)", () => {
 
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "PUT",
+      headers: ADMIN_HEADERS,
     });
 
     const response = await PUT(request);
@@ -298,6 +313,7 @@ describe("PUT /api/forum/categories (seed)", () => {
 
     const request = new NextRequest("http://localhost/api/forum/categories", {
       method: "PUT",
+      headers: ADMIN_HEADERS,
     });
 
     const response = await PUT(request);
@@ -305,5 +321,148 @@ describe("PUT /api/forum/categories (seed)", () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe("Failed to seed categories");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The seed and category-creation endpoints.
+//
+// Both were reachable unauthenticated in every build, production included:
+// ordinary exported route handlers with no environment guard, gated only by a
+// `// TODO: Check admin permissions` comment.
+// ---------------------------------------------------------------------------
+
+describe("administrative endpoints — authentication", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.FORUM_ADMIN_TOKEN = ADMIN_TOKEN;
+    mockCategory.findUnique.mockResolvedValue(null);
+    mockCategory.create.mockImplementation((args: any) =>
+      Promise.resolve({ id: `cat-${args.data.slug}`, ...args.data })
+    );
+  });
+
+  const seedRequest = (headers: Record<string, string> = {}) =>
+    new NextRequest("http://localhost/api/forum/categories", {
+      method: "PUT",
+      headers,
+    });
+
+  const createRequest = (headers: Record<string, string> = {}) =>
+    new NextRequest("http://localhost/api/forum/categories", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ name: "Injected", slug: "injected" }),
+    });
+
+  describe("negative — the seed route", () => {
+    it("rejects an unauthenticated seed and writes nothing", async () => {
+      const response = await PUT(seedRequest());
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe("Administrative authentication required");
+      expect(mockCategory.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a wrong token", async () => {
+      const response = await PUT(
+        seedRequest({ authorization: "Bearer wrong-token-but-long-enough-xxxxx" })
+      );
+
+      expect(response.status).toBe(403);
+      expect(mockCategory.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a non-Bearer authorization header", async () => {
+      const response = await PUT(
+        seedRequest({ authorization: `Basic ${ADMIN_TOKEN}` })
+      );
+
+      expect(response.status).toBe(401);
+      expect(mockCategory.create).not.toHaveBeenCalled();
+    });
+
+    it("is unavailable, not open, when no token is configured", async () => {
+      delete process.env.FORUM_ADMIN_TOKEN;
+
+      const response = await PUT(seedRequest());
+      const data = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(data.error).toContain("not configured");
+      expect(mockCategory.create).not.toHaveBeenCalled();
+    });
+
+    it("treats a too-short configured token as absent", async () => {
+      process.env.FORUM_ADMIN_TOKEN = "short";
+
+      const response = await PUT(
+        seedRequest({ authorization: "Bearer short" })
+      );
+
+      expect(response.status).toBe(503);
+      expect(mockCategory.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("negative — category creation", () => {
+    it("rejects an unauthenticated create and writes nothing", async () => {
+      const response = await POST(createRequest());
+
+      expect(response.status).toBe(401);
+      expect(mockCategory.create).not.toHaveBeenCalled();
+    });
+
+    it("checks credentials before it looks at the body", async () => {
+      const response = await POST(
+        new NextRequest("http://localhost/api/forum/categories", {
+          method: "POST",
+          body: JSON.stringify({}),
+        })
+      );
+
+      // Not 400: an unauthenticated caller learns nothing about validation.
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe("positive controls", () => {
+    it("seeds with a valid operator token", async () => {
+      const response = await PUT(
+        seedRequest({ authorization: `Bearer ${ADMIN_TOKEN}` })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.categories.length).toBe(5);
+      expect(mockCategory.create).toHaveBeenCalledTimes(5);
+    });
+
+    it("creates a category with a valid operator token", async () => {
+      const response = await POST(
+        createRequest({ authorization: `Bearer ${ADMIN_TOKEN}` })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.category.slug).toBe("injected");
+    });
+
+    it("tolerates surrounding whitespace in the header", async () => {
+      const response = await PUT(
+        seedRequest({ authorization: `  Bearer   ${ADMIN_TOKEN}  ` })
+      );
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  it("GET stays public", async () => {
+    mockCategory.findMany.mockResolvedValue([]);
+
+    const response = await GET();
+
+    expect(response.status).toBe(200);
   });
 });

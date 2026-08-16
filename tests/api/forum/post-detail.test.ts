@@ -137,255 +137,302 @@ describe("GET /api/forum/posts/[id]", () => {
   });
 });
 
-describe("PATCH /api/forum/posts/[id]", () => {
+// ---------------------------------------------------------------------------
+// PATCH / DELETE — post edit and removal.
+//
+// Both handlers previously took an `author` value straight from the request
+// and compared it to `post.author`. Since the caller supplies that value, the
+// check was decorative: naming the victim was enough to edit or delete their
+// post. `authorSig` was read and never verified.
+// ---------------------------------------------------------------------------
+
+import { createHash } from "crypto";
+import { buildSigningMessage, SIGNING_ACTIONS } from "@/lib/signing-message";
+import { p2trWallet, testNonce } from "../../helpers/bip322-signer";
+
+const ADMIN_TOKEN = "w5-test-operator-token-0123456789abcdef";
+const postAuthor = p2trWallet("c3".repeat(32));
+const attacker = p2trWallet("d4".repeat(32));
+
+const authoredPost = { ...mockPostData, author: postAuthor.address };
+
+function sha256Hex(value: string) {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function signedEdit(
+  wallet: { address: string; sign(m: string): string },
+  content: string,
+  postId = authoredPost.id
+) {
+  const issuedAt = Date.now();
+  const nonce = testNonce("f");
+  const message = buildSigningMessage({
+    action: SIGNING_ACTIONS.POST_EDIT,
+    address: wallet.address,
+    resource: `post:${postId}`,
+    params: { contentSha256: sha256Hex(content) },
+    issuedAt,
+    nonce,
+  });
+  return {
+    content,
+    address: wallet.address,
+    signature: wallet.sign(message),
+    issuedAt,
+    nonce,
+  };
+}
+
+function signedDeleteQuery(
+  wallet: { address: string; sign(m: string): string },
+  postId = authoredPost.id
+) {
+  const issuedAt = Date.now();
+  const nonce = testNonce("0");
+  const message = buildSigningMessage({
+    action: SIGNING_ACTIONS.POST_DELETE,
+    address: wallet.address,
+    resource: `post:${postId}`,
+    issuedAt,
+    nonce,
+  });
+  return new URLSearchParams({
+    address: wallet.address,
+    signature: wallet.sign(message),
+    issuedAt: String(issuedAt),
+    nonce,
+  }).toString();
+}
+
+const patchParams = { params: Promise.resolve({ id: authoredPost.id }) };
+
+describe("PATCH /api/forum/posts/[id] — authentication", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("updates post content", async () => {
-    mockPost.findUnique.mockResolvedValue(mockPostData);
-    mockTransaction.mockImplementation(async (fn: any) => {
-      const ctx = {
-        postRevision: {
-          count: vi.fn().mockResolvedValue(0),
-          create: vi.fn().mockResolvedValue({}),
-        },
+    process.env.FORUM_ADMIN_TOKEN = ADMIN_TOKEN;
+    mockPost.findUnique.mockResolvedValue(authoredPost);
+    mockTransaction.mockImplementation(async (fn: any) =>
+      fn({
+        postRevision: { count: vi.fn().mockResolvedValue(0), create: vi.fn() },
         post: {
-          update: vi.fn().mockResolvedValue({
-            ...mockPostData,
-            raw: "Updated content",
-            cooked: "<p>Updated content</p>",
-            isEdited: true,
-          }),
+          update: vi.fn().mockImplementation((args: any) =>
+            Promise.resolve({ ...authoredPost, ...args.data })
+          ),
         },
-      };
-      return fn(ctx);
-    });
-
-    const request = new NextRequest("http://localhost/api/forum/posts/post-1", {
-      method: "PATCH",
-      body: JSON.stringify({
-        content: "Updated content",
-        author: "bc1qauthor",
-        editReason: "Fixed typo",
-      }),
-    });
-    const response = await PATCH(request, {
-      params: Promise.resolve({ id: "post-1" }),
-    });
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.post.raw).toBe("Updated content");
-    expect(data.post.isEdited).toBe(true);
+      })
+    );
   });
 
-  it("returns 400 for missing required fields", async () => {
-    const request = new NextRequest("http://localhost/api/forum/posts/post-1", {
-      method: "PATCH",
-      body: JSON.stringify({
-        // Missing content and author
-      }),
-    });
-    const response = await PATCH(request, {
-      params: Promise.resolve({ id: "post-1" }),
-    });
-    const data = await response.json();
+  it("rejects the pre-fix request shape — naming the author is not proof", async () => {
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          content: "Defaced",
+          author: postAuthor.address,
+          authorSig: "anything",
+        }),
+      }
+    );
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Missing required fields: content, author");
+    const response = await PATCH(request, patchParams);
+
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
-  it("returns 404 for non-existent post", async () => {
-    mockPost.findUnique.mockResolvedValue(null);
+  it("rejects a valid signature by somebody who is not the post author", async () => {
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(signedEdit(attacker, "Defaced")),
+      }
+    );
 
-    const request = new NextRequest("http://localhost/api/forum/posts/post-1", {
-      method: "PATCH",
-      body: JSON.stringify({
-        content: "Updated content",
-        author: "bc1qauthor",
-      }),
-    });
-    const response = await PATCH(request, {
-      params: Promise.resolve({ id: "post-1" }),
-    });
-    const data = await response.json();
-
-    expect(response.status).toBe(404);
-    expect(data.error).toBe("Post not found");
-  });
-
-  it("returns 403 when non-author tries to edit", async () => {
-    mockPost.findUnique.mockResolvedValue(mockPostData);
-
-    const request = new NextRequest("http://localhost/api/forum/posts/post-1", {
-      method: "PATCH",
-      body: JSON.stringify({
-        content: "Updated content",
-        author: "bc1qhacker", // Not the original author
-      }),
-    });
-    const response = await PATCH(request, {
-      params: Promise.resolve({ id: "post-1" }),
-    });
+    const response = await PATCH(request, patchParams);
     const data = await response.json();
 
     expect(response.status).toBe(403);
-    expect(data.error).toBe("Only the author can edit this post");
+    expect(data.error).toBe("Only the post author or a moderator can do that");
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
-  it("creates revision when editing", async () => {
-    mockPost.findUnique.mockResolvedValue(mockPostData);
+  it("rejects content swapped after signing", async () => {
+    const body = signedEdit(postAuthor, "Original content");
+    body.content = "Swapped content";
 
-    let revisionCreated = false;
-    mockTransaction.mockImplementation(async (fn: any) => {
-      const ctx = {
-        postRevision: {
-          count: vi.fn().mockResolvedValue(0),
-          create: vi.fn().mockImplementation(() => {
-            revisionCreated = true;
-            return {};
-          }),
-        },
-        post: {
-          update: vi.fn().mockResolvedValue({
-            ...mockPostData,
-            isEdited: true,
-          }),
-        },
-      };
-      return fn(ctx);
-    });
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      { method: "PATCH", body: JSON.stringify(body) }
+    );
 
-    const request = new NextRequest("http://localhost/api/forum/posts/post-1", {
-      method: "PATCH",
-      body: JSON.stringify({
-        content: "Updated content",
-        author: "bc1qauthor",
-      }),
-    });
-    await PATCH(request, {
-      params: Promise.resolve({ id: "post-1" }),
-    });
+    const response = await PATCH(request, patchParams);
 
-    expect(revisionCreated).toBe(true);
+    expect(response.status).toBe(401);
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
-  it("handles database errors", async () => {
-    mockPost.findUnique.mockRejectedValue(new Error("DB error"));
+  it("rejects a signature bound to a different post", async () => {
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(
+          signedEdit(postAuthor, "Content", "some-other-post-id")
+        ),
+      }
+    );
 
-    const request = new NextRequest("http://localhost/api/forum/posts/post-1", {
-      method: "PATCH",
-      body: JSON.stringify({
-        content: "Updated content",
-        author: "bc1qauthor",
-      }),
-    });
-    const response = await PATCH(request, {
-      params: Promise.resolve({ id: "post-1" }),
-    });
+    const response = await PATCH(request, patchParams);
+
+    expect(response.status).toBe(401);
+    expect(mockTransaction).not.toHaveBeenCalled();
+  });
+
+  it("POSITIVE: the post author can edit with a valid signature", async () => {
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(signedEdit(postAuthor, "Updated content")),
+      }
+    );
+
+    const response = await PATCH(request, patchParams);
+
+    expect(response.status).toBe(200);
+    expect(mockTransaction).toHaveBeenCalled();
+  });
+
+  it("POSITIVE: an operator can edit with the admin token", async () => {
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ content: "Moderated content" }),
+        headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      }
+    );
+
+    const response = await PATCH(request, patchParams);
+
+    expect(response.status).toBe(200);
+    expect(mockTransaction).toHaveBeenCalled();
+  });
+
+  it("returns 400 when content is missing", async () => {
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({}),
+        headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      }
+    );
+
+    const response = await PATCH(request, patchParams);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to update post");
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Missing required field: content");
+  });
+
+  it("returns 404 for a non-existent post", async () => {
+    mockPost.findUnique.mockResolvedValue(null);
+
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ content: "x" }),
+        headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      }
+    );
+
+    const response = await PATCH(request, patchParams);
+
+    expect(response.status).toBe(404);
   });
 });
 
-describe("DELETE /api/forum/posts/[id]", () => {
+describe("DELETE /api/forum/posts/[id] — authentication", () => {
+  const deletable = { ...authoredPost, postNumber: 2 };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.FORUM_ADMIN_TOKEN = ADMIN_TOKEN;
+    mockPost.findUnique.mockResolvedValue(deletable);
+    mockPost.update.mockResolvedValue({ ...deletable, isHidden: true });
   });
 
-  it("soft deletes a post (not first post)", async () => {
-    mockPost.findUnique.mockResolvedValue(mockSecondPost);
-    mockPost.update.mockResolvedValue({ ...mockSecondPost, isHidden: true });
-
+  it("rejects the pre-fix request shape — ?author=<victim> is not proof", async () => {
     const request = new NextRequest(
-      "http://localhost/api/forum/posts/post-2?author=bc1quser1"
+      `http://localhost/api/forum/posts/${deletable.id}?author=${postAuthor.address}`,
+      { method: "DELETE" }
     );
-    const response = await DELETE(request, {
-      params: Promise.resolve({ id: "post-2" }),
-    });
-    const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(mockPost.update).toHaveBeenCalledWith({
-      where: { id: "post-2" },
-      data: { isHidden: true },
-    });
+    const response = await DELETE(request, patchParams);
+
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(mockPost.update).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when author parameter is missing", async () => {
+  it("rejects a valid signature by somebody who is not the post author", async () => {
     const request = new NextRequest(
-      "http://localhost/api/forum/posts/post-2"
+      `http://localhost/api/forum/posts/${deletable.id}?${signedDeleteQuery(attacker)}`,
+      { method: "DELETE" }
     );
-    const response = await DELETE(request, {
-      params: Promise.resolve({ id: "post-2" }),
-    });
-    const data = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(data.error).toBe("Missing author parameter");
-  });
-
-  it("returns 404 for non-existent post", async () => {
-    mockPost.findUnique.mockResolvedValue(null);
-
-    const request = new NextRequest(
-      "http://localhost/api/forum/posts/non-existent?author=bc1quser1"
-    );
-    const response = await DELETE(request, {
-      params: Promise.resolve({ id: "non-existent" }),
-    });
-    const data = await response.json();
-
-    expect(response.status).toBe(404);
-    expect(data.error).toBe("Post not found");
-  });
-
-  it("returns 403 when non-author tries to delete", async () => {
-    mockPost.findUnique.mockResolvedValue(mockSecondPost);
-
-    const request = new NextRequest(
-      "http://localhost/api/forum/posts/post-2?author=bc1qhacker"
-    );
-    const response = await DELETE(request, {
-      params: Promise.resolve({ id: "post-2" }),
-    });
+    const response = await DELETE(request, patchParams);
     const data = await response.json();
 
     expect(response.status).toBe(403);
-    expect(data.error).toBe("Only the author can delete this post");
+    expect(data.error).toBe("Only the post author or a moderator can do that");
+    expect(mockPost.update).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when trying to delete first post", async () => {
-    mockPost.findUnique.mockResolvedValue(mockPostData); // postNumber is 1
+  it("POSITIVE: the post author can delete with a valid signature", async () => {
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${deletable.id}?${signedDeleteQuery(postAuthor)}`,
+      { method: "DELETE" }
+    );
+
+    const response = await DELETE(request, patchParams);
+
+    expect(response.status).toBe(200);
+    expect(mockPost.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { isHidden: true } })
+    );
+  });
+
+  it("POSITIVE: an operator can delete with the admin token", async () => {
+    const request = new NextRequest(
+      `http://localhost/api/forum/posts/${deletable.id}`,
+      { method: "DELETE", headers: { authorization: `Bearer ${ADMIN_TOKEN}` } }
+    );
+
+    const response = await DELETE(request, patchParams);
+
+    expect(response.status).toBe(200);
+  });
+
+  it("still refuses to delete the first post", async () => {
+    mockPost.findUnique.mockResolvedValue({ ...authoredPost, postNumber: 1 });
 
     const request = new NextRequest(
-      "http://localhost/api/forum/posts/post-1?author=bc1qauthor"
+      `http://localhost/api/forum/posts/${authoredPost.id}`,
+      { method: "DELETE", headers: { authorization: `Bearer ${ADMIN_TOKEN}` } }
     );
-    const response = await DELETE(request, {
-      params: Promise.resolve({ id: "post-1" }),
-    });
+
+    const response = await DELETE(request, patchParams);
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Cannot delete the first post. Delete the discussion instead.");
-  });
-
-  it("handles database errors", async () => {
-    mockPost.findUnique.mockRejectedValue(new Error("DB error"));
-
-    const request = new NextRequest(
-      "http://localhost/api/forum/posts/post-2?author=bc1quser1"
+    expect(data.error).toBe(
+      "Cannot delete the first post. Delete the discussion instead."
     );
-    const response = await DELETE(request, {
-      params: Promise.resolve({ id: "post-2" }),
-    });
-    const data = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(data.error).toBe("Failed to delete post");
   });
 });

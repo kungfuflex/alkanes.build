@@ -1,108 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { validate } from "bitcoin-address-validation";
-
-// Verification message must be recent (within 5 minutes)
-const MAX_MESSAGE_AGE = 5 * 60 * 1000;
-
-/**
- * Verify a signature (used by keystore wallets and browser wallets)
- * Validates signature format - actual cryptographic verification would require
- * the public key which we don't have stored.
- */
-function verifySignatureFormat(
-  signatureBase64: string,
-  address: string
-): boolean {
-  try {
-    // Decode the signature
-    const signature = Buffer.from(signatureBase64, "base64");
-
-    // For taproot addresses (bc1p...), the signature is a raw ECDSA or Schnorr signature
-    // Schnorr signatures are 64 bytes, ECDSA can be 64-72 bytes (DER encoded)
-    if (address.startsWith("bc1p") || address.startsWith("tb1p")) {
-      // Taproot address - signature should be 64 bytes (Schnorr) or 64-72 (ECDSA DER)
-      if (signature.length >= 64 && signature.length <= 72) {
-        return true;
-      }
-    }
-
-    // For other address types (bc1q, legacy, etc.), check signature format
-    // ECDSA signatures are typically 64-72 bytes when DER encoded
-    // BIP-322 signatures may be longer as they include witness data
-    if (signature.length >= 64) {
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error("Signature verification error:", error);
-    return false;
-  }
-}
+import { verifySignedAction } from "@/lib/request-auth";
+import { SIGNING_ACTIONS } from "@/lib/signing-message";
 
 /**
  * POST /api/profile/verify
- * Verify address ownership via signature
- * Supports both keystore ECDSA signatures and browser wallet signatures
+ *
+ * Prove control of a Bitcoin address, and mark the profile verified.
+ *
+ * Before: the submitted signature underwent no cryptographic operation of any
+ * kind. It was length-checked, stored, and `verified: true` was written for
+ * whatever address the caller named — so the verified badge was settable by
+ * anyone, for anyone.
+ *
+ * Now: the server rebuilds the canonical `profile:verify` message from the
+ * request's own fields and checks the signature against it with the
+ * repository's BIP-322 verifier. `verified: true` is written only after that
+ * check passes, and only for the address that actually signed.
+ *
+ * Request body:
+ *   address   — the Bitcoin address being proved (bc1q/bc1p/tb1q/tb1p)
+ *   signature — base64 BIP-322 signature over the canonical message
+ *   issuedAt  — unix milliseconds, must be within the freshness window
+ *   nonce     — 32 lowercase hex characters
+ *
+ * The message itself is NOT accepted from the client; see lib/request-auth.ts.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { address, message, signature, timestamp } = body;
+    const { address, signature, issuedAt, nonce } = body ?? {};
 
-    if (!address || !message || !signature || !timestamp) {
-      return NextResponse.json(
-        { error: "Missing required fields: address, message, signature, timestamp" },
-        { status: 400 }
-      );
+    const auth = await verifySignedAction({
+      action: SIGNING_ACTIONS.PROFILE_VERIFY,
+      address,
+      signature,
+      issuedAt,
+      nonce,
+      resource: typeof address === "string" ? `address:${address}` : undefined,
+    });
+
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    // Validate Bitcoin address format
-    if (!validate(address)) {
-      return NextResponse.json(
-        { error: "Invalid Bitcoin address" },
-        { status: 400 }
-      );
-    }
-
-    // Check message timestamp is recent
-    const messageTime = parseInt(timestamp);
-    const now = Date.now();
-    if (isNaN(messageTime) || now - messageTime > MAX_MESSAGE_AGE) {
-      return NextResponse.json(
-        { error: "Verification message has expired. Please try again." },
-        { status: 400 }
-      );
-    }
-
-    // Verify message contains the expected content
-    const expectedPrefix = `Verify ownership of ${address} for alkanes.build forum`;
-    if (!message.startsWith(expectedPrefix)) {
-      return NextResponse.json(
-        { error: "Invalid verification message format" },
-        { status: 400 }
-      );
-    }
-
-    // Verify the signature
-    if (!signature || signature.length < 10) {
-      return NextResponse.json(
-        { error: "Invalid signature format" },
-        { status: 400 }
-      );
-    }
-
-    // Try to verify the signature format
-    const isValidSignature = verifySignatureFormat(signature, address);
-    if (!isValidSignature) {
-      return NextResponse.json(
-        { error: "Invalid signature" },
-        { status: 400 }
-      );
-    }
-
-    // Update profile as verified
     try {
       const profile = await prisma.userProfile.upsert({
         where: { address },
@@ -133,22 +74,16 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return NextResponse.json({
-        success: true,
-        profile,
-      });
+      return NextResponse.json({ success: true, profile });
     } catch (dbError) {
+      // The previous version answered 200 with `verified: true` here, which
+      // told the client it was verified when nothing had been persisted.
+      // A write that did not happen is not a success.
       console.error("Database error during verification:", dbError);
-      // Still return success since the signature was valid
-      // Just couldn't persist to database
-      return NextResponse.json({
-        success: true,
-        profile: {
-          address,
-          verified: true,
-          _dbUnavailable: true,
-        },
-      });
+      return NextResponse.json(
+        { error: "Database unavailable. Please try again later." },
+        { status: 503 }
+      );
     }
   } catch (error) {
     console.error("Error verifying profile:", error);
