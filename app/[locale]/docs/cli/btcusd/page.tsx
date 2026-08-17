@@ -170,7 +170,7 @@ const content = {
 
     ladderTitle: "What size actually costs",
     ladderIntro:
-      "The marginal price is not the price you get. This pool is shallow, so the gap is material, and it is asymmetric only at small size. Buying BTC out of the pool is expensive from the first dollar. Selling into it clears a hair above market while the size is small, because the pool's own price sits above market, but impact swallows that premium fast: 0.03 BTC already clears about 8.5% below market. Quote at the size you intend to trade, not at a smaller one.",
+      "The marginal price is not the price you get. This pool is shallow, so price impact is material and grows fast with size: in the ladders below, buying is already 0.9% off the marginal price at $500 and 8.8% off at $5,000, and selling 0.03 BTC clears about 8.5% below market. Whether a small trade starts out slightly for or against you depends on which side of the market the pool's marginal price is sitting on that day, and it moves — it was about 0.8% above market at this reading and has been below it since. That side is the one thing here you must re-measure rather than read: the ladders show impact, which is a property of the curve, but the starting point is not. Quote at the size you intend to trade, not at a smaller one.",
     ladderBuyTitle: "Buying frBTC with frUSD",
     ladderBuyCols: ["Size in", "bps of incoming leg", "frBTC out (base)", "Effective USD/BTC"],
     ladderBuy: [
